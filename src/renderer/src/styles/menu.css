@@ -28,7 +28,6 @@
 
 .menu-item {
   width: 100%;
-  min-height: var(--control-height-md);
   justify-content: flex-start;
   padding: 0 var(--space-3);
   text-align: left;

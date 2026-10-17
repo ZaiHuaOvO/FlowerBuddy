@@ -25,7 +25,7 @@
     "test:watch": "vitest",
     "build": "npm run typecheck && electron-vite build",
     "icons": "node scripts/generate-icon.mjs",
-    "pets": "node scripts/generate-default-pet.mjs",
+    "pets": "electron scripts/convert-default-pet.cjs",
     "assets": "npm run icons && npm run pets",
     "licenses": "node scripts/generate-licenses.mjs",
     "dist:win": "npm run build && npm run licenses && electron-builder --win --x64",

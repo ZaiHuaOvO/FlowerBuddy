@@ -51,7 +51,7 @@ npm install
 | `npm test`                                | Vitest 单元测试                                         |
 | `npm run build`                           | 类型检查 + 生产构建到 `out/`                            |
 | `npm run icons`                           | 重新生成应用图标与托盘图标                              |
-| `npm run pets`                            | 重新生成内置默认桌宠图片                                |
+| `npm run pets`                            | 从 `assets/pet-source.webp` 重新生成默认桌宠 PNG        |
 | `npm run assets`                          | 依次生成图标与默认桌宠图片                              |
 | `npm run licenses`                        | 生成 `licenses/THIRD_PARTY_LICENSES.md`                 |
 | `npm run dist:win`                        | 构建并打包 Windows x64 NSIS 安装版与便携版到 `release/` |
@@ -75,7 +75,7 @@ src/
   shared/                # 主进程与渲染进程共享的类型/通道名
 tests/unit/              # Vitest 单元测试
 scripts/                 # 图标、默认形象与许可证生成脚本
-assets/                  # 应用图标、托盘图标与默认桌宠（全部自绘）
+assets/                  # 应用图标、托盘图标、默认桌宠与桌宠源文件
 docs/screenshots/        # 视觉回归截图
 out/                     # 构建输出（不入库）
 release/                 # 安装包输出（不入库）
@@ -95,8 +95,9 @@ release/                 # 安装包输出（不入库）
 - 视觉规范以 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) 为准；设计 token 集中定义在 [tokens.css](src/renderer/src/styles/tokens.css)，业务样式不硬编码颜色、间距、圆角或阴影。
 - Token 来源：花墨设计规范 <https://flowersink.com/design/>，核对日期 2026-10-17，直接读取其公开样式中的 `--fi-*` 自定义属性。
 - 已核验并落地：颜色 token、间距标尺（4–52px）、圆角（8/10/14/18px 等）、三档阴影、字体栈与字号/字重/行高、动效时长（0.16/0.24/0.32s）与缓动、控件高度（28/36/44px）、表单默认/悬停/聚焦/禁用状态。
-- 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退；主按钮填充使用 `--fi-primary` 与 `--fi-text-inverse`，规范页内置按钮样式来自 Ant Design 默认值，精确填充未能直接核验。
-- 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
+- 主按钮另按线上 `.fl-button--solid` 组件实测对齐：背景 `#8b5a2b`、白色文字、34px 高、10px 圆角、500 字重。
+- 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退。
+- 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；模拟 `prefers-reduced-motion: reduce` 后弹跳动画数量为 0 且过渡降至 0.01ms；托盘图标为有效的 64×64 PNG；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
 - 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)。
 
 ## 安全设计

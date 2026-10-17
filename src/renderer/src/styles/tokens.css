@@ -13,9 +13,9 @@
  * - "Microsoft YaHei UI" is appended to the font stack so Chinese text renders
  *   correctly on Windows when Inter/Noto Sans SC are not installed.
  * - Pressed surfaces reuse the verified page background colour.
- * - The primary button fill uses --fi-primary with --fi-text-inverse. The page
- *   ships Ant Design's default blue button rules, so the exact built button fill
- *   could not be confirmed from the stylesheet.
+ * - Primary button values were verified against the live .fl-button--solid
+ *   component on the design page (2026-10-17): background #8b5a2b, white text,
+ *   34px height, 10px radius, 500 weight.
  */
 :root {
   color-scheme: light;
@@ -28,6 +28,7 @@
   --color-text: #2f2117;
   --color-text-muted: #7a6756;
   --color-text-inverse: #fffaf5;
+  --color-on-primary: #ffffff;
   --color-border: #e5e7eb;
   --color-border-strong: #d0c0b0;
   --color-primary: #8b5a2b;
@@ -107,6 +108,7 @@
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Controls */
+  --control-height-button: 34px;
   --control-height-sm: 28px;
   --control-height-md: 36px;
   --control-height-lg: 44px;
