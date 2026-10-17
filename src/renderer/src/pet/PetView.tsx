@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PetViewState } from '../../../shared/api'
+import '../styles/pet.css'
 
 const CLICK_MOVE_THRESHOLD = 5
 

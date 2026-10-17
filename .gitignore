@@ -4,9 +4,7 @@ node_modules/
 # Build output
 out/
 release/
-release-baseline/
-release-repeat/
-release-final/
+release-*/
 licenses/
 coverage/
 *.tsbuildinfo

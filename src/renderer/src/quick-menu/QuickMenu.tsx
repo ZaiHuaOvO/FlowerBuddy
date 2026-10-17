@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MenuActionSummary } from '../../../shared/api'
 import { Button } from '../components/Button'
+import '../styles/menu.css'
 
 function fire(operation: Promise<unknown> | undefined): void {
   void operation?.catch(() => {})

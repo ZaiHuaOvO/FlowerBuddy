@@ -23,6 +23,7 @@ import { Button } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
 import { Field } from '../components/Field'
 import { Tag, type TagTone } from '../components/Tag'
+import '../styles/settings.css'
 
 const BUBBLE_DURATION_OPTIONS = [3000, 5000, 8000]
 const SCALE_MIN = 0.5

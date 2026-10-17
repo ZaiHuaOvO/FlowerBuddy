@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BubblePayload, BubbleState } from '../../../shared/api'
+import '../styles/bubble.css'
 
 const STATE_SYMBOL: Record<Exclude<BubbleState, 'loading'>, string> = {
   idle: 'i',
