@@ -3,14 +3,24 @@ import { app, Menu, nativeTheme, powerMonitor, session } from 'electron'
 import { AppController } from './app-controller'
 import { registerIpcHandlers } from './ipc/register-handlers'
 import { createSenderValidator } from './ipc/validate-sender'
+import { sanitizeDatesData } from './modules/dates/dates-data'
+import { DatesService } from './modules/dates/dates-service'
+import { createEmptyDatesData, type DatesData } from './modules/dates/types'
 import { ModuleManager } from './modules/module-manager'
 import { createModuleRegistry } from './modules/registry'
+import {
+  createEmptyWebsiteData,
+  sanitizeWebsiteData,
+  type WebsiteData
+} from './modules/website-check/website-types'
+import { WebsiteService } from './modules/website-check/website-service'
 import { handlePetAssetRequests, registerPetAssetScheme } from './protocol/pet-asset-protocol'
 import { TaskScheduler } from './scheduler/task-scheduler'
 import { electronSafeStorageBackend } from './security/safe-storage-backend'
 import { SecretStore } from './security/secret-store'
 import { Logger } from './shared/logger'
 import { ConfigStore } from './storage/config-store'
+import { JsonStore } from './storage/json-store'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
 const devServerUrl = process.env['ELECTRON_RENDERER_URL']
@@ -54,8 +64,29 @@ async function bootstrap(): Promise<void> {
   secretStore.load()
 
   const scheduler = new TaskScheduler({ logger })
+  const dataDirectory = join(userDataPath, 'data')
+
+  const datesStore = new JsonStore<DatesData>(join(dataDirectory, 'dates.json'), {
+    label: 'dates',
+    defaults: createEmptyDatesData,
+    sanitize: sanitizeDatesData,
+    logger
+  })
+  datesStore.load()
+
+  const websiteStore = new JsonStore<WebsiteData>(join(dataDirectory, 'website-checks.json'), {
+    label: 'website-checks',
+    defaults: createEmptyWebsiteData,
+    sanitize: sanitizeWebsiteData,
+    logger
+  })
+  websiteStore.load()
+
+  const datesService = new DatesService(datesStore)
+  const websiteService = new WebsiteService(websiteStore)
+
   const moduleManager = new ModuleManager({
-    modules: createModuleRegistry(),
+    modules: createModuleRegistry({ datesService, websiteService }),
     configStore,
     scheduler,
     logger
@@ -65,6 +96,8 @@ async function bootstrap(): Promise<void> {
     configStore,
     moduleManager,
     secretStore,
+    datesService,
+    websiteService,
     logger,
     devServerUrl,
     rendererIndexPath,

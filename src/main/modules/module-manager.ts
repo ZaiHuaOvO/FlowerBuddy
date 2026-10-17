@@ -1,4 +1,12 @@
-import type { ModuleId, ModuleStatus, ModuleSummary } from '../../shared/api'
+import type {
+  MenuActionSummary,
+  ModuleActionDefinition,
+  ModuleActionResult,
+  ModuleId,
+  ModuleStatus,
+  ModuleSummary
+} from '../../shared/api'
+import { AppError } from '../shared/errors'
 import type { LoggerLike } from '../shared/logger'
 import type { TaskScheduler } from '../scheduler/task-scheduler'
 import type { ConfigStore } from '../storage/config-store'
@@ -76,6 +84,62 @@ export class ModuleManager {
 
   handleResume(): void {
     this.options.scheduler.handleResume()
+  }
+
+  getMenuActions(): MenuActionSummary[] {
+    return this.options.modules
+      .filter(
+        (module) =>
+          module.implemented &&
+          module.isConfigured() &&
+          module.actions.length > 0 &&
+          this.options.configStore.isModuleEnabled(module.id)
+      )
+      .flatMap((module) =>
+        module.actions.map((action) => ({
+          id: action.id,
+          label: action.label,
+          moduleId: module.id
+        }))
+      )
+  }
+
+  getAction(actionId: string): {
+    module: ModuleDefinition
+    action: ModuleActionDefinition
+  } {
+    const module = this.options.modules.find((entry) =>
+      entry.actions.some((action) => action.id === actionId)
+    )
+    if (!module) {
+      throw new AppError('UNKNOWN_ACTION', '该功能不存在')
+    }
+    const action = module.actions.find((entry) => entry.id === actionId)
+    if (!action) {
+      throw new AppError('UNKNOWN_ACTION', '该功能不存在')
+    }
+    if (!module.implemented || !module.runAction) {
+      throw new AppError('UNKNOWN_ACTION', '该功能尚未实现')
+    }
+    if (!module.isConfigured()) {
+      throw new AppError('NOT_CONFIGURED', '该功能尚未配置')
+    }
+    if (!this.options.configStore.isModuleEnabled(module.id)) {
+      throw new AppError('MODULE_DISABLED', '该功能已停用，请在设置中启用')
+    }
+    return { module, action }
+  }
+
+  async runAction(actionId: string): Promise<ModuleActionResult> {
+    const { module, action } = this.getAction(actionId)
+    if (!module.runAction) {
+      throw new AppError('UNKNOWN_ACTION', '该功能尚未实现')
+    }
+    this.options.logger.info('module action started', {
+      module: module.id,
+      action: action.id
+    })
+    return module.runAction(actionId)
   }
 
   private shouldRun(module: ModuleDefinition): boolean {

@@ -3,16 +3,30 @@ import { ipcMain } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
 import type { z } from 'zod'
 import { IPC_CHANNELS } from '../../shared/api'
-import type { AppSettingsPatch, IpcResult, PetSettingsPatch } from '../../shared/api'
+import type {
+  AppSettingsPatch,
+  DateEventInput,
+  DateEventPatch,
+  IpcResult,
+  PetSettingsPatch,
+  WebsiteCheckInput,
+  WebsiteCheckPatch
+} from '../../shared/api'
 import type { AppController } from '../app-controller'
 import { AppError, toPublicError } from '../shared/errors'
 import type { LoggerLike } from '../shared/logger'
 import {
   appSettingsPatchSchema,
+  dateEventInputSchema,
+  dateUpdateInputSchema,
+  idEnabledInputSchema,
+  idInputSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   parseInput,
-  petSettingsPatchSchema
+  petSettingsPatchSchema,
+  websiteInputSchema,
+  websiteUpdateInputSchema
 } from './schemas'
 
 export type SenderValidator = (url: string | undefined) => boolean
@@ -74,6 +88,36 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     controller.setModuleEnabled(input.moduleId, input.enabled)
   )
   register(IPC_CHANNELS.securityStatus, null, () => controller.getSecurityStatus())
+
+  register(IPC_CHANNELS.datesList, null, () => controller.listDateEvents())
+  register(IPC_CHANNELS.datesCreate, dateEventInputSchema, (input) =>
+    controller.createDateEvent(input as DateEventInput)
+  )
+  register(IPC_CHANNELS.datesUpdate, dateUpdateInputSchema, (input) =>
+    controller.updateDateEvent(input.id, input.patch as DateEventPatch)
+  )
+  register(IPC_CHANNELS.datesDelete, idInputSchema, (input) => controller.deleteDateEvent(input.id))
+  register(IPC_CHANNELS.datesSetEnabled, idEnabledInputSchema, (input) =>
+    controller.setDateEventEnabled(input.id, input.enabled)
+  )
+
+  register(IPC_CHANNELS.websitesList, null, () => controller.listWebsiteChecks())
+  register(IPC_CHANNELS.websitesCreate, websiteInputSchema, (input) =>
+    controller.createWebsiteCheck(input as WebsiteCheckInput)
+  )
+  register(IPC_CHANNELS.websitesUpdate, websiteUpdateInputSchema, (input) =>
+    controller.updateWebsiteCheck(input.id, input.patch as WebsiteCheckPatch)
+  )
+  register(IPC_CHANNELS.websitesDelete, idInputSchema, (input) =>
+    controller.deleteWebsiteCheck(input.id)
+  )
+  register(IPC_CHANNELS.websitesSetEnabled, idEnabledInputSchema, (input) =>
+    controller.setWebsiteCheckEnabled(input.id, input.enabled)
+  )
+  register(IPC_CHANNELS.websitesCheck, idInputSchema, (input) => controller.checkWebsite(input.id))
+  register(IPC_CHANNELS.websitesCheckAll, null, () => controller.checkAllWebsites())
+
+  register(IPC_CHANNELS.menuGetActions, null, () => controller.getMenuActions())
 
   register(IPC_CHANNELS.petGetState, null, () => controller.getPetViewState())
   register(IPC_CHANNELS.petBeginDrag, null, () => controller.beginDrag())

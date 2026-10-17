@@ -15,7 +15,12 @@ const silentLogger: LoggerLike = {
   error: () => {}
 }
 
-function createTestModule(options: { id: ModuleId; configured: boolean; schedule?: boolean }) {
+function createTestModule(options: {
+  id: ModuleId
+  configured: boolean
+  schedule?: boolean
+  actionIds?: string[]
+}) {
   let startCalls = 0
   let stopCalls = 0
   const module: ModuleDefinition = {
@@ -24,6 +29,11 @@ function createTestModule(options: { id: ModuleId; configured: boolean; schedule
     description: '',
     requiresCredentials: !options.configured,
     implemented: true,
+    actions: (options.actionIds ?? []).map((id) => ({
+      id,
+      label: id,
+      loadingMessage: '正在处理…'
+    })),
     isConfigured: () => options.configured,
     getStatus: () => (options.configured ? 'ready' : 'not-configured'),
     start: (context) => {
@@ -39,6 +49,12 @@ function createTestModule(options: { id: ModuleId; configured: boolean; schedule
     },
     stop: () => {
       stopCalls += 1
+    },
+    runAction: async (actionId) => {
+      if (!options.actionIds?.includes(actionId)) {
+        throw new Error('not found')
+      }
+      return { state: 'success', message: `${options.id} ok` }
     }
   }
   return {
@@ -146,5 +162,52 @@ describe('module manager', () => {
 
     expect(dates.getStopCalls()).toBe(1)
     expect(scheduler.getTaskIds()).toEqual([])
+  })
+
+  it('exposes actions only for enabled and configured modules', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'flowerbuddy-actions-'))
+    temporaryDirectories.push(directory)
+    const configStore = new ConfigStore(join(directory, 'config.json'), {
+      saveDelayMs: 5000
+    })
+    configStore.load()
+    const scheduler = new TaskScheduler({ logger: silentLogger })
+    const dates = createTestModule({
+      id: 'dates',
+      configured: true,
+      actionIds: ['dates:upcoming']
+    })
+    const gmail = createTestModule({
+      id: 'gmail',
+      configured: false,
+      actionIds: ['gmail:check']
+    })
+    const manager = new ModuleManager({
+      modules: [dates.module, gmail.module],
+      configStore,
+      scheduler,
+      logger: silentLogger
+    })
+    manager.start()
+
+    expect(manager.getMenuActions()).toEqual([
+      { id: 'dates:upcoming', label: 'dates:upcoming', moduleId: 'dates' }
+    ])
+    await expect(manager.runAction('dates:upcoming')).resolves.toEqual({
+      state: 'success',
+      message: 'dates ok'
+    })
+
+    manager.setEnabled('dates', false)
+    expect(manager.getMenuActions()).toEqual([])
+    await expect(manager.runAction('dates:upcoming')).rejects.toMatchObject({
+      code: 'MODULE_DISABLED'
+    })
+    await expect(manager.runAction('missing:action')).rejects.toMatchObject({
+      code: 'UNKNOWN_ACTION'
+    })
+
+    manager.stop()
+    configStore.flush()
   })
 })

@@ -65,6 +65,99 @@ export interface ModuleSummary {
   statusLabel: string
 }
 
+export interface MenuActionSummary {
+  id: string
+  label: string
+  moduleId: ModuleId
+}
+
+export interface ModuleActionDefinition {
+  id: string
+  label: string
+  loadingMessage: string
+}
+
+export interface ModuleActionResult {
+  state: 'success' | 'empty' | 'error'
+  message: string
+}
+
+export type DateRecurrence = 'none' | 'yearly'
+export type DateCategory = 'birthday' | 'anniversary' | 'overtime' | 'custom'
+
+export interface DateEventInput {
+  title: string
+  date: string
+  recurrence: DateRecurrence
+  category: DateCategory
+  notifyDaysBefore?: number[]
+}
+
+export interface DateEventPatch {
+  title?: string
+  date?: string
+  recurrence?: DateRecurrence
+  category?: DateCategory
+  notifyDaysBefore?: number[]
+  enabled?: boolean
+}
+
+export interface DateEventSummary {
+  id: string
+  title: string
+  date: string
+  recurrence: DateRecurrence
+  category: DateCategory
+  notifyDaysBefore: number[]
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+  daysUntil: number | null
+  occurrence: string | null
+  upcoming: boolean
+}
+
+export type WebsiteCheckErrorKind =
+  'none' | 'http-error' | 'timeout' | 'network' | 'tls' | 'invalid-url' | 'cancelled'
+
+export interface WebsiteCheckResult {
+  ok: boolean
+  status: number | null
+  durationMs: number
+  finalUrl: string
+  errorKind: WebsiteCheckErrorKind
+  message: string
+  checkedAt: string
+}
+
+export interface WebsiteCheckInput {
+  name: string
+  url: string
+  timeoutMs: number
+  pollingIntervalMinutes: number | null
+  enabled?: boolean
+}
+
+export interface WebsiteCheckPatch {
+  name?: string
+  url?: string
+  timeoutMs?: number
+  pollingIntervalMinutes?: number | null
+  enabled?: boolean
+}
+
+export interface WebsiteCheckConfig {
+  id: string
+  name: string
+  url: string
+  enabled: boolean
+  timeoutMs: number
+  pollingIntervalMinutes: number | null
+  lastResult: WebsiteCheckResult | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface SecurityStatus {
   encryptionAvailable: boolean
   message: string | null
@@ -94,6 +187,8 @@ export type AppErrorCode =
   | 'SECRET_STORAGE_UNAVAILABLE'
   | 'CONFIG_ERROR'
   | 'UNKNOWN_ACTION'
+  | 'MODULE_DISABLED'
+  | 'NOT_FOUND'
 
 export interface PublicError {
   code: AppErrorCode
@@ -134,6 +229,19 @@ export const IPC_CHANNELS = {
   modulesList: 'modules:list',
   modulesSetEnabled: 'modules:set-enabled',
   securityStatus: 'security:status',
+  datesList: 'dates:list',
+  datesCreate: 'dates:create',
+  datesUpdate: 'dates:update',
+  datesDelete: 'dates:delete',
+  datesSetEnabled: 'dates:set-enabled',
+  websitesList: 'websites:list',
+  websitesCreate: 'websites:create',
+  websitesUpdate: 'websites:update',
+  websitesDelete: 'websites:delete',
+  websitesSetEnabled: 'websites:set-enabled',
+  websitesCheck: 'websites:check',
+  websitesCheckAll: 'websites:check-all',
+  menuGetActions: 'menu:get-actions',
   petGetState: 'pet:get-state',
   petStateChanged: 'pet:state-changed',
   petBeginDrag: 'pet:begin-drag',
@@ -161,6 +269,7 @@ export interface PetApi {
 }
 
 export interface MenuApi {
+  getActions(): Promise<MenuActionSummary[]>
   runAction(actionId: string): Promise<void>
   openSettings(): Promise<void>
   hidePet(): Promise<void>
@@ -184,4 +293,16 @@ export interface SettingsApi {
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): Promise<ModuleSummary[]>
   getSecurityStatus(): Promise<SecurityStatus>
   getStartupNotice(): Promise<string | null>
+  listDateEvents(): Promise<DateEventSummary[]>
+  createDateEvent(input: DateEventInput): Promise<DateEventSummary[]>
+  updateDateEvent(id: string, patch: DateEventPatch): Promise<DateEventSummary[]>
+  deleteDateEvent(id: string): Promise<DateEventSummary[]>
+  setDateEventEnabled(id: string, enabled: boolean): Promise<DateEventSummary[]>
+  listWebsiteChecks(): Promise<WebsiteCheckConfig[]>
+  createWebsiteCheck(input: WebsiteCheckInput): Promise<WebsiteCheckConfig[]>
+  updateWebsiteCheck(id: string, patch: WebsiteCheckPatch): Promise<WebsiteCheckConfig[]>
+  deleteWebsiteCheck(id: string): Promise<WebsiteCheckConfig[]>
+  setWebsiteCheckEnabled(id: string, enabled: boolean): Promise<WebsiteCheckConfig[]>
+  checkWebsite(id: string): Promise<WebsiteCheckConfig[]>
+  checkAllWebsites(): Promise<WebsiteCheckConfig[]>
 }

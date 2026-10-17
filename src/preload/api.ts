@@ -5,6 +5,10 @@ import {
   type AppSettingsPatch,
   type BubbleApi,
   type BubblePayload,
+  type DateEventInput,
+  type DateEventPatch,
+  type DateEventSummary,
+  type MenuActionSummary,
   type MenuApi,
   type ModuleId,
   type ModuleSummary,
@@ -14,6 +18,9 @@ import {
   type PublicConfig,
   type SecurityStatus,
   type SettingsApi,
+  type WebsiteCheckConfig,
+  type WebsiteCheckInput,
+  type WebsiteCheckPatch,
   type WindowView
 } from '../shared/api'
 
@@ -77,6 +84,7 @@ function createPetApi(ipc: IpcBridge): PetApi {
 
 function createMenuApi(ipc: IpcBridge): MenuApi {
   return {
+    getActions: async () => (await ipc.invoke(IPC_CHANNELS.menuGetActions)) as MenuActionSummary[],
     runAction: async (actionId: string) => {
       await ipc.invoke(IPC_CHANNELS.menuRunAction, actionId)
     },
@@ -125,6 +133,41 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
       })) as ModuleSummary[],
     getSecurityStatus: async () =>
       (await ipc.invoke(IPC_CHANNELS.securityStatus)) as SecurityStatus,
-    getStartupNotice: async () => (await ipc.invoke(IPC_CHANNELS.startupNotice)) as string | null
+    getStartupNotice: async () => (await ipc.invoke(IPC_CHANNELS.startupNotice)) as string | null,
+    listDateEvents: async () => (await ipc.invoke(IPC_CHANNELS.datesList)) as DateEventSummary[],
+    createDateEvent: async (input: DateEventInput) =>
+      (await ipc.invoke(IPC_CHANNELS.datesCreate, input)) as DateEventSummary[],
+    updateDateEvent: async (id: string, patch: DateEventPatch) =>
+      (await ipc.invoke(IPC_CHANNELS.datesUpdate, {
+        id,
+        patch
+      })) as DateEventSummary[],
+    deleteDateEvent: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.datesDelete, { id })) as DateEventSummary[],
+    setDateEventEnabled: async (id: string, enabled: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.datesSetEnabled, {
+        id,
+        enabled
+      })) as DateEventSummary[],
+    listWebsiteChecks: async () =>
+      (await ipc.invoke(IPC_CHANNELS.websitesList)) as WebsiteCheckConfig[],
+    createWebsiteCheck: async (input: WebsiteCheckInput) =>
+      (await ipc.invoke(IPC_CHANNELS.websitesCreate, input)) as WebsiteCheckConfig[],
+    updateWebsiteCheck: async (id: string, patch: WebsiteCheckPatch) =>
+      (await ipc.invoke(IPC_CHANNELS.websitesUpdate, {
+        id,
+        patch
+      })) as WebsiteCheckConfig[],
+    deleteWebsiteCheck: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.websitesDelete, { id })) as WebsiteCheckConfig[],
+    setWebsiteCheckEnabled: async (id: string, enabled: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.websitesSetEnabled, {
+        id,
+        enabled
+      })) as WebsiteCheckConfig[],
+    checkWebsite: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.websitesCheck, { id })) as WebsiteCheckConfig[],
+    checkAllWebsites: async () =>
+      (await ipc.invoke(IPC_CHANNELS.websitesCheckAll)) as WebsiteCheckConfig[]
   }
 }

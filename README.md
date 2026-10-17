@@ -1,6 +1,6 @@
 # FlowerBuddy
 
-Windows 桌面宠物与个人信息助手。当前已完成 **阶段 2：配置中心、凭据加密、模块注册表与调度层**；尚未接入任何第三方 API 或实现业务模块（日期、Gmail、ESA、DeepSeek、网站检测尚未开始）。
+Windows 桌面宠物与个人信息助手。当前已完成 **阶段 3：日期事件与网站检测**；Gmail、ESA、DeepSeek 尚未接入。
 
 ## 最终用户须知
 
@@ -34,6 +34,16 @@ Windows 桌面宠物与个人信息助手。当前已完成 **阶段 2：配置�
 - 统一错误类型与 IPC 输入 Zod 校验；渲染进程只收到安全的错误码、用户说明和是否可重试。
 - 脱敏日志写入用户数据目录的 `logs/app.log`，覆盖 Authorization、API Key、AccessKey、token、邮件正文等敏感字段，按大小轮转并保留 7 天。
 - 设置窗口新增“功能管理”卡片：模块状态标签、独立开关与安全存储可用性提示。
+
+### 阶段 3 新增
+
+- 日期事件模块：新增/编辑/删除/停用事件，支持一次性与每年重复；按本机时区计算“今天”、明天与倒计时。
+- 每年重复的 2 月 29 日在非闰年自动按 2 月 28 日处理，并在设置页与 README 中说明。
+- 快捷菜单接入真实动作：“最近日期”会在气泡中显示最近 1–3 个事件及倒计时。
+- 网站检测模块：新增/编辑/删除/停用 URL，手动检测单个或全部启用网站，显示状态码、耗时和错误类型。
+- 网站检测区分 HTTP 错误（如 404）、超时、DNS/连接失败与 TLS 证书错误，并去除敏感 query 参数后再展示最终 URL。
+- 可选定时检测默认关闭；启用后由统一调度器按 5/10/15/30 分钟执行，停用模块会立即停止对应任务。
+- 设置窗口改为“常规 / 功能 / 日期 / 网站 / 外观”分页，新增公共 Tag、Field、EmptyState 组件，全部使用设计 token。
 
 ## 开发者环境
 
@@ -73,12 +83,12 @@ npm install
 src/
   main/                  # 主进程：窗口、托盘、IPC、安全策略
     ipc/                 # IPC 注册、sender 校验与 Zod 输入校验
-    modules/             # 静态模块注册表与生命周期管理
+    modules/             # 静态模块注册表、日期事件与网站检测
     protocol/            # 桌宠图片自定义协议
     scheduler/           # 统一任务调度器
     security/            # 安全窗口选项与 Secret Store
     shared/              # 统一错误类型与脱敏日志
-    storage/             # 配置 schema/迁移与图片导入
+    storage/             # 配置 schema/迁移、数据文件与图片导入
     tray/                # 系统托盘
     windows/             # 桌宠/菜单/气泡/设置窗口与几何计算
   preload/               # contextBridge 窄桥（按窗口分域）
@@ -100,8 +110,10 @@ release/                 # 安装包输出（不入库）
 - 单击托盘图标或双击托盘可打开设置；托盘菜单可显示/隐藏桌宠或退出。
 - 设置中的“导入 PNG 图片”会把图片复制到用户数据目录，不会上传到任何外部服务。
 - 关闭设置窗口不会退出程序；必须通过托盘或快捷菜单的“退出 FlowerBuddy”结束。
-- 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`pets/` 与 `logs/`。
+- 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`data/`、`pets/` 与 `logs/`。
 - 设置中的“功能管理”可以独立启用/停用每个模块；未配置或尚未实现的模块不会发起后台请求。
+- “日期”分页管理生日、纪念日和一次性事件；“网站”分页管理 URL、超时与可选定时检测。
+- 快捷菜单会列出已启用模块的可用动作，例如“最近日期”和“检测网站”，结果显示在桌宠气泡中。
 - 快捷菜单中的两个“演示”动作仅用于验证 loading / success / error 状态，后续阶段会被真实功能替代。
 
 ## 设计系统与视觉基线
@@ -112,7 +124,7 @@ release/                 # 安装包输出（不入库）
 - 主按钮另按线上 `.fl-button--solid` 组件实测对齐：背景 `#8b5a2b`、白色文字、34px 高、10px 圆角、500 字重。
 - 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退。
 - 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；模拟 `prefers-reduced-motion: reduce` 后弹跳动画数量为 0 且过渡降至 0.01ms；托盘图标为有效的 64×64 PNG；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
-- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)。
+- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[日期事件](docs/screenshots/settings-dates.png)、[网站检测](docs/screenshots/settings-websites.png)。
 
 ## 安全设计
 
@@ -136,9 +148,11 @@ npm run dist:win
 
 用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。
 
-## 已知限制（阶段 2）
+## 已知限制（阶段 3）
 
-- 尚无任何业务功能；快捷菜单中的演示动作不是真实数据，模块卡片显示“未配置”或“待实现”。
+- Gmail、ESA、DeepSeek 尚未接入；对应卡片显示“未配置”。
+- 日期事件暂未发送“到期当天”的系统通知（技术文档中的可选项，后续阶段补齐）。
+- 网站检测只代表本机网络结果，不代表全球可用性。
 - 全局快捷键、开机启动、点击穿透、多角色管理尚未实现。
 - 未配置代码签名；安装包哈希尚未纳入自动发布流程。
 - 尚未在“无 Node.js 的干净 Windows 环境”中做安装验证（阶段 6 要求）。

@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
+  dateEventInputSchema,
+  menuActionSchema,
   moduleEnabledInputSchema,
   moduleIdSchema,
   parseAppSettingsPatch,
   parseInput,
   parseModuleId,
   parsePetSettingsPatch,
-  petSettingsPatchSchema
+  petSettingsPatchSchema,
+  websiteInputSchema,
+  websitePatchSchema
 } from '../../src/main/ipc/schemas'
 import { AppError } from '../../src/main/shared/errors'
 
@@ -75,5 +79,75 @@ describe('IPC input schemas', () => {
   it('exports enum schemas used by the handlers', () => {
     expect(moduleIdSchema.options).toContain('deepseek')
     expect(petSettingsPatchSchema.parse({ scale: 0.5 })).toEqual({ scale: 0.5 })
+  })
+
+  it('validates date event inputs', () => {
+    const input = parseInput(dateEventInputSchema, {
+      title: '结婚纪念日',
+      date: '2026-10-17',
+      recurrence: 'yearly',
+      category: 'anniversary'
+    })
+    expect(input).toMatchObject({ title: '结婚纪念日', recurrence: 'yearly' })
+
+    expect(() =>
+      parseInput(dateEventInputSchema, {
+        title: 'x',
+        date: '2026-02-30',
+        recurrence: 'none',
+        category: 'custom'
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(dateEventInputSchema, {
+        title: '',
+        date: '2026-10-17',
+        recurrence: 'none',
+        category: 'custom'
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(dateEventInputSchema, {
+        title: 'x',
+        date: '2026-10-17',
+        recurrence: 'monthly',
+        category: 'custom'
+      })
+    ).toThrow(AppError)
+  })
+
+  it('validates website inputs', () => {
+    const input = parseInput(websiteInputSchema, {
+      name: '站点',
+      url: 'https://example.com',
+      timeoutMs: 8000,
+      pollingIntervalMinutes: 10
+    })
+    expect(input).toMatchObject({ url: 'https://example.com', timeoutMs: 8000 })
+
+    expect(() =>
+      parseInput(websiteInputSchema, {
+        name: '站点',
+        url: 'ftp://example.com',
+        timeoutMs: 8000,
+        pollingIntervalMinutes: null
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(websiteInputSchema, {
+        name: '站点',
+        url: 'https://example.com',
+        timeoutMs: 1000,
+        pollingIntervalMinutes: null
+      })
+    ).toThrow(AppError)
+    expect(() => parseInput(websitePatchSchema, { pollingIntervalMinutes: 90 })).toThrow(AppError)
+  })
+
+  it('accepts registry action ids and rejects malformed ones', () => {
+    expect(parseInput(menuActionSchema, 'dates:upcoming')).toBe('dates:upcoming')
+    expect(parseInput(menuActionSchema, 'website-check:run-all')).toBe('website-check:run-all')
+    expect(() => parseInput(menuActionSchema, 'demo')).toThrow(AppError)
+    expect(() => parseInput(menuActionSchema, 'Dates Upcoming')).toThrow(AppError)
   })
 })

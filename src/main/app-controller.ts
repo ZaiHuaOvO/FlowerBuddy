@@ -7,19 +7,29 @@ import type {
   AppInfo,
   AppSettingsPatch,
   BubblePayload,
+  DateEventInput,
+  DateEventPatch,
+  DateEventSummary,
+  MenuActionSummary,
   ModuleId,
   ModuleSummary,
   PetAssetInfo,
   PetSettingsPatch,
   PetViewState,
   PublicConfig,
-  SecurityStatus
+  SecurityStatus,
+  WebsiteCheckConfig,
+  WebsiteCheckInput,
+  WebsiteCheckPatch
 } from '../shared/api'
+import type { DatesService } from './modules/dates/dates-service'
 import type { ModuleManager } from './modules/module-manager'
 import { PET_ASSET_SCHEME } from './protocol/pet-asset-protocol'
 import type { SecretStore } from './security/secret-store'
+import { toPublicError } from './shared/errors'
 import type { LoggerLike } from './shared/logger'
 import { ConfigStore } from './storage/config-store'
+import type { WebsiteService } from './modules/website-check/website-service'
 import {
   PetAssetError,
   importPetFile,
@@ -45,9 +55,7 @@ import { loadView, waitForLoad } from './windows/load-view'
 import { createPetWindow } from './windows/pet-window'
 import { createSettingsWindow } from './windows/settings-window'
 
-const DEMO_ACTIONS = new Set(['demo:success', 'demo:error'])
-const DEMO_DELAY_MS = 900
-const REQUEST_TIMEOUT_MS = 15000
+const MODULE_ACTION_TIMEOUT_MS = 45000
 const MENU_REOPEN_GUARD_MS = 250
 const FALLBACK_PET_DIMENSION = 160
 
@@ -55,6 +63,8 @@ export interface AppControllerOptions {
   configStore: ConfigStore
   moduleManager: ModuleManager
   secretStore: SecretStore
+  datesService: DatesService
+  websiteService: WebsiteService
   logger: LoggerLike
   devServerUrl: string | undefined
   rendererIndexPath: string
@@ -73,7 +83,6 @@ export class AppController {
   private asset: PetAssetInfo
   private dragOffset: { x: number; y: number } | null = null
   private currentRequestId: string | null = null
-  private resultTimer: ReturnType<typeof setTimeout> | null = null
   private safetyTimer: ReturnType<typeof setTimeout> | null = null
   private hideTimer: ReturnType<typeof setTimeout> | null = null
   private lastMenuHiddenAt = 0
@@ -149,6 +158,59 @@ export class AppController {
 
   getStartupNotice(): string | null {
     return this.options.configStore.getRecoveryNotice()
+  }
+
+  getMenuActions(): MenuActionSummary[] {
+    return this.options.moduleManager.getMenuActions()
+  }
+
+  listDateEvents(): DateEventSummary[] {
+    return this.options.datesService.list()
+  }
+
+  createDateEvent(input: DateEventInput): DateEventSummary[] {
+    return this.options.datesService.create(input)
+  }
+
+  updateDateEvent(id: string, patch: DateEventPatch): DateEventSummary[] {
+    return this.options.datesService.update(id, patch)
+  }
+
+  deleteDateEvent(id: string): DateEventSummary[] {
+    return this.options.datesService.remove(id)
+  }
+
+  setDateEventEnabled(id: string, enabled: boolean): DateEventSummary[] {
+    return this.options.datesService.setEnabled(id, enabled)
+  }
+
+  listWebsiteChecks(): WebsiteCheckConfig[] {
+    return this.options.websiteService.list()
+  }
+
+  createWebsiteCheck(input: WebsiteCheckInput): WebsiteCheckConfig[] {
+    return this.options.websiteService.create(input)
+  }
+
+  updateWebsiteCheck(id: string, patch: WebsiteCheckPatch): WebsiteCheckConfig[] {
+    return this.options.websiteService.update(id, patch)
+  }
+
+  deleteWebsiteCheck(id: string): WebsiteCheckConfig[] {
+    return this.options.websiteService.remove(id)
+  }
+
+  setWebsiteCheckEnabled(id: string, enabled: boolean): WebsiteCheckConfig[] {
+    return this.options.websiteService.setEnabled(id, enabled)
+  }
+
+  async checkWebsite(id: string): Promise<WebsiteCheckConfig[]> {
+    return this.options.websiteService.checkOne(id)
+  }
+
+  async checkAllWebsites(): Promise<WebsiteCheckConfig[]> {
+    const { configs } = await this.options.websiteService.checkAllEnabled()
+    return configs
   }
 
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {
@@ -235,12 +297,9 @@ export class AppController {
     window.focus()
   }
 
-  runMenuAction(rawActionId: unknown): void {
-    if (typeof rawActionId !== 'string' || !DEMO_ACTIONS.has(rawActionId)) {
-      throw new Error('UNKNOWN_ACTION')
-    }
+  runMenuAction(actionId: string): void {
     this.hideMenu()
-    void this.runDemoAction(rawActionId)
+    void this.runModuleAction(actionId)
   }
 
   closeMenu(): void {
@@ -366,6 +425,8 @@ export class AppController {
 
   flush(): void {
     this.options.configStore.flush()
+    this.options.datesService.flush()
+    this.options.websiteService.flush()
   }
 
   dispose(): void {
@@ -575,18 +636,42 @@ export class AppController {
     }
   }
 
-  private async runDemoAction(actionId: string): Promise<void> {
+  private async runModuleAction(actionId: string): Promise<void> {
     this.clearBubbleTimers()
     const requestId = randomUUID()
     this.currentRequestId = requestId
 
-    await this.showBubble({ state: 'loading', message: '正在处理…', requestId })
+    let loadingMessage: string
+    try {
+      loadingMessage = this.options.moduleManager.getAction(actionId).action.loadingMessage
+    } catch (error) {
+      const publicError = toPublicError(error)
+      await this.showBubble({ state: 'error', message: publicError.message, requestId })
+      this.scheduleBubbleHide()
+      return
+    }
+
+    await this.showBubble({ state: 'loading', message: loadingMessage, requestId })
     if (this.currentRequestId !== requestId) {
       return
     }
 
-    this.resultTimer = setTimeout(() => {
-      this.resultTimer = null
+    this.safetyTimer = setTimeout(() => {
+      this.safetyTimer = null
+      if (this.currentRequestId !== requestId) {
+        return
+      }
+      this.currentRequestId = null
+      void this.showBubble({
+        state: 'error',
+        message: '请求超时，请稍后重试',
+        requestId
+      })
+      this.scheduleBubbleHide()
+    }, MODULE_ACTION_TIMEOUT_MS)
+
+    try {
+      const result = await this.options.moduleManager.runAction(actionId)
       if (this.currentRequestId !== requestId) {
         return
       }
@@ -594,27 +679,20 @@ export class AppController {
         clearTimeout(this.safetyTimer)
         this.safetyTimer = null
       }
-      const succeeded = actionId === 'demo:success'
-      void this.showBubble({
-        state: succeeded ? 'success' : 'error',
-        message: succeeded ? '演示操作已完成' : '演示操作失败，请稍后重试',
-        requestId
-      })
+      await this.showBubble({ state: result.state, message: result.message, requestId })
       this.scheduleBubbleHide()
-    }, DEMO_DELAY_MS)
-
-    this.safetyTimer = setTimeout(() => {
-      this.safetyTimer = null
+    } catch (error) {
       if (this.currentRequestId !== requestId) {
         return
       }
-      if (this.resultTimer !== null) {
-        clearTimeout(this.resultTimer)
-        this.resultTimer = null
+      if (this.safetyTimer !== null) {
+        clearTimeout(this.safetyTimer)
+        this.safetyTimer = null
       }
-      void this.showBubble({ state: 'error', message: '请求超时，请重试', requestId })
+      const publicError = toPublicError(error)
+      await this.showBubble({ state: 'error', message: publicError.message, requestId })
       this.scheduleBubbleHide()
-    }, REQUEST_TIMEOUT_MS)
+    }
   }
 
   private async showBubble(payload: BubblePayload): Promise<void> {
@@ -649,10 +727,6 @@ export class AppController {
   }
 
   private clearBubbleTimers(): void {
-    if (this.resultTimer !== null) {
-      clearTimeout(this.resultTimer)
-      this.resultTimer = null
-    }
     if (this.safetyTimer !== null) {
       clearTimeout(this.safetyTimer)
       this.safetyTimer = null

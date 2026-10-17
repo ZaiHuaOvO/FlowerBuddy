@@ -1,10 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import type { MenuActionSummary } from '../../../shared/api'
 import { Button } from '../components/Button'
-
-const DEMO_ACTIONS = [
-  { id: 'demo:success', label: '演示：加载成功' },
-  { id: 'demo:error', label: '演示：加载失败' }
-]
 
 function fire(operation: Promise<unknown> | undefined): void {
   void operation?.catch(() => {})
@@ -12,18 +8,39 @@ function fire(operation: Promise<unknown> | undefined): void {
 
 export default function QuickMenu() {
   const api = window.menuApi
+  const [actions, setActions] = useState<MenuActionSummary[]>([])
 
   useEffect(() => {
     if (!api) {
       return
     }
+    let active = true
+
+    const loadActions = (): void => {
+      void api
+        .getActions()
+        .then((next) => {
+          if (active) {
+            setActions(next)
+          }
+        })
+        .catch(() => {})
+    }
+
+    loadActions()
+    window.addEventListener('focus', loadActions)
+
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
         fire(api.close())
       }
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      active = false
+      window.removeEventListener('focus', loadActions)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [api])
 
   if (!api) {
@@ -34,7 +51,8 @@ export default function QuickMenu() {
     <div className="menu-root">
       <div className="menu-panel" role="menu">
         <p className="menu-title">快捷操作</p>
-        {DEMO_ACTIONS.map((action) => (
+        {actions.length === 0 ? <p className="menu-empty">暂无可用的快捷功能</p> : null}
+        {actions.map((action) => (
           <Button
             key={action.id}
             variant="ghost"

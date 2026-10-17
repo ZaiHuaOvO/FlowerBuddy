@@ -47,16 +47,28 @@ describe('preload bridge surface', () => {
 
     expect(exposed?.key).toBe('settingsApi')
     expect(Object.keys(exposed?.value ?? {}).sort()).toEqual([
+      'checkAllWebsites',
+      'checkWebsite',
+      'createDateEvent',
+      'createWebsiteCheck',
+      'deleteDateEvent',
+      'deleteWebsiteCheck',
       'getAppInfo',
       'getConfig',
       'getModules',
       'getSecurityStatus',
       'getStartupNotice',
       'importPetImage',
+      'listDateEvents',
+      'listWebsiteChecks',
       'resetPetPosition',
       'saveAppSettings',
       'savePetSettings',
-      'setModuleEnabled'
+      'setDateEventEnabled',
+      'setModuleEnabled',
+      'setWebsiteCheckEnabled',
+      'updateDateEvent',
+      'updateWebsiteCheck'
     ])
   })
 
