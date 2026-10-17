@@ -5,6 +5,7 @@
 
 ## 已完成
 
+- [x] 架构优化阶段 D：将 `SettingsApp.tsx` 从 1,735 行拆分为 440 行的引导层与 8 个 tab 组件、6 个状态 hook；生产构建前后行为冒烟一致，新增 9 项格式化/渲染测试，结果见 `docs/refactor-settings-app.md`（2026-10-17）。
 - [x] 架构优化阶段 C：Gmail 与 ESA SDK 改为按需动态加载，启动宠物挂载由 1182 ms 降至 477 ms、主进程内存约降 52%；`@googleapis/gmail` 仅完成独立评估，结果见 `docs/performance-phase-c.md`（2026-10-17）。
 - [x] 架构优化阶段 B：将设置页改为按需加载，宠物/菜单/气泡保持静态；实测懒加载菜单与气泡会造成延迟和首次 payload 丢失，因此未采用，结果见 `docs/performance-phase-b.md`（2026-10-17）。
 - [x] 架构优化阶段 A：完成 Windows 依赖重装、质量检查/构建/打包计时、产物与依赖体积、冷/热启动和空闲资源基线，结果见 `docs/performance-baseline.md`（2026-10-17）。

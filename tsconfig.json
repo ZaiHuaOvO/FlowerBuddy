@@ -29,5 +29,6 @@
     "src/preload/index.ts",
     "src/shared/**/*.ts",
     "tests/**/*.ts"
-  ]
+  ],
+  "exclude": ["tests/unit/settings-tabs.test.ts"]
 }

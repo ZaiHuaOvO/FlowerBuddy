@@ -11,10 +11,9 @@ import { AppError } from '../../shared/errors'
  * `default`, so accept both `default` and `default.default` shapes.
  */
 type EsaClientConstructor = new (config: unknown) => unknown
-type EsaConfigConstructor = new (options: {
-  accessKeyId: string
-  accessKeySecret: string
-}) => { endpoint: string }
+type EsaConfigConstructor = new (options: { accessKeyId: string; accessKeySecret: string }) => {
+  endpoint: string
+}
 type EsaRequestConstructor = new (options: {
   siteId: string
   startTime: string
