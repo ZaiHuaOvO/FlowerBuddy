@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { app, BrowserWindow, dialog, screen } from 'electron'
+import { app, BrowserWindow, dialog, Notification, screen } from 'electron'
 import type { OpenDialogOptions } from 'electron'
 import { IPC_CHANNELS } from '../shared/api'
 import type {
@@ -13,6 +13,9 @@ import type {
   DeepSeekBalance,
   EsaCredentialsInput,
   EsaTraffic,
+  GmailPollSummary,
+  GmailSettingsPatch,
+  GmailStateView,
   MenuActionSummary,
   ModuleId,
   ModuleSummary,
@@ -29,6 +32,8 @@ import type {
 import type { DatesService } from './modules/dates/dates-service'
 import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import type { EsaModule } from './modules/esa/esa-module'
+import type { GmailModule } from './modules/gmail/gmail-module'
+import type { GmailMessageSummary } from './modules/gmail/types'
 import type { ModuleManager } from './modules/module-manager'
 import { PET_ASSET_SCHEME } from './protocol/pet-asset-protocol'
 import {
@@ -78,6 +83,7 @@ export interface AppControllerOptions {
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
+  gmailModule: GmailModule
   logger: LoggerLike
   devServerUrl: string | undefined
   rendererIndexPath: string
@@ -106,6 +112,7 @@ export class AppController {
   }
 
   async start(): Promise<void> {
+    this.applyLaunchAtLogin(this.config.app.launchAtLogin)
     this.createPetWindow()
 
     this.tray = new AppTray(this.options.trayIconPath, {
@@ -114,6 +121,7 @@ export class AppController {
       quit: () => this.quitApp()
     })
     this.tray.create()
+    this.tray.setPetVisible(this.petWindow?.isVisible() ?? false)
 
     this.options.moduleManager.start()
 
@@ -151,6 +159,9 @@ export class AppController {
 
     if (this.petWindow && !this.petWindow.isDestroyed()) {
       this.petWindow.setAlwaysOnTop(next.app.alwaysOnTop)
+    }
+    if (patch.launchAtLogin !== undefined) {
+      this.applyLaunchAtLogin(next.app.launchAtLogin)
     }
     this.pushPetState()
     return next
@@ -266,6 +277,71 @@ export class AppController {
     const config = this.options.configStore.setModuleRefreshInterval(moduleId, minutes)
     this.options.moduleManager.refresh()
     return config
+  }
+
+  async saveGmailClient(clientId: string, clientSecret: string): Promise<ModuleSummary[]> {
+    await this.options.gmailModule.saveClientCredentials(clientId, clientSecret)
+    return this.options.moduleManager.refresh()
+  }
+
+  async connectGmail(): Promise<{
+    modules: ModuleSummary[]
+    emailAddress: string
+  }> {
+    const { emailAddress } = await this.options.gmailModule.connect()
+    const modules = this.options.moduleManager.refresh()
+    return { modules, emailAddress }
+  }
+
+  async disconnectGmail(): Promise<ModuleSummary[]> {
+    await this.options.gmailModule.disconnect()
+    return this.options.moduleManager.refresh()
+  }
+
+  getGmailState(): GmailStateView {
+    return this.options.gmailModule.getStateView()
+  }
+
+  async checkGmailNow(): Promise<GmailPollSummary> {
+    return this.options.gmailModule.checkNow()
+  }
+
+  updateGmailSettings(patch: GmailSettingsPatch): PublicConfig {
+    const config = this.options.configStore.updateGmailSettings(patch)
+    this.options.moduleManager.refresh()
+    return config
+  }
+
+  handleGmailNewMessages(messages: GmailMessageSummary[]): void {
+    const first = messages[0]
+    if (!first) {
+      return
+    }
+    const config = this.config
+    if (!config.modules.gmail.enabled) {
+      return
+    }
+
+    const hideSubject = config.modules.gmail.hideSubject
+    const body = hideSubject
+      ? messages.length === 1
+        ? '收到一封新邮件'
+        : `收到 ${messages.length} 封新邮件`
+      : messages.length === 1
+        ? `${first.from || '未知发件人'}：${first.subject || '无主题'}`
+        : `收到 ${messages.length} 封新邮件（最新：${first.from || '未知发件人'}）`
+
+    if (config.modules.gmail.notifyNewMail && Notification.isSupported()) {
+      const notification = new Notification({
+        title: 'FlowerBuddy · 新邮件',
+        body
+      })
+      notification.on('click', () => this.openSettings())
+      notification.show()
+    }
+
+    void this.showBackgroundBubble(body)
+    this.options.logger.info('gmail new messages', { count: messages.length })
   }
 
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {
@@ -482,6 +558,7 @@ export class AppController {
     this.options.configStore.flush()
     this.options.datesService.flush()
     this.options.websiteService.flush()
+    this.options.gmailModule.flush()
   }
 
   dispose(): void {
@@ -556,7 +633,7 @@ export class AppController {
       this.petWindow = null
     })
     window.once('ready-to-show', () => {
-      if (!window.isDestroyed()) {
+      if (!window.isDestroyed() && this.config.app.showPetOnStartup) {
         window.showInactive()
       }
     })
@@ -750,6 +827,29 @@ export class AppController {
     }
   }
 
+  private async showBackgroundBubble(message: string): Promise<void> {
+    const window = this.petWindow
+    if (this.currentRequestId !== null || !window || window.isDestroyed() || !window.isVisible()) {
+      return
+    }
+    await this.showBubble({
+      state: 'success',
+      message,
+      requestId: randomUUID()
+    })
+    this.scheduleBubbleHide()
+  }
+
+  private applyLaunchAtLogin(enabled: boolean): void {
+    if (!app.isPackaged) {
+      return
+    }
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      path: process.execPath
+    })
+  }
+
   private async showBubble(payload: BubblePayload): Promise<void> {
     if (this.disposed) {
       return
@@ -772,6 +872,7 @@ export class AppController {
     this.hideTimer = setTimeout(() => {
       this.hideTimer = null
       this.hideBubble()
+      this.currentRequestId = null
     }, this.config.app.bubbleDurationMs)
   }
 

@@ -7,6 +7,7 @@ import type {
   AppSettingsPatch,
   DateEventInput,
   DateEventPatch,
+  GmailSettingsPatch,
   IpcResult,
   PetSettingsPatch,
   WebsiteCheckInput,
@@ -21,6 +22,8 @@ import {
   dateUpdateInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
+  gmailClientInputSchema,
+  gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
   menuActionSchema,
@@ -131,6 +134,17 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.esaClearCredentials, null, () => controller.clearEsaCredentials())
   register(IPC_CHANNELS.esaTraffic, null, () => controller.fetchEsaTraffic())
+
+  register(IPC_CHANNELS.gmailSaveClient, gmailClientInputSchema, (input) =>
+    controller.saveGmailClient(input.clientId, input.clientSecret)
+  )
+  register(IPC_CHANNELS.gmailConnect, null, () => controller.connectGmail())
+  register(IPC_CHANNELS.gmailDisconnect, null, () => controller.disconnectGmail())
+  register(IPC_CHANNELS.gmailState, null, () => controller.getGmailState())
+  register(IPC_CHANNELS.gmailCheck, null, () => controller.checkGmailNow())
+  register(IPC_CHANNELS.gmailSettings, gmailSettingsPatchSchema, (input) =>
+    controller.updateGmailSettings(input as GmailSettingsPatch)
+  )
 
   register(IPC_CHANNELS.moduleRefreshInterval, refreshIntervalInputSchema, (input) =>
     controller.setModuleRefreshInterval(input.moduleId, input.minutes)

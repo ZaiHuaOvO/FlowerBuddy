@@ -30,12 +30,15 @@ const V1_CONFIG = {
 }
 
 describe('config schema', () => {
-  it('creates version 3 defaults with module switches and refresh intervals', () => {
+  it('creates version 4 defaults with startup and Gmail options', () => {
     const config = createDefaultConfig()
 
-    expect(config.schemaVersion).toBe(3)
+    expect(config.schemaVersion).toBe(4)
+    expect(config.app.launchAtLogin).toBe(false)
+    expect(config.app.showPetOnStartup).toBe(true)
     expect(config.modules.dates.enabled).toBe(true)
     expect(config.modules.gmail.enabled).toBe(false)
+    expect(config.modules.gmail.hideSubject).toBe(true)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(config.modules.websiteCheck.enabled).toBe(true)
@@ -75,7 +78,7 @@ describe('config schema', () => {
     expect(result.fromVersion).toBe(1)
     expect(result.migrated).toBe(true)
     expect(result.futureVersion).toBe(false)
-    expect(result.config.schemaVersion).toBe(3)
+    expect(result.config.schemaVersion).toBe(4)
     expect(result.config.app.alwaysOnTop).toBe(false)
     expect(result.config.pet.scale).toBe(1.5)
     expect(result.config.modules.dates.enabled).toBe(true)
@@ -98,7 +101,7 @@ describe('config schema', () => {
 
     expect(result.fromVersion).toBe(2)
     expect(result.migrated).toBe(true)
-    expect(result.config.schemaVersion).toBe(3)
+    expect(result.config.schemaVersion).toBe(4)
     expect(result.config.modules.esa.siteId).toBe('site-1')
     expect(result.config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(result.config.modules.deepseek.refreshIntervalMinutes).toBeNull()
@@ -144,11 +147,12 @@ describe('config store', () => {
 
     const store = new ConfigStore(filePath)
     store.load()
-    store.updateApp({ alwaysOnTop: false, bubbleDurationMs: 8000 })
+    store.updateApp({ alwaysOnTop: false, bubbleDurationMs: 8000, launchAtLogin: true })
     store.updatePet({ scale: 1.5, position: { x: 100, y: 200 } })
     store.setModuleEnabled('gmail', true)
     store.setModuleRefreshInterval('deepseek', 15)
     store.setEsaSiteId('site-42')
+    store.updateGmailSettings({ pollIntervalMinutes: 5, hideSubject: false })
     store.flush()
 
     const reloaded = new ConfigStore(filePath).load()
@@ -157,12 +161,15 @@ describe('config store', () => {
     expect(reloaded.pet.scale).toBe(1.5)
     expect(reloaded.pet.position).toEqual({ x: 100, y: 200 })
     expect(reloaded.modules.gmail.enabled).toBe(true)
+    expect(reloaded.modules.gmail.pollIntervalMinutes).toBe(5)
+    expect(reloaded.modules.gmail.hideSubject).toBe(false)
     expect(reloaded.modules.dates.enabled).toBe(true)
     expect(reloaded.modules.deepseek.refreshIntervalMinutes).toBe(15)
     expect(reloaded.modules.esa.siteId).toBe('site-42')
+    expect(reloaded.app.launchAtLogin).toBe(true)
   })
 
-  it('backs up a version 2 file when migrating to version 3', () => {
+  it('backs up a version 2 file when migrating to the current version', () => {
     const directory = createTemporaryDirectory()
     const filePath = join(directory, 'config.json')
     writeFileSync(
@@ -184,10 +191,41 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(3)
+    expect(config.schemaVersion).toBe(4)
     expect(config.modules.esa.siteId).toBe('kept-site')
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(readdirSync(directory).some((name) => name.startsWith('config.json.v2-'))).toBe(true)
+  })
+
+  it('migrates version 3 files by adding startup and Gmail options', () => {
+    const directory = createTemporaryDirectory()
+    const filePath = join(directory, 'config.json')
+    writeFileSync(
+      filePath,
+      JSON.stringify({
+        schemaVersion: 3,
+        app: { alwaysOnTop: true, bounceAnimation: true, bubbleDurationMs: 5000 },
+        pet: { assetId: 'default', scale: 1, position: null },
+        modules: {
+          dates: { enabled: true },
+          gmail: { enabled: true, pollIntervalMinutes: 5, notifyNewMail: false },
+          esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+          deepseek: { enabled: false, refreshIntervalMinutes: null },
+          websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
+        }
+      }),
+      'utf8'
+    )
+
+    const config = new ConfigStore(filePath).load()
+
+    expect(config.schemaVersion).toBe(4)
+    expect(config.app.launchAtLogin).toBe(false)
+    expect(config.app.showPetOnStartup).toBe(true)
+    expect(config.modules.gmail.pollIntervalMinutes).toBe(5)
+    expect(config.modules.gmail.notifyNewMail).toBe(false)
+    expect(config.modules.gmail.hideSubject).toBe(true)
+    expect(readdirSync(directory).some((name) => name.startsWith('config.json.v3-'))).toBe(true)
   })
 
   it('leaves no temporary file behind after an atomic write', () => {

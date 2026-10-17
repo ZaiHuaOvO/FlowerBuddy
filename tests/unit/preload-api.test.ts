@@ -48,17 +48,21 @@ describe('preload bridge surface', () => {
     expect(exposed?.key).toBe('settingsApi')
     expect(Object.keys(exposed?.value ?? {}).sort()).toEqual([
       'checkAllWebsites',
+      'checkGmailNow',
       'checkWebsite',
       'clearDeepSeekKey',
       'clearEsaCredentials',
+      'connectGmail',
       'createDateEvent',
       'createWebsiteCheck',
       'deleteDateEvent',
       'deleteWebsiteCheck',
+      'disconnectGmail',
       'fetchDeepSeekBalance',
       'fetchEsaTraffic',
       'getAppInfo',
       'getConfig',
+      'getGmailState',
       'getModules',
       'getSecurityStatus',
       'getStartupNotice',
@@ -69,12 +73,14 @@ describe('preload bridge surface', () => {
       'saveAppSettings',
       'saveDeepSeekKey',
       'saveEsaCredentials',
+      'saveGmailClient',
       'savePetSettings',
       'setDateEventEnabled',
       'setModuleEnabled',
       'setModuleRefreshInterval',
       'setWebsiteCheckEnabled',
       'updateDateEvent',
+      'updateGmailSettings',
       'updateWebsiteCheck'
     ])
   })

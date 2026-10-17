@@ -24,12 +24,16 @@ export interface AppSettings {
   alwaysOnTop: boolean
   bounceAnimation: boolean
   bubbleDurationMs: number
+  launchAtLogin: boolean
+  showPetOnStartup: boolean
 }
 
 export interface AppSettingsPatch {
   alwaysOnTop?: boolean
   bounceAnimation?: boolean
   bubbleDurationMs?: number
+  launchAtLogin?: boolean
+  showPetOnStartup?: boolean
 }
 
 export interface PetSettings {
@@ -48,10 +52,35 @@ export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-im
 
 export interface ModulesSettings {
   dates: { enabled: boolean }
-  gmail: { enabled: boolean; pollIntervalMinutes: number; notifyNewMail: boolean }
+  gmail: {
+    enabled: boolean
+    pollIntervalMinutes: number
+    notifyNewMail: boolean
+    hideSubject: boolean
+  }
   esa: { enabled: boolean; siteId: string; refreshIntervalMinutes: number | null }
   deepseek: { enabled: boolean; refreshIntervalMinutes: number | null }
   websiteCheck: { enabled: boolean; defaultTimeoutMs: number }
+}
+
+export interface GmailSettingsPatch {
+  pollIntervalMinutes?: number
+  notifyNewMail?: boolean
+  hideSubject?: boolean
+}
+
+export interface GmailStateView {
+  /** OAuth Client ID and Secret are saved. */
+  clientConfigured: boolean
+  /** A refresh token exists; polling and checks are available. */
+  configured: boolean
+  emailAddress: string
+  authExpired: boolean
+}
+
+export interface GmailPollSummary {
+  newMessages: number
+  baselineReestablished: boolean
 }
 
 export type RefreshableModuleId = 'deepseek' | 'esa'
@@ -277,6 +306,12 @@ export const IPC_CHANNELS = {
   esaSaveCredentials: 'esa:save-credentials',
   esaClearCredentials: 'esa:clear-credentials',
   esaTraffic: 'esa:traffic',
+  gmailSaveClient: 'gmail:save-client',
+  gmailConnect: 'gmail:connect',
+  gmailDisconnect: 'gmail:disconnect',
+  gmailState: 'gmail:state',
+  gmailCheck: 'gmail:check',
+  gmailSettings: 'gmail:update-settings',
   moduleRefreshInterval: 'modules:set-refresh-interval',
   menuGetActions: 'menu:get-actions',
   petGetState: 'pet:get-state',
@@ -348,6 +383,12 @@ export interface SettingsApi {
   saveEsaCredentials(input: EsaCredentialsInput): Promise<ModuleSummary[]>
   clearEsaCredentials(): Promise<ModuleSummary[]>
   fetchEsaTraffic(): Promise<EsaTraffic>
+  saveGmailClient(clientId: string, clientSecret: string): Promise<ModuleSummary[]>
+  connectGmail(): Promise<{ modules: ModuleSummary[]; emailAddress: string }>
+  disconnectGmail(): Promise<ModuleSummary[]>
+  getGmailState(): Promise<GmailStateView>
+  checkGmailNow(): Promise<GmailPollSummary>
+  updateGmailSettings(patch: GmailSettingsPatch): Promise<PublicConfig>
   setModuleRefreshInterval(
     moduleId: RefreshableModuleId,
     minutes: number | null

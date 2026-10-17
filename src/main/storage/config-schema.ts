@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { ModulesSettings, PublicConfig } from '../../shared/api'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 3
+export const CURRENT_CONFIG_SCHEMA_VERSION = 4
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -67,7 +67,9 @@ const positionSchema = z
 const appSchema = z.object({
   alwaysOnTop: booleanField(true),
   bounceAnimation: booleanField(true),
-  bubbleDurationMs: integerField(1500, 30000, 5000)
+  bubbleDurationMs: integerField(1500, 30000, 5000),
+  launchAtLogin: booleanField(false),
+  showPetOnStartup: booleanField(true)
 })
 
 const petSchema = z.object({
@@ -85,9 +87,15 @@ const gmailModuleSchema = z
   .object({
     enabled: booleanField(false),
     pollIntervalMinutes: integerField(1, 15, 3),
-    notifyNewMail: booleanField(true)
+    notifyNewMail: booleanField(true),
+    hideSubject: booleanField(true)
   })
-  .catch({ enabled: false, pollIntervalMinutes: 3, notifyNewMail: true })
+  .catch({
+    enabled: false,
+    pollIntervalMinutes: 3,
+    notifyNewMail: true,
+    hideSubject: true
+  })
 
 const esaModuleSchema = z
   .object({
@@ -117,7 +125,8 @@ const modulesSchema = z
     gmail: gmailModuleSchema.default({
       enabled: false,
       pollIntervalMinutes: 3,
-      notifyNewMail: true
+      notifyNewMail: true,
+      hideSubject: true
     }),
     esa: esaModuleSchema.default({
       enabled: false,
@@ -135,7 +144,7 @@ const modulesSchema = z
   })
   .catch({
     dates: { enabled: true },
-    gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
+    gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
     websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
@@ -147,12 +156,14 @@ const configSchema = z
     app: appSchema.default({
       alwaysOnTop: true,
       bounceAnimation: true,
-      bubbleDurationMs: 5000
+      bubbleDurationMs: 5000,
+      launchAtLogin: false,
+      showPetOnStartup: true
     }),
     pet: petSchema.default({ assetId: 'default', scale: 1, position: null }),
     modules: modulesSchema.default({
       dates: { enabled: true },
-      gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
+      gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
@@ -160,11 +171,17 @@ const configSchema = z
   })
   .catch({
     schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
-    app: { alwaysOnTop: true, bounceAnimation: true, bubbleDurationMs: 5000 },
+    app: {
+      alwaysOnTop: true,
+      bounceAnimation: true,
+      bubbleDurationMs: 5000,
+      launchAtLogin: false,
+      showPetOnStartup: true
+    },
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
       dates: { enabled: true },
-      gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
+      gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
@@ -174,7 +191,7 @@ const configSchema = z
 export function createDefaultModules(): ModulesSettings {
   return {
     dates: { enabled: true },
-    gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
+    gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
     websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
@@ -187,7 +204,9 @@ export function createDefaultConfig(): PublicConfig {
     app: {
       alwaysOnTop: true,
       bounceAnimation: true,
-      bubbleDurationMs: 5000
+      bubbleDurationMs: 5000,
+      launchAtLogin: false,
+      showPetOnStartup: true
     },
     pet: {
       assetId: 'default',

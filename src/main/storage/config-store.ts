@@ -9,6 +9,7 @@ import {
 import { basename, dirname } from 'node:path'
 import type {
   AppSettingsPatch,
+  GmailSettingsPatch,
   ModuleId,
   PublicConfig,
   RefreshableModuleId
@@ -200,6 +201,18 @@ export class ConfigStore {
           ...this.current.modules.esa,
           siteId: siteId.trim().slice(0, 128)
         }
+      }
+    }
+    this.scheduleSave()
+    return this.get()
+  }
+
+  updateGmailSettings(patch: GmailSettingsPatch): PublicConfig {
+    this.current = {
+      ...this.current,
+      modules: {
+        ...this.current.modules,
+        gmail: { ...this.current.modules.gmail, ...patch }
       }
     }
     this.scheduleSave()

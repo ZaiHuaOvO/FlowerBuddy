@@ -1,6 +1,6 @@
 # FlowerBuddy
 
-Windows 桌面宠物与个人信息助手。当前已完成 **阶段 4：DeepSeek 余额与阿里云 ESA 流量**；Gmail 尚未接入。
+Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：桌宠外壳、日期事件、网站检测、DeepSeek 余额、阿里云 ESA 今日流量、Gmail 新邮件提醒，以及 Windows 安装包/便携版/ZIP 发布产物。
 
 ## 最终用户须知
 
@@ -55,6 +55,23 @@ Windows 桌面宠物与个人信息助手。当前已完成 **阶段 4：DeepSee
 - API Key、AccessKey ID/Secret 全部经 IPC 进入主进程并用 `safeStorage` 加密写入 `secrets.enc.json`；SiteId 作为非敏感配置写入 `config.json`。
 - 模块状态与快捷菜单动作会随凭据配置联动：未配置时不出现动作，配置并启用后分别出现“查询余额”“今日流量”。
 
+### 阶段 5 新增
+
+- Gmail 模块：Gmail API + OAuth 2.0，最小只读权限，系统浏览器 + `127.0.0.1` 随机端口回环回调，PKCE 与 state 校验。
+- 首次授权只建立同步基线，不把历史邮件当作新邮件；之后使用 History API 增量读取并按 Message ID 去重。
+- `historyId` 失效时自动重建基线，不补发历史提醒；授权失效会停止轮询并提示重新连接。
+- 只读取发件人、主题、日期与消息 ID 等元数据，不读取或存储邮件正文；通知可隐藏发件人与主题。
+- 新邮件通过 Windows 系统通知与桌宠气泡反馈；模块停用或断开账号后立即停止轮询。
+- 设置页新增 Gmail 分页：OAuth 客户端配置、连接/断开、立即检查、轮询间隔、系统通知与隐藏主题开关。
+- 新增“开机启动”与“启动时显示桌宠”设置项；打包版本会同步 Windows 登录启动项。
+
+### 阶段 6 / 发布
+
+- 自动生成 NSIS 安装版、portable 便携版，以及包含便携版、使用说明和第三方许可证清单的 ZIP。
+- 新增 [PRIVACY.md](PRIVACY.md) 隐私说明与安装包内的 `README-使用说明.txt`。
+- 完成启动、托盘、模块隔离、无效凭据、网络错误、休眠恢复调度、安装/卸载与密钥扫描验证。
+- 在关闭 Node.js 路径的环境下启动便携版做运行验证（详见最终报告）。
+
 ## 开发者环境
 
 - Windows x64（打包必须在 Windows 上验证）
@@ -93,7 +110,7 @@ npm install
 src/
   main/                  # 主进程：窗口、托盘、IPC、安全策略
     ipc/                 # IPC 注册、sender 校验与 Zod 输入校验
-    modules/             # 静态模块注册表、日期/网站/DeepSeek/ESA
+    modules/             # 静态模块注册表、日期/网站/DeepSeek/ESA/Gmail
     protocol/            # 桌宠图片自定义协议
     scheduler/           # 统一任务调度器
     security/            # 安全窗口选项与 Secret Store
@@ -126,6 +143,18 @@ release/                 # 安装包输出（不入库）
 - 快捷菜单会列出已启用模块的可用动作，例如“最近日期”和“检测网站”，结果显示在桌宠气泡中。
 - DeepSeek/ESA 凭据只在设置中输入的瞬间经过主进程，之后以密文保存；应用不提供读取明文密钥的接口。
 - ESA 请使用只授予 `esa:DescribeSiteTimeSeriesData` 权限的 RAM 子账号，不要使用主账号 AccessKey；清除配置会同时移除 AccessKey 与 SiteId。
+- Gmail 只申请 `gmail.readonly`，仅读取邮件元数据，不读取正文；refresh token 加密保存，断开时会尽力在线撤销并删除本地 token。
+
+## Gmail 配置（发布者或高级用户）
+
+1. 在 Google Cloud Console 创建项目并启用 Gmail API。
+2. 配置 OAuth consent screen；开发阶段可添加测试用户，公开发布需要按 Google 要求完成验证。
+3. 创建 OAuth 客户端 ID，应用类型选择“桌面应用”。
+4. 在应用“设置 → Gmail”中填写 Client ID 与 Client Secret，保存后点击“连接 Gmail”，在系统浏览器中完成授权。
+5. 未发布的 OAuth 应用可能只允许测试用户登录；这是 Google 侧限制，不是应用错误。
+
+> 公开分发版本建议由发布者准备统一的 OAuth 客户端，避免要求普通用户自行创建 Google Cloud 项目。
+
 - 快捷菜单中的两个“演示”动作仅用于验证 loading / success / error 状态，后续阶段会被真实功能替代。
 
 ## 设计系统与视觉基线
@@ -136,7 +165,7 @@ release/                 # 安装包输出（不入库）
 - 主按钮另按线上 `.fl-button--solid` 组件实测对齐：背景 `#8b5a2b`、白色文字、34px 高、10px 圆角、500 字重。
 - 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退。
 - 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；模拟 `prefers-reduced-motion: reduce` 后弹跳动画数量为 0 且过渡降至 0.01ms；托盘图标为有效的 64×64 PNG；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
-- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[日期事件](docs/screenshots/settings-dates.png)、[网站检测](docs/screenshots/settings-websites.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
+- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[日期事件](docs/screenshots/settings-dates.png)、[网站检测](docs/screenshots/settings-websites.png)、[Gmail](docs/screenshots/settings-gmail.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
 
 ## 安全设计
 
@@ -157,20 +186,20 @@ npm run dist:win
 
 - `FlowerBuddy-Setup-<version>-x64.exe`：NSIS 安装程序，默认按当前用户安装，可选择安装目录。
 - `FlowerBuddy-Portable-<version>-x64.exe`：便携版，双击运行。
+- `FlowerBuddy-<version>-x64.zip`：便携版 + 使用说明 + 第三方许可证清单。
 
-用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。
+用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。隐私与删除方式见 [PRIVACY.md](PRIVACY.md)。
 
-## 已知限制（阶段 4）
+## 已知限制（第一版）
 
-- Gmail 尚未接入；对应卡片显示“未配置”。
-- 没有提供真实 DeepSeek/ESA 凭据，因此只完成了 mock 测试与“无效凭据”真实请求验证；真实账户数据需在应用内自行配置后查看。
-- DeepSeek 官方没有可用的账号级每日消费接口，因此应用只显示余额，不显示今日花费。
-- ESA 流量可能被官方采样且存在统计延迟，不能当作精确账单。
-- 日期事件暂未发送“到期当天”的系统通知（技术文档中的可选项，后续阶段补齐）。
+- 真实 Gmail OAuth 与真实账户数据尚未验证：需要发布者/用户提供 Google OAuth 客户端并在应用内完成授权。
+- 真实 DeepSeek/ESA 账户数据需在应用内输入凭据后查看；仓库不包含真实凭据。
+- DeepSeek 官方没有可用的账号级每日消费接口，因此只显示余额，不显示今日花费。
+- ESA 流量可能被官方采样且存在统计延迟；接入点目前固定为国内 `esa.cn-hangzhou.aliyuncs.com`。
+- 日期事件暂未发送“到期当天”的系统通知（技术文档中的可选项，后续版本补齐）。
 - 网站检测只代表本机网络结果，不代表全球可用性。
-- 全局快捷键、开机启动、点击穿透、多角色管理尚未实现。
-- 未配置代码签名；安装包哈希尚未纳入自动发布流程。
-- 尚未在“无 Node.js 的干净 Windows 环境”中做安装验证（阶段 6 要求）。
+- 安装包未做代码签名，SmartScreen 可能提示未知发布者。
+- 多显示器物理验证与完全干净 Windows 环境的安装测试仍需在具备条件的环境复验。
 
 完整的待办与限制清单见 [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md)，每阶段验收时更新。
 

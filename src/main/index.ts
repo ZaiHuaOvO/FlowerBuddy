@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { app, Menu, nativeTheme, powerMonitor, session } from 'electron'
+import { app, Menu, nativeTheme, powerMonitor, session, shell } from 'electron'
 import { AppController } from './app-controller'
 import { registerIpcHandlers } from './ipc/register-handlers'
 import { createSenderValidator } from './ipc/validate-sender'
@@ -8,6 +8,9 @@ import { DatesService } from './modules/dates/dates-service'
 import { createEmptyDatesData, type DatesData } from './modules/dates/types'
 import { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import { EsaModule } from './modules/esa/esa-module'
+import { GmailModule } from './modules/gmail/gmail-module'
+import { GmailService } from './modules/gmail/gmail-service'
+import { createEmptyGmailState, sanitizeGmailState, type GmailState } from './modules/gmail/types'
 import { ModuleManager } from './modules/module-manager'
 import { createModuleRegistry } from './modules/registry'
 import {
@@ -89,12 +92,31 @@ async function bootstrap(): Promise<void> {
   const deepSeekModule = new DeepSeekModule({ secretStore, configStore })
   const esaModule = new EsaModule({ secretStore, configStore })
 
+  const gmailStateStore = new JsonStore<GmailState>(join(dataDirectory, 'gmail-state.json'), {
+    label: 'gmail-state',
+    defaults: createEmptyGmailState,
+    sanitize: sanitizeGmailState,
+    logger
+  })
+  gmailStateStore.load()
+  const gmailService = new GmailService({
+    secretStore,
+    stateStore: gmailStateStore,
+    logger,
+    openExternal: (url) => shell.openExternal(url)
+  })
+  const gmailModule = new GmailModule({
+    service: gmailService,
+    pollIntervalMinutes: () => configStore.get().modules.gmail.pollIntervalMinutes
+  })
+
   const moduleManager = new ModuleManager({
     modules: createModuleRegistry({
       datesService,
       websiteService,
       deepSeekModule,
-      esaModule
+      esaModule,
+      gmailModule
     }),
     configStore,
     scheduler,
@@ -109,6 +131,7 @@ async function bootstrap(): Promise<void> {
     websiteService,
     deepSeekModule,
     esaModule,
+    gmailModule,
     logger,
     devServerUrl,
     rendererIndexPath,
@@ -118,6 +141,9 @@ async function bootstrap(): Promise<void> {
     petsDirectory: join(userDataPath, 'pets')
   })
   controller = appController
+  gmailModule.setNewMailHandler((messages) => {
+    appController.handleGmailNewMessages(messages)
+  })
 
   void secretStore.isAvailable().then((available) => {
     logger.info('secret storage availability checked', { available })

@@ -16,7 +16,9 @@ export const appSettingsPatchSchema = z
   .object({
     alwaysOnTop: z.boolean().optional(),
     bounceAnimation: z.boolean().optional(),
-    bubbleDurationMs: z.number().int().min(1500).max(30000).optional()
+    bubbleDurationMs: z.number().int().min(1500).max(30000).optional(),
+    launchAtLogin: z.boolean().optional(),
+    showPetOnStartup: z.boolean().optional()
   })
   .strict()
 
@@ -123,12 +125,29 @@ const refreshIntervalInputSchema = z
   })
   .strict()
 
+const gmailClientInputSchema = z
+  .object({
+    clientId: z.string().trim().min(1).max(256),
+    clientSecret: z.string().trim().min(1).max(256)
+  })
+  .strict()
+
+const gmailSettingsPatchSchema = z
+  .object({
+    pollIntervalMinutes: z.number().int().min(1).max(15).optional(),
+    notifyNewMail: z.boolean().optional(),
+    hideSubject: z.boolean().optional()
+  })
+  .strict()
+
 export {
   dateEventInputSchema,
   dateEventPatchSchema,
   dateUpdateInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
+  gmailClientInputSchema,
+  gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
   refreshIntervalInputSchema,

@@ -4,6 +4,8 @@ import {
   dateEventInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
+  gmailClientInputSchema,
+  gmailSettingsPatchSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   moduleIdSchema,
@@ -205,6 +207,42 @@ describe('IPC input schemas', () => {
       AppError
     )
     expect(() => parseInput(refreshIntervalInputSchema, { moduleId: 'esa', minutes: 61 })).toThrow(
+      AppError
+    )
+  })
+
+  it('accepts startup options in app settings patches', () => {
+    expect(parseAppSettingsPatch({ launchAtLogin: true, showPetOnStartup: false })).toEqual({
+      launchAtLogin: true,
+      showPetOnStartup: false
+    })
+  })
+
+  it('validates Gmail client and notification settings', () => {
+    expect(
+      parseInput(gmailClientInputSchema, {
+        clientId: 'client-id',
+        clientSecret: 'client-secret'
+      })
+    ).toEqual({ clientId: 'client-id', clientSecret: 'client-secret' })
+    expect(() => parseInput(gmailClientInputSchema, { clientId: '', clientSecret: 'x' })).toThrow(
+      AppError
+    )
+    expect(() => parseInput(gmailClientInputSchema, { clientId: 'x' })).toThrow(AppError)
+
+    expect(
+      parseInput(gmailSettingsPatchSchema, {
+        pollIntervalMinutes: 5,
+        notifyNewMail: false,
+        hideSubject: true
+      })
+    ).toEqual({
+      pollIntervalMinutes: 5,
+      notifyNewMail: false,
+      hideSubject: true
+    })
+    expect(() => parseInput(gmailSettingsPatchSchema, { pollIntervalMinutes: 0 })).toThrow(AppError)
+    expect(() => parseInput(gmailSettingsPatchSchema, { pollIntervalMinutes: 16 })).toThrow(
       AppError
     )
   })

@@ -11,6 +11,9 @@ import {
   type DeepSeekBalance,
   type EsaCredentialsInput,
   type EsaTraffic,
+  type GmailPollSummary,
+  type GmailSettingsPatch,
+  type GmailStateView,
   type MenuActionSummary,
   type MenuApi,
   type ModuleId,
@@ -186,6 +189,22 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     clearEsaCredentials: async () =>
       (await ipc.invoke(IPC_CHANNELS.esaClearCredentials)) as ModuleSummary[],
     fetchEsaTraffic: async () => (await ipc.invoke(IPC_CHANNELS.esaTraffic)) as EsaTraffic,
+    saveGmailClient: async (clientId: string, clientSecret: string) =>
+      (await ipc.invoke(IPC_CHANNELS.gmailSaveClient, {
+        clientId,
+        clientSecret
+      })) as ModuleSummary[],
+    connectGmail: async () =>
+      (await ipc.invoke(IPC_CHANNELS.gmailConnect)) as {
+        modules: ModuleSummary[]
+        emailAddress: string
+      },
+    disconnectGmail: async () =>
+      (await ipc.invoke(IPC_CHANNELS.gmailDisconnect)) as ModuleSummary[],
+    getGmailState: async () => (await ipc.invoke(IPC_CHANNELS.gmailState)) as GmailStateView,
+    checkGmailNow: async () => (await ipc.invoke(IPC_CHANNELS.gmailCheck)) as GmailPollSummary,
+    updateGmailSettings: async (patch: GmailSettingsPatch) =>
+      (await ipc.invoke(IPC_CHANNELS.gmailSettings, patch)) as PublicConfig,
     setModuleRefreshInterval: async (moduleId: RefreshableModuleId, minutes: number | null) =>
       (await ipc.invoke(IPC_CHANNELS.moduleRefreshInterval, {
         moduleId,
