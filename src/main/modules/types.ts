@@ -12,6 +12,12 @@ export interface ModuleContext {
   logger: LoggerLike
 }
 
+/** Narrow view of the main-process Secret Store used by credential modules. */
+export interface SecretReader {
+  has(id: string): boolean
+  get(id: string): Promise<string | null>
+}
+
 export interface ModuleDefinition {
   id: ModuleId
   name: string

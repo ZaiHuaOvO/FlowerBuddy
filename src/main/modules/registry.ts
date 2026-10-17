@@ -1,5 +1,7 @@
 import type { DatesService } from './dates/dates-service'
 import { DatesModule } from './dates/dates-module'
+import type { DeepSeekModule } from './deepseek/deepseek-module'
+import type { EsaModule } from './esa/esa-module'
 import type { ModuleDefinition } from './types'
 import { WebsiteCheckModule } from './website-check/website-module'
 import type { WebsiteService } from './website-check/website-service'
@@ -27,6 +29,8 @@ function createPlaceholderModule(descriptor: PlaceholderDescriptor): ModuleDefin
 export interface ModuleRegistryDependencies {
   datesService: DatesService
   websiteService: WebsiteService
+  deepSeekModule: DeepSeekModule
+  esaModule: EsaModule
 }
 
 /**
@@ -42,18 +46,8 @@ export function createModuleRegistry(dependencies: ModuleRegistryDependencies): 
       description: '新邮件通知，需要 Google OAuth 授权',
       requiresCredentials: true
     }),
-    createPlaceholderModule({
-      id: 'esa',
-      name: 'ESA 流量',
-      description: '阿里云 ESA 今日流量，需要只读 AccessKey',
-      requiresCredentials: true
-    }),
-    createPlaceholderModule({
-      id: 'deepseek',
-      name: 'DeepSeek 余额',
-      description: '账户余额查询，需要 API Key',
-      requiresCredentials: true
-    }),
+    dependencies.esaModule,
+    dependencies.deepSeekModule,
     new WebsiteCheckModule(dependencies.websiteService)
   ]
 }

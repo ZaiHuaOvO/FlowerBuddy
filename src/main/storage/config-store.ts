@@ -7,7 +7,12 @@ import {
   writeFileSync
 } from 'node:fs'
 import { basename, dirname } from 'node:path'
-import type { AppSettingsPatch, ModuleId, PublicConfig } from '../../shared/api'
+import type {
+  AppSettingsPatch,
+  ModuleId,
+  PublicConfig,
+  RefreshableModuleId
+} from '../../shared/api'
 import type { LoggerLike } from '../shared/logger'
 import { CURRENT_CONFIG_SCHEMA_VERSION, createDefaultConfig, migrateConfig } from './config-schema'
 
@@ -161,6 +166,44 @@ export class ConfigStore {
       case 'website-check':
         return modules.websiteCheck.enabled
     }
+  }
+
+  setModuleRefreshInterval(moduleId: RefreshableModuleId, minutes: number | null): PublicConfig {
+    const modules = this.current.modules
+    if (moduleId === 'deepseek') {
+      this.current = {
+        ...this.current,
+        modules: {
+          ...modules,
+          deepseek: { ...modules.deepseek, refreshIntervalMinutes: minutes }
+        }
+      }
+    } else {
+      this.current = {
+        ...this.current,
+        modules: {
+          ...modules,
+          esa: { ...modules.esa, refreshIntervalMinutes: minutes }
+        }
+      }
+    }
+    this.scheduleSave()
+    return this.get()
+  }
+
+  setEsaSiteId(siteId: string): PublicConfig {
+    this.current = {
+      ...this.current,
+      modules: {
+        ...this.current.modules,
+        esa: {
+          ...this.current.modules.esa,
+          siteId: siteId.trim().slice(0, 128)
+        }
+      }
+    }
+    this.scheduleSave()
+    return this.get()
   }
 
   flush(): void {

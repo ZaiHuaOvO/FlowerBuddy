@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
   dateEventInputSchema,
+  deepSeekKeyInputSchema,
+  esaCredentialsInputSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   moduleIdSchema,
@@ -10,6 +12,7 @@ import {
   parseModuleId,
   parsePetSettingsPatch,
   petSettingsPatchSchema,
+  refreshIntervalInputSchema,
   websiteInputSchema,
   websitePatchSchema
 } from '../../src/main/ipc/schemas'
@@ -149,5 +152,60 @@ describe('IPC input schemas', () => {
     expect(parseInput(menuActionSchema, 'website-check:run-all')).toBe('website-check:run-all')
     expect(() => parseInput(menuActionSchema, 'demo')).toThrow(AppError)
     expect(() => parseInput(menuActionSchema, 'Dates Upcoming')).toThrow(AppError)
+  })
+
+  it('validates DeepSeek key input', () => {
+    expect(parseInput(deepSeekKeyInputSchema, { apiKey: '  sk-abc  ' })).toEqual({
+      apiKey: 'sk-abc'
+    })
+    expect(() => parseInput(deepSeekKeyInputSchema, { apiKey: '' })).toThrow(AppError)
+    expect(() => parseInput(deepSeekKeyInputSchema, { apiKey: 'x'.repeat(513) })).toThrow(AppError)
+    expect(() => parseInput(deepSeekKeyInputSchema, { apiKey: 'sk-abc', extra: true })).toThrow(
+      AppError
+    )
+  })
+
+  it('validates ESA credentials input', () => {
+    expect(
+      parseInput(esaCredentialsInputSchema, {
+        accessKeyId: 'id',
+        accessKeySecret: 'secret',
+        siteId: 'site-1'
+      })
+    ).toEqual({ accessKeyId: 'id', accessKeySecret: 'secret', siteId: 'site-1' })
+
+    expect(() =>
+      parseInput(esaCredentialsInputSchema, {
+        accessKeyId: 'id',
+        accessKeySecret: 'secret',
+        siteId: ''
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(esaCredentialsInputSchema, {
+        accessKeyId: 'id',
+        accessKeySecret: 'secret'
+      })
+    ).toThrow(AppError)
+  })
+
+  it('validates refresh interval inputs', () => {
+    expect(parseInput(refreshIntervalInputSchema, { moduleId: 'deepseek', minutes: null })).toEqual(
+      { moduleId: 'deepseek', minutes: null }
+    )
+    expect(parseInput(refreshIntervalInputSchema, { moduleId: 'esa', minutes: 15 })).toEqual({
+      moduleId: 'esa',
+      minutes: 15
+    })
+
+    expect(() =>
+      parseInput(refreshIntervalInputSchema, { moduleId: 'gmail', minutes: 15 })
+    ).toThrow(AppError)
+    expect(() => parseInput(refreshIntervalInputSchema, { moduleId: 'esa', minutes: 1 })).toThrow(
+      AppError
+    )
+    expect(() => parseInput(refreshIntervalInputSchema, { moduleId: 'esa', minutes: 61 })).toThrow(
+      AppError
+    )
   })
 })

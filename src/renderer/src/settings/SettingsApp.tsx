@@ -6,10 +6,13 @@ import type {
   DateCategory,
   DateEventSummary,
   DateRecurrence,
+  DeepSeekBalance,
+  EsaTraffic,
   ModuleId,
   ModuleStatus,
   ModuleSummary,
   PublicConfig,
+  RefreshableModuleId,
   SecurityStatus,
   WebsiteCheckConfig,
   WebsiteCheckResult
@@ -26,13 +29,15 @@ const SCALE_STEP = 0.1
 const TIMEOUT_OPTIONS = [3000, 5000, 8000, 15000, 30000]
 const POLLING_OPTIONS = [null, 5, 10, 15, 30]
 
-type SettingsTab = 'general' | 'modules' | 'dates' | 'websites' | 'appearance'
+type SettingsTab = 'general' | 'modules' | 'dates' | 'websites' | 'deepseek' | 'esa' | 'appearance'
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '常规' },
   { id: 'modules', label: '功能' },
   { id: 'dates', label: '日期' },
   { id: 'websites', label: '网站' },
+  { id: 'deepseek', label: 'DeepSeek' },
+  { id: 'esa', label: 'ESA' },
   { id: 'appearance', label: '外观' }
 ]
 
@@ -154,6 +159,51 @@ function formatTime(value: string): string {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
+function formatBalanceAmount(currency: string, amount: string): string {
+  const value = Number(amount)
+  if (!Number.isFinite(value)) {
+    return `${currency} ${amount}`
+  }
+  try {
+    return `${currency} ${new Intl.NumberFormat('zh-CN', {
+      style: 'currency',
+      currency
+    }).format(value)}`
+  } catch {
+    return `${currency} ${value.toFixed(2)}`
+  }
+}
+
+function formatBytes(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+  let value = Math.max(0, bytes)
+  let index = 0
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024
+    index += 1
+  }
+  const digits = index === 0 ? 0 : value >= 100 ? 0 : value >= 10 ? 1 : 2
+  return `${value.toFixed(digits)} ${units[index]}`
+}
+
+function formatTrafficRange(startTime: string, endTime: string): string {
+  const start = new Date(startTime)
+  const end = new Date(endTime)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return ''
+  }
+  const date = start.toLocaleDateString('zh-CN')
+  const startClock = start.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+  const endClock = end.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+  return `${date} ${startClock} 至 ${endClock}`
+}
+
 export default function SettingsApp() {
   const api = window.settingsApi
   const [config, setConfig] = useState<PublicConfig | null>(null)
@@ -175,6 +225,14 @@ export default function SettingsApp() {
   const [confirmWebsiteDeleteId, setConfirmWebsiteDeleteId] = useState<string | null>(null)
   const [checkingWebsiteId, setCheckingWebsiteId] = useState<string | null>(null)
   const [checkingAll, setCheckingAll] = useState(false)
+  const [deepSeekKeyDraft, setDeepSeekKeyDraft] = useState('')
+  const [deepSeekBusy, setDeepSeekBusy] = useState(false)
+  const [deepSeekBalance, setDeepSeekBalance] = useState<DeepSeekBalance | null>(null)
+  const [esaKeyIdDraft, setEsaKeyIdDraft] = useState('')
+  const [esaKeySecretDraft, setEsaKeySecretDraft] = useState('')
+  const [esaSiteIdDraft, setEsaSiteIdDraft] = useState('')
+  const [esaBusy, setEsaBusy] = useState(false)
+  const [esaTraffic, setEsaTraffic] = useState<EsaTraffic | null>(null)
   const scaleTimer = useRef<number | null>(null)
   const statusTimer = useRef<number | null>(null)
 
@@ -190,6 +248,7 @@ export default function SettingsApp() {
         if (active) {
           setConfig(next)
           setScaleDraft(next.pet.scale)
+          setEsaSiteIdDraft(next.modules.esa.siteId)
         }
       })
       .catch((cause: unknown) => {
@@ -533,6 +592,136 @@ export default function SettingsApp() {
     }
   }
 
+  async function handleSaveDeepSeekKey(): Promise<void> {
+    if (!api) {
+      return
+    }
+    if (!deepSeekKeyDraft.trim()) {
+      setError('请输入 DeepSeek API Key')
+      return
+    }
+    setError('')
+    setDeepSeekBusy(true)
+    try {
+      setModules(await api.saveDeepSeekKey(deepSeekKeyDraft))
+      setDeepSeekKeyDraft('')
+      flash('DeepSeek Key 已加密保存')
+      setDeepSeekBalance(await api.fetchDeepSeekBalance())
+    } catch (cause) {
+      setError(toMessage(cause))
+    } finally {
+      setDeepSeekBusy(false)
+    }
+  }
+
+  async function handleClearDeepSeekKey(): Promise<void> {
+    if (!api) {
+      return
+    }
+    setError('')
+    try {
+      setModules(await api.clearDeepSeekKey())
+      setDeepSeekBalance(null)
+      flash('已清除 DeepSeek Key')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function refreshDeepSeekBalance(): Promise<void> {
+    if (!api) {
+      return
+    }
+    setError('')
+    setDeepSeekBusy(true)
+    try {
+      setDeepSeekBalance(await api.fetchDeepSeekBalance())
+    } catch (cause) {
+      setError(toMessage(cause))
+    } finally {
+      setDeepSeekBusy(false)
+    }
+  }
+
+  async function handleSaveEsaCredentials(): Promise<void> {
+    if (!api) {
+      return
+    }
+    if (!esaKeyIdDraft.trim() || !esaKeySecretDraft.trim() || !esaSiteIdDraft.trim()) {
+      setError('请填写 AccessKey ID、AccessKey Secret 和 SiteId')
+      return
+    }
+    setError('')
+    setEsaBusy(true)
+    try {
+      setModules(
+        await api.saveEsaCredentials({
+          accessKeyId: esaKeyIdDraft,
+          accessKeySecret: esaKeySecretDraft,
+          siteId: esaSiteIdDraft
+        })
+      )
+      setEsaKeyIdDraft('')
+      setEsaKeySecretDraft('')
+      flash('ESA 凭据已加密保存')
+      setEsaTraffic(await api.fetchEsaTraffic())
+    } catch (cause) {
+      setError(toMessage(cause))
+    } finally {
+      setEsaBusy(false)
+    }
+  }
+
+  async function handleClearEsaCredentials(): Promise<void> {
+    if (!api) {
+      return
+    }
+    setError('')
+    try {
+      setModules(await api.clearEsaCredentials())
+      setEsaTraffic(null)
+      flash('已清除 ESA 凭据')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function refreshEsaTraffic(): Promise<void> {
+    if (!api) {
+      return
+    }
+    setError('')
+    setEsaBusy(true)
+    try {
+      setEsaTraffic(await api.fetchEsaTraffic())
+    } catch (cause) {
+      setError(toMessage(cause))
+    } finally {
+      setEsaBusy(false)
+    }
+  }
+
+  async function handleRefreshInterval(
+    moduleId: RefreshableModuleId,
+    value: string
+  ): Promise<void> {
+    if (!api) {
+      return
+    }
+    setError('')
+    try {
+      setConfig(
+        await api.setModuleRefreshInterval(moduleId, value === 'manual' ? null : Number(value))
+      )
+      flash('已保存')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  const deepSeekSummary = modules.find((module) => module.id === 'deepseek')
+  const esaSummary = modules.find((module) => module.id === 'esa')
+
   if (!config) {
     return (
       <div className="settings-root">
@@ -546,7 +735,7 @@ export default function SettingsApp() {
       <header className="settings-header">
         <div>
           <h1>FlowerBuddy 设置</h1>
-          <p>阶段 3：日期事件与网站检测</p>
+          <p>阶段 4：余额、流量与凭据管理</p>
         </div>
         {appInfo ? (
           <p className="hint settings-version">
@@ -959,6 +1148,254 @@ export default function SettingsApp() {
                   </div>
                 ))}
               </div>
+            )}
+          </section>
+        ) : null}
+
+        {activeTab === 'deepseek' ? (
+          <section className="panel">
+            <div className="panel-header-row">
+              <div className="module-title-row">
+                <h2>DeepSeek 余额</h2>
+                <Tag tone={deepSeekSummary?.configured ? 'success' : 'warning'}>
+                  {deepSeekSummary?.statusLabel ?? '未配置'}
+                </Tag>
+              </div>
+              <label className="module-switch">
+                <input
+                  type="checkbox"
+                  checked={deepSeekSummary?.enabled ?? false}
+                  onChange={(event) => void handleToggleModule('deepseek', event.target.checked)}
+                />
+                <span>{deepSeekSummary?.enabled ? '已启用' : '已停用'}</span>
+              </label>
+            </div>
+            <p className="hint">
+              API Key 仅由主进程使用 Windows safeStorage
+              加密保存，界面不会回显明文，也不会写入日志或普通配置文件。
+            </p>
+            <div className="form-grid">
+              <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
+                <input
+                  className="fl-input"
+                  type="password"
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  value={deepSeekKeyDraft}
+                  placeholder="sk-..."
+                  onChange={(event) => setDeepSeekKeyDraft(event.target.value)}
+                />
+              </Field>
+              <Field label="自动刷新" hint="默认仅手动刷新">
+                <select
+                  className="fl-select"
+                  value={
+                    config.modules.deepseek.refreshIntervalMinutes === null
+                      ? 'manual'
+                      : String(config.modules.deepseek.refreshIntervalMinutes)
+                  }
+                  onChange={(event) => void handleRefreshInterval('deepseek', event.target.value)}
+                >
+                  <option value="manual">仅手动刷新</option>
+                  <option value="15">每 15 分钟</option>
+                  <option value="30">每 30 分钟</option>
+                  <option value="60">每 60 分钟</option>
+                </select>
+              </Field>
+              <div className="form-actions">
+                <Button
+                  variant="primary"
+                  disabled={deepSeekBusy}
+                  onClick={() => void handleSaveDeepSeekKey()}
+                >
+                  {deepSeekBusy ? '处理中…' : '保存并查询余额'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={deepSeekBusy || !deepSeekSummary?.configured}
+                  onClick={() => void refreshDeepSeekBalance()}
+                >
+                  刷新余额
+                </Button>
+                <Button
+                  variant="danger"
+                  disabled={!deepSeekSummary?.configured}
+                  onClick={() => void handleClearDeepSeekKey()}
+                >
+                  清除 Key
+                </Button>
+              </div>
+            </div>
+            <div className="fl-alert fl-alert-info panel-alert" role="note">
+              <span className="fl-alert-icon" aria-hidden="true">
+                i
+              </span>
+              <span className="fl-alert-message">
+                “今日花费”当前未接入官方账号级每日消费统计；余额变化不等于消费，本应用不会用余额差额估算。
+              </span>
+            </div>
+            {deepSeekBalance ? (
+              <div className="result-card">
+                <p className="result-title">
+                  {deepSeekBalance.isAvailable ? '账户余额' : '账户当前不可用（余额不足或受限）'}
+                </p>
+                {deepSeekBalance.balances.length === 0 ? (
+                  <p className="hint">接口未返回余额信息。</p>
+                ) : (
+                  deepSeekBalance.balances.map((info, index) => (
+                    <div key={`${info.currency}-${index}`}>
+                      <div className="result-row">
+                        <span>{info.currency}</span>
+                        <span className="result-value">
+                          {formatBalanceAmount(info.currency, info.totalBalance)}
+                        </span>
+                      </div>
+                      <p className="hint">
+                        赠送 {formatBalanceAmount(info.currency, info.grantedBalance)} · 充值{' '}
+                        {formatBalanceAmount(info.currency, info.toppedUpBalance)}
+                      </p>
+                    </div>
+                  ))
+                )}
+                <p className="hint">更新于 {formatTime(deepSeekBalance.fetchedAt)}</p>
+              </div>
+            ) : (
+              <EmptyState
+                title="尚未查询余额"
+                description={
+                  deepSeekSummary?.configured
+                    ? '点击“刷新余额”查询当前余额。'
+                    : '保存 API Key 后即可查询余额。'
+                }
+              />
+            )}
+          </section>
+        ) : null}
+
+        {activeTab === 'esa' ? (
+          <section className="panel">
+            <div className="panel-header-row">
+              <div className="module-title-row">
+                <h2>ESA 今日流量</h2>
+                <Tag tone={esaSummary?.configured ? 'success' : 'warning'}>
+                  {esaSummary?.statusLabel ?? '未配置'}
+                </Tag>
+              </div>
+              <label className="module-switch">
+                <input
+                  type="checkbox"
+                  checked={esaSummary?.enabled ?? false}
+                  onChange={(event) => void handleToggleModule('esa', event.target.checked)}
+                />
+                <span>{esaSummary?.enabled ? '已启用' : '已停用'}</span>
+              </label>
+            </div>
+            <p className="hint">
+              请使用只授予 ESA 只读权限（例如 esa:DescribeSiteTimeSeriesData）的 RAM
+              子账号，不要使用阿里云主账号 AccessKey。清除配置会同时移除 AccessKey 与 SiteId。
+            </p>
+            <div className="form-grid">
+              <Field label="AccessKey ID" hint="仅保存在本机加密存储">
+                <input
+                  className="fl-input"
+                  type="password"
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  value={esaKeyIdDraft}
+                  onChange={(event) => setEsaKeyIdDraft(event.target.value)}
+                />
+              </Field>
+              <Field label="AccessKey Secret" hint="保存后无法读取">
+                <input
+                  className="fl-input"
+                  type="password"
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  value={esaKeySecretDraft}
+                  onChange={(event) => setEsaKeySecretDraft(event.target.value)}
+                />
+              </Field>
+              <Field label="SiteId" hint="可在 ESA 控制台或 ListSites 接口获取">
+                <input
+                  className="fl-input"
+                  value={esaSiteIdDraft}
+                  maxLength={128}
+                  onChange={(event) => setEsaSiteIdDraft(event.target.value)}
+                />
+              </Field>
+              <Field label="自动刷新" hint="默认仅手动刷新">
+                <select
+                  className="fl-select"
+                  value={
+                    config.modules.esa.refreshIntervalMinutes === null
+                      ? 'manual'
+                      : String(config.modules.esa.refreshIntervalMinutes)
+                  }
+                  onChange={(event) => void handleRefreshInterval('esa', event.target.value)}
+                >
+                  <option value="manual">仅手动刷新</option>
+                  <option value="10">每 10 分钟</option>
+                  <option value="15">每 15 分钟</option>
+                  <option value="30">每 30 分钟</option>
+                </select>
+              </Field>
+              <div className="form-actions">
+                <Button
+                  variant="primary"
+                  disabled={esaBusy}
+                  onClick={() => void handleSaveEsaCredentials()}
+                >
+                  {esaBusy ? '处理中…' : '保存并查询今日流量'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={esaBusy || !esaSummary?.configured}
+                  onClick={() => void refreshEsaTraffic()}
+                >
+                  刷新流量
+                </Button>
+                <Button
+                  variant="danger"
+                  disabled={!esaSummary?.configured}
+                  onClick={() => void handleClearEsaCredentials()}
+                >
+                  清除配置
+                </Button>
+              </div>
+            </div>
+            <div className="fl-alert fl-alert-info panel-alert" role="note">
+              <span className="fl-alert-icon" aria-hidden="true">
+                i
+              </span>
+              <span className="fl-alert-message">
+                今日范围按本机时区 00:00 至当前时刻换算为
+                UTC；高访问时官方数据可能采样，不能当作精确账单。
+              </span>
+            </div>
+            {esaTraffic ? (
+              <div className="result-card">
+                <p className="result-title">今日累计流量</p>
+                <p className="result-value result-big">{formatBytes(esaTraffic.bytes)}</p>
+                <p className="hint">
+                  {formatTrafficRange(esaTraffic.startTime, esaTraffic.endTime)}
+                </p>
+                <p className="hint">
+                  {esaTraffic.samplingRate === null
+                    ? '官方未提供采样率'
+                    : `采样率 ${esaTraffic.samplingRate}%`}
+                  ；统计可能有延迟，不等同于精确账单。
+                </p>
+                <p className="hint">更新于 {formatTime(esaTraffic.fetchedAt)}</p>
+              </div>
+            ) : (
+              <EmptyState
+                title="尚未查询流量"
+                description={
+                  esaSummary?.configured
+                    ? '点击“刷新流量”查询今日累计流量。'
+                    : '保存 AccessKey 与 SiteId 后即可查询。'
+                }
+              />
             )}
           </section>
         ) : null}

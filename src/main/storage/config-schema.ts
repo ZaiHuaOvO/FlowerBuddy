@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { ModulesSettings, PublicConfig } from '../../shared/api'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 2
+export const CURRENT_CONFIG_SCHEMA_VERSION = 3
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -36,6 +36,18 @@ function stringField(maxLength: number, fallback: string) {
     .string()
     .catch(fallback)
     .transform((value) => value.slice(0, maxLength))
+}
+
+function nullableIntervalField(min: number, max: number) {
+  return z
+    .union([z.number(), z.null()])
+    .catch(null)
+    .transform((value) => {
+      if (value === null || !Number.isFinite(value)) {
+        return null
+      }
+      return clampNumber(Math.round(value), min, max)
+    })
 }
 
 const positionSchema = z
@@ -80,11 +92,17 @@ const gmailModuleSchema = z
 const esaModuleSchema = z
   .object({
     enabled: booleanField(false),
-    siteId: stringField(128, '')
+    siteId: stringField(128, ''),
+    refreshIntervalMinutes: nullableIntervalField(5, 60)
   })
-  .catch({ enabled: false, siteId: '' })
+  .catch({ enabled: false, siteId: '', refreshIntervalMinutes: null })
 
-const deepseekModuleSchema = z.object({ enabled: booleanField(false) }).catch({ enabled: false })
+const deepseekModuleSchema = z
+  .object({
+    enabled: booleanField(false),
+    refreshIntervalMinutes: nullableIntervalField(5, 60)
+  })
+  .catch({ enabled: false, refreshIntervalMinutes: null })
 
 const websiteCheckModuleSchema = z
   .object({
@@ -101,8 +119,15 @@ const modulesSchema = z
       pollIntervalMinutes: 3,
       notifyNewMail: true
     }),
-    esa: esaModuleSchema.default({ enabled: false, siteId: '' }),
-    deepseek: deepseekModuleSchema.default({ enabled: false }),
+    esa: esaModuleSchema.default({
+      enabled: false,
+      siteId: '',
+      refreshIntervalMinutes: null
+    }),
+    deepseek: deepseekModuleSchema.default({
+      enabled: false,
+      refreshIntervalMinutes: null
+    }),
     websiteCheck: websiteCheckModuleSchema.default({
       enabled: true,
       defaultTimeoutMs: 8000
@@ -111,8 +136,8 @@ const modulesSchema = z
   .catch({
     dates: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
-    esa: { enabled: false, siteId: '' },
-    deepseek: { enabled: false },
+    esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+    deepseek: { enabled: false, refreshIntervalMinutes: null },
     websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
   })
 
@@ -128,8 +153,8 @@ const configSchema = z
     modules: modulesSchema.default({
       dates: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
-      esa: { enabled: false, siteId: '' },
-      deepseek: { enabled: false },
+      esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+      deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
     })
   })
@@ -140,8 +165,8 @@ const configSchema = z
     modules: {
       dates: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
-      esa: { enabled: false, siteId: '' },
-      deepseek: { enabled: false },
+      esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+      deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
     }
   })
@@ -150,8 +175,8 @@ export function createDefaultModules(): ModulesSettings {
   return {
     dates: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true },
-    esa: { enabled: false, siteId: '' },
-    deepseek: { enabled: false },
+    esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+    deepseek: { enabled: false, refreshIntervalMinutes: null },
     websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
   }
 }

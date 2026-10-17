@@ -1,6 +1,6 @@
 # FlowerBuddy
 
-Windows 桌面宠物与个人信息助手。当前已完成 **阶段 3：日期事件与网站检测**；Gmail、ESA、DeepSeek 尚未接入。
+Windows 桌面宠物与个人信息助手。当前已完成 **阶段 4：DeepSeek 余额与阿里云 ESA 流量**；Gmail 尚未接入。
 
 ## 最终用户须知
 
@@ -45,6 +45,16 @@ Windows 桌面宠物与个人信息助手。当前已完成 **阶段 3：日期�
 - 可选定时检测默认关闭；启用后由统一调度器按 5/10/15/30 分钟执行，停用模块会立即停止对应任务。
 - 设置窗口改为“常规 / 功能 / 日期 / 网站 / 外观”分页，新增公共 Tag、Field、EmptyState 组件，全部使用设计 token。
 
+### 阶段 4 新增
+
+- DeepSeek 余额模块：调用官方 `GET https://api.deepseek.com/user/balance`，展示多币种总额、赠送与充值余额。
+- DeepSeek 支持手动刷新与 15/30/60 分钟可选自动刷新；“今日花费”明确显示为官方账号级统计未接入，不使用余额差额估算。
+- 阿里云 ESA 今日流量模块：使用官方 `@alicloud/esa20240910` SDK 调用 `DescribeSiteTimeSeriesData`，字段 `Traffic`、维度 `ALL`。
+- ESA 的“今天”按本机时区 00:00 至当前时刻换算为 UTC 查询，展示累计流量、采样率、统计区间与更新时间，并注明可能延迟/采样。
+- DeepSeek/ESA 设置分页提供密码输入、保存并测试、刷新、清除配置与自动刷新间隔；密钥保存后无法回显明文。
+- API Key、AccessKey ID/Secret 全部经 IPC 进入主进程并用 `safeStorage` 加密写入 `secrets.enc.json`；SiteId 作为非敏感配置写入 `config.json`。
+- 模块状态与快捷菜单动作会随凭据配置联动：未配置时不出现动作，配置并启用后分别出现“查询余额”“今日流量”。
+
 ## 开发者环境
 
 - Windows x64（打包必须在 Windows 上验证）
@@ -83,7 +93,7 @@ npm install
 src/
   main/                  # 主进程：窗口、托盘、IPC、安全策略
     ipc/                 # IPC 注册、sender 校验与 Zod 输入校验
-    modules/             # 静态模块注册表、日期事件与网站检测
+    modules/             # 静态模块注册表、日期/网站/DeepSeek/ESA
     protocol/            # 桌宠图片自定义协议
     scheduler/           # 统一任务调度器
     security/            # 安全窗口选项与 Secret Store
@@ -114,6 +124,8 @@ release/                 # 安装包输出（不入库）
 - 设置中的“功能管理”可以独立启用/停用每个模块；未配置或尚未实现的模块不会发起后台请求。
 - “日期”分页管理生日、纪念日和一次性事件；“网站”分页管理 URL、超时与可选定时检测。
 - 快捷菜单会列出已启用模块的可用动作，例如“最近日期”和“检测网站”，结果显示在桌宠气泡中。
+- DeepSeek/ESA 凭据只在设置中输入的瞬间经过主进程，之后以密文保存；应用不提供读取明文密钥的接口。
+- ESA 请使用只授予 `esa:DescribeSiteTimeSeriesData` 权限的 RAM 子账号，不要使用主账号 AccessKey；清除配置会同时移除 AccessKey 与 SiteId。
 - 快捷菜单中的两个“演示”动作仅用于验证 loading / success / error 状态，后续阶段会被真实功能替代。
 
 ## 设计系统与视觉基线
@@ -124,7 +136,7 @@ release/                 # 安装包输出（不入库）
 - 主按钮另按线上 `.fl-button--solid` 组件实测对齐：背景 `#8b5a2b`、白色文字、34px 高、10px 圆角、500 字重。
 - 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退。
 - 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；模拟 `prefers-reduced-motion: reduce` 后弹跳动画数量为 0 且过渡降至 0.01ms；托盘图标为有效的 64×64 PNG；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
-- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[日期事件](docs/screenshots/settings-dates.png)、[网站检测](docs/screenshots/settings-websites.png)。
+- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[日期事件](docs/screenshots/settings-dates.png)、[网站检测](docs/screenshots/settings-websites.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
 
 ## 安全设计
 
@@ -148,9 +160,12 @@ npm run dist:win
 
 用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。
 
-## 已知限制（阶段 3）
+## 已知限制（阶段 4）
 
-- Gmail、ESA、DeepSeek 尚未接入；对应卡片显示“未配置”。
+- Gmail 尚未接入；对应卡片显示“未配置”。
+- 没有提供真实 DeepSeek/ESA 凭据，因此只完成了 mock 测试与“无效凭据”真实请求验证；真实账户数据需在应用内自行配置后查看。
+- DeepSeek 官方没有可用的账号级每日消费接口，因此应用只显示余额，不显示今日花费。
+- ESA 流量可能被官方采样且存在统计延迟，不能当作精确账单。
 - 日期事件暂未发送“到期当天”的系统通知（技术文档中的可选项，后续阶段补齐）。
 - 网站检测只代表本机网络结果，不代表全球可用性。
 - 全局快捷键、开机启动、点击穿透、多角色管理尚未实现。

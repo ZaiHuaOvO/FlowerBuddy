@@ -19,12 +19,15 @@ import {
   appSettingsPatchSchema,
   dateEventInputSchema,
   dateUpdateInputSchema,
+  deepSeekKeyInputSchema,
+  esaCredentialsInputSchema,
   idEnabledInputSchema,
   idInputSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   parseInput,
   petSettingsPatchSchema,
+  refreshIntervalInputSchema,
   websiteInputSchema,
   websiteUpdateInputSchema
 } from './schemas'
@@ -116,6 +119,22 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.websitesCheck, idInputSchema, (input) => controller.checkWebsite(input.id))
   register(IPC_CHANNELS.websitesCheckAll, null, () => controller.checkAllWebsites())
+
+  register(IPC_CHANNELS.deepseekSaveKey, deepSeekKeyInputSchema, (input) =>
+    controller.saveDeepSeekKey(input.apiKey)
+  )
+  register(IPC_CHANNELS.deepseekClearKey, null, () => controller.clearDeepSeekKey())
+  register(IPC_CHANNELS.deepseekBalance, null, () => controller.fetchDeepSeekBalance())
+
+  register(IPC_CHANNELS.esaSaveCredentials, esaCredentialsInputSchema, (input) =>
+    controller.saveEsaCredentials(input)
+  )
+  register(IPC_CHANNELS.esaClearCredentials, null, () => controller.clearEsaCredentials())
+  register(IPC_CHANNELS.esaTraffic, null, () => controller.fetchEsaTraffic())
+
+  register(IPC_CHANNELS.moduleRefreshInterval, refreshIntervalInputSchema, (input) =>
+    controller.setModuleRefreshInterval(input.moduleId, input.minutes)
+  )
 
   register(IPC_CHANNELS.menuGetActions, null, () => controller.getMenuActions())
 

@@ -106,12 +106,32 @@ const websiteUpdateInputSchema = z
   .object({ id: z.string().uuid(), patch: websitePatchSchema })
   .strict()
 
+const deepSeekKeyInputSchema = z.object({ apiKey: z.string().trim().min(1).max(512) }).strict()
+
+const esaCredentialsInputSchema = z
+  .object({
+    accessKeyId: z.string().trim().min(1).max(128),
+    accessKeySecret: z.string().trim().min(1).max(256),
+    siteId: z.string().trim().min(1).max(128)
+  })
+  .strict()
+
+const refreshIntervalInputSchema = z
+  .object({
+    moduleId: z.enum(['deepseek', 'esa']),
+    minutes: z.number().int().min(5).max(60).nullable()
+  })
+  .strict()
+
 export {
   dateEventInputSchema,
   dateEventPatchSchema,
   dateUpdateInputSchema,
+  deepSeekKeyInputSchema,
+  esaCredentialsInputSchema,
   idEnabledInputSchema,
   idInputSchema,
+  refreshIntervalInputSchema,
   websiteInputSchema,
   websitePatchSchema,
   websiteUpdateInputSchema

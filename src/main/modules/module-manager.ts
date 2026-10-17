@@ -64,6 +64,16 @@ export class ModuleManager {
     return this.list()
   }
 
+  /** Re-reads credentials/config and restarts running modules. */
+  refresh(): ModuleSummary[] {
+    for (const module of this.options.modules) {
+      if (this.started.has(module.id)) {
+        this.stopModule(module)
+      }
+      this.syncModule(module)
+    }
+    return this.list()
+  }
   list(): ModuleSummary[] {
     return this.options.modules.map((module) => {
       const enabled = this.options.configStore.isModuleEnabled(module.id)

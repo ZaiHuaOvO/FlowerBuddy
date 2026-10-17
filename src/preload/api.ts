@@ -8,6 +8,9 @@ import {
   type DateEventInput,
   type DateEventPatch,
   type DateEventSummary,
+  type DeepSeekBalance,
+  type EsaCredentialsInput,
+  type EsaTraffic,
   type MenuActionSummary,
   type MenuApi,
   type ModuleId,
@@ -16,6 +19,7 @@ import {
   type PetSettingsPatch,
   type PetViewState,
   type PublicConfig,
+  type RefreshableModuleId,
   type SecurityStatus,
   type SettingsApi,
   type WebsiteCheckConfig,
@@ -168,6 +172,24 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     checkWebsite: async (id: string) =>
       (await ipc.invoke(IPC_CHANNELS.websitesCheck, { id })) as WebsiteCheckConfig[],
     checkAllWebsites: async () =>
-      (await ipc.invoke(IPC_CHANNELS.websitesCheckAll)) as WebsiteCheckConfig[]
+      (await ipc.invoke(IPC_CHANNELS.websitesCheckAll)) as WebsiteCheckConfig[],
+    saveDeepSeekKey: async (apiKey: string) =>
+      (await ipc.invoke(IPC_CHANNELS.deepseekSaveKey, {
+        apiKey
+      })) as ModuleSummary[],
+    clearDeepSeekKey: async () =>
+      (await ipc.invoke(IPC_CHANNELS.deepseekClearKey)) as ModuleSummary[],
+    fetchDeepSeekBalance: async () =>
+      (await ipc.invoke(IPC_CHANNELS.deepseekBalance)) as DeepSeekBalance,
+    saveEsaCredentials: async (input: EsaCredentialsInput) =>
+      (await ipc.invoke(IPC_CHANNELS.esaSaveCredentials, input)) as ModuleSummary[],
+    clearEsaCredentials: async () =>
+      (await ipc.invoke(IPC_CHANNELS.esaClearCredentials)) as ModuleSummary[],
+    fetchEsaTraffic: async () => (await ipc.invoke(IPC_CHANNELS.esaTraffic)) as EsaTraffic,
+    setModuleRefreshInterval: async (moduleId: RefreshableModuleId, minutes: number | null) =>
+      (await ipc.invoke(IPC_CHANNELS.moduleRefreshInterval, {
+        moduleId,
+        minutes
+      })) as PublicConfig
   }
 }

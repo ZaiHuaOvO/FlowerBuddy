@@ -139,6 +139,40 @@ describe('secret store', () => {
     expect(store.listIds()).toEqual([])
   })
 
+  it('writes multiple secrets in one atomic update', async () => {
+    const directory = createTemporaryDirectory()
+    const filePath = join(directory, 'secrets.enc.json')
+    const backend = new FakeBackend()
+    const store = new SecretStore(filePath, backend)
+    store.load()
+
+    await store.setMany([
+      { id: 'esa.accessKeyId', value: 'ak-id' },
+      { id: 'esa.accessKeySecret', value: 'ak-secret' }
+    ])
+    expect(store.listIds()).toEqual(['esa.accessKeyId', 'esa.accessKeySecret'])
+    await expect(store.get('esa.accessKeyId')).resolves.toBe('ak-id')
+    await expect(store.get('esa.accessKeySecret')).resolves.toBe('ak-secret')
+    expect(readFileSync(filePath, 'utf8')).not.toContain('ak-secret')
+
+    await store.deleteMany(['esa.accessKeyId', 'esa.accessKeySecret'])
+    expect(store.listIds()).toEqual([])
+  })
+
+  it('refuses bulk writes when encryption is unavailable', async () => {
+    const directory = createTemporaryDirectory()
+    const filePath = join(directory, 'secrets.enc.json')
+    const backend = new FakeBackend()
+    backend.available = false
+    const store = new SecretStore(filePath, backend)
+    store.load()
+
+    await expect(store.setMany([{ id: 'esa.accessKeyId', value: 'x' }])).rejects.toMatchObject({
+      code: 'SECRET_STORAGE_UNAVAILABLE'
+    })
+    expect(existsSync(filePath)).toBe(false)
+  })
+
   it('rejects malformed secret ids', async () => {
     const directory = createTemporaryDirectory()
     const store = new SecretStore(join(directory, 'secrets.enc.json'), new FakeBackend())

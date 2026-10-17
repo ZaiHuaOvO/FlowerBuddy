@@ -6,6 +6,8 @@ import { createSenderValidator } from './ipc/validate-sender'
 import { sanitizeDatesData } from './modules/dates/dates-data'
 import { DatesService } from './modules/dates/dates-service'
 import { createEmptyDatesData, type DatesData } from './modules/dates/types'
+import { DeepSeekModule } from './modules/deepseek/deepseek-module'
+import { EsaModule } from './modules/esa/esa-module'
 import { ModuleManager } from './modules/module-manager'
 import { createModuleRegistry } from './modules/registry'
 import {
@@ -84,9 +86,16 @@ async function bootstrap(): Promise<void> {
 
   const datesService = new DatesService(datesStore)
   const websiteService = new WebsiteService(websiteStore)
+  const deepSeekModule = new DeepSeekModule({ secretStore, configStore })
+  const esaModule = new EsaModule({ secretStore, configStore })
 
   const moduleManager = new ModuleManager({
-    modules: createModuleRegistry({ datesService, websiteService }),
+    modules: createModuleRegistry({
+      datesService,
+      websiteService,
+      deepSeekModule,
+      esaModule
+    }),
     configStore,
     scheduler,
     logger
@@ -98,6 +107,8 @@ async function bootstrap(): Promise<void> {
     secretStore,
     datesService,
     websiteService,
+    deepSeekModule,
+    esaModule,
     logger,
     devServerUrl,
     rendererIndexPath,

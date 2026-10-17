@@ -117,6 +117,24 @@ export class SecretStore {
     this.writeNow()
   }
 
+  /** Encrypts and persists several secrets in one write. */
+  async setMany(entries: Array<{ id: string; value: string }>): Promise<void> {
+    for (const entry of entries) {
+      assertSecretId(entry.id)
+    }
+    if (!(await this.isAvailable())) {
+      throw unavailableError()
+    }
+
+    const next = { ...this.values }
+    for (const entry of entries) {
+      const encrypted = await this.backend.encrypt(entry.value)
+      next[entry.id] = encrypted.toString('base64')
+    }
+    this.values = next
+    this.writeNow()
+  }
+
   async get(id: string): Promise<string | null> {
     assertSecretId(id)
     const stored = this.values[id]
@@ -142,6 +160,25 @@ export class SecretStore {
       return
     }
     delete this.values[id]
+    this.writeNow()
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      assertSecretId(id)
+    }
+    const next = { ...this.values }
+    let changed = false
+    for (const id of ids) {
+      if (id in next) {
+        delete next[id]
+        changed = true
+      }
+    }
+    if (!changed) {
+      return
+    }
+    this.values = next
     this.writeNow()
   }
 

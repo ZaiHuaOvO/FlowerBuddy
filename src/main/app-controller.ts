@@ -10,6 +10,9 @@ import type {
   DateEventInput,
   DateEventPatch,
   DateEventSummary,
+  DeepSeekBalance,
+  EsaCredentialsInput,
+  EsaTraffic,
   MenuActionSummary,
   ModuleId,
   ModuleSummary,
@@ -17,14 +20,22 @@ import type {
   PetSettingsPatch,
   PetViewState,
   PublicConfig,
+  RefreshableModuleId,
   SecurityStatus,
   WebsiteCheckConfig,
   WebsiteCheckInput,
   WebsiteCheckPatch
 } from '../shared/api'
 import type { DatesService } from './modules/dates/dates-service'
+import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
+import type { EsaModule } from './modules/esa/esa-module'
 import type { ModuleManager } from './modules/module-manager'
 import { PET_ASSET_SCHEME } from './protocol/pet-asset-protocol'
+import {
+  SECRET_DEEPSEEK_API_KEY,
+  SECRET_ESA_ACCESS_KEY_ID,
+  SECRET_ESA_ACCESS_KEY_SECRET
+} from './security/secret-ids'
 import type { SecretStore } from './security/secret-store'
 import { toPublicError } from './shared/errors'
 import type { LoggerLike } from './shared/logger'
@@ -65,6 +76,8 @@ export interface AppControllerOptions {
   secretStore: SecretStore
   datesService: DatesService
   websiteService: WebsiteService
+  deepSeekModule: DeepSeekModule
+  esaModule: EsaModule
   logger: LoggerLike
   devServerUrl: string | undefined
   rendererIndexPath: string
@@ -211,6 +224,48 @@ export class AppController {
   async checkAllWebsites(): Promise<WebsiteCheckConfig[]> {
     const { configs } = await this.options.websiteService.checkAllEnabled()
     return configs
+  }
+
+  async saveDeepSeekKey(apiKey: string): Promise<ModuleSummary[]> {
+    await this.options.secretStore.set(SECRET_DEEPSEEK_API_KEY, apiKey)
+    return this.options.moduleManager.refresh()
+  }
+
+  async clearDeepSeekKey(): Promise<ModuleSummary[]> {
+    await this.options.secretStore.delete(SECRET_DEEPSEEK_API_KEY)
+    return this.options.moduleManager.refresh()
+  }
+
+  async fetchDeepSeekBalance(): Promise<DeepSeekBalance> {
+    return this.options.deepSeekModule.queryBalance()
+  }
+
+  async saveEsaCredentials(input: EsaCredentialsInput): Promise<ModuleSummary[]> {
+    await this.options.secretStore.setMany([
+      { id: SECRET_ESA_ACCESS_KEY_ID, value: input.accessKeyId },
+      { id: SECRET_ESA_ACCESS_KEY_SECRET, value: input.accessKeySecret }
+    ])
+    this.options.configStore.setEsaSiteId(input.siteId)
+    return this.options.moduleManager.refresh()
+  }
+
+  async clearEsaCredentials(): Promise<ModuleSummary[]> {
+    await this.options.secretStore.deleteMany([
+      SECRET_ESA_ACCESS_KEY_ID,
+      SECRET_ESA_ACCESS_KEY_SECRET
+    ])
+    this.options.configStore.setEsaSiteId('')
+    return this.options.moduleManager.refresh()
+  }
+
+  async fetchEsaTraffic(): Promise<EsaTraffic> {
+    return this.options.esaModule.queryTraffic()
+  }
+
+  setModuleRefreshInterval(moduleId: RefreshableModuleId, minutes: number | null): PublicConfig {
+    const config = this.options.configStore.setModuleRefreshInterval(moduleId, minutes)
+    this.options.moduleManager.refresh()
+    return config
   }
 
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {

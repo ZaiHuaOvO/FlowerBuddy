@@ -49,9 +49,39 @@ export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-im
 export interface ModulesSettings {
   dates: { enabled: boolean }
   gmail: { enabled: boolean; pollIntervalMinutes: number; notifyNewMail: boolean }
-  esa: { enabled: boolean; siteId: string }
-  deepseek: { enabled: boolean }
+  esa: { enabled: boolean; siteId: string; refreshIntervalMinutes: number | null }
+  deepseek: { enabled: boolean; refreshIntervalMinutes: number | null }
   websiteCheck: { enabled: boolean; defaultTimeoutMs: number }
+}
+
+export type RefreshableModuleId = 'deepseek' | 'esa'
+
+export interface DeepSeekBalanceInfo {
+  currency: string
+  totalBalance: string
+  grantedBalance: string
+  toppedUpBalance: string
+}
+
+export interface DeepSeekBalance {
+  isAvailable: boolean
+  balances: DeepSeekBalanceInfo[]
+  fetchedAt: string
+}
+
+export interface EsaTraffic {
+  bytes: number
+  samplingRate: number | null
+  intervalSeconds: number | null
+  startTime: string
+  endTime: string
+  fetchedAt: string
+}
+
+export interface EsaCredentialsInput {
+  accessKeyId: string
+  accessKeySecret: string
+  siteId: string
 }
 
 export interface ModuleSummary {
@@ -241,6 +271,13 @@ export const IPC_CHANNELS = {
   websitesSetEnabled: 'websites:set-enabled',
   websitesCheck: 'websites:check',
   websitesCheckAll: 'websites:check-all',
+  deepseekSaveKey: 'deepseek:save-key',
+  deepseekClearKey: 'deepseek:clear-key',
+  deepseekBalance: 'deepseek:balance',
+  esaSaveCredentials: 'esa:save-credentials',
+  esaClearCredentials: 'esa:clear-credentials',
+  esaTraffic: 'esa:traffic',
+  moduleRefreshInterval: 'modules:set-refresh-interval',
   menuGetActions: 'menu:get-actions',
   petGetState: 'pet:get-state',
   petStateChanged: 'pet:state-changed',
@@ -305,4 +342,14 @@ export interface SettingsApi {
   setWebsiteCheckEnabled(id: string, enabled: boolean): Promise<WebsiteCheckConfig[]>
   checkWebsite(id: string): Promise<WebsiteCheckConfig[]>
   checkAllWebsites(): Promise<WebsiteCheckConfig[]>
+  saveDeepSeekKey(apiKey: string): Promise<ModuleSummary[]>
+  clearDeepSeekKey(): Promise<ModuleSummary[]>
+  fetchDeepSeekBalance(): Promise<DeepSeekBalance>
+  saveEsaCredentials(input: EsaCredentialsInput): Promise<ModuleSummary[]>
+  clearEsaCredentials(): Promise<ModuleSummary[]>
+  fetchEsaTraffic(): Promise<EsaTraffic>
+  setModuleRefreshInterval(
+    moduleId: RefreshableModuleId,
+    minutes: number | null
+  ): Promise<PublicConfig>
 }

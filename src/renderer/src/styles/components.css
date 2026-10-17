@@ -163,6 +163,15 @@
   color: var(--color-warning);
 }
 
+.fl-alert-info {
+  border-color: var(--color-info);
+  background: var(--color-info-bg);
+}
+
+.fl-alert-info .fl-alert-icon {
+  color: var(--color-info);
+}
+
 .fl-tag {
   display: inline-flex;
   align-items: center;
