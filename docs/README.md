@@ -12,7 +12,7 @@
 2. **操作规范**：`AGENTS.md`、`GIT_WORKFLOW.md`、`DESIGN_SYSTEM.md`、`docs/development/coding-guidelines.md`、`docs/testing/strategy.md`。
 3. **当前架构事实**：`docs/architecture/overview.md`（必须随代码同步）。
 4. **用户文档**：`README.md`、`PRIVACY.md`、`docs/README-使用说明.txt`。
-5. **历史记录**：`Windows_桌宠个人助手_技术开发文档.md`、`docs/performance-*.md`、`docs/refactor-*.md`、`docs/regression-report.md`、`docs/screenshots/`。
+5. **历史/归档材料**：`docs/archive/`（原始规划、已完成的一次性任务提示词、历史审计报告）、`docs/performance-*.md`、`docs/refactor-*.md`、`docs/regression-report.md`、`docs/screenshots/`。
 
 同一规则只在一个地方详细维护；其他文档通过链接引用。发现冲突时先查源码和目标，再修正文档或登记待办，不擅自改变产品行为。
 
@@ -24,27 +24,36 @@
 - **操作规范**：约束后续工作，规则变化时必须同步。
 - **用户文档**：面向使用者或贡献者，用户可见行为变化时必须同步。
 - **历史/规划**：保留背景与原始约束，不是当前实现清单。
+- **归档/只读**：已完成或已退出日常流程的材料，保留当时状态，只在追溯历史时查询。
 - **记录**：某次执行的结果快照，原则上不重写；新结果另建记录或追加日期。
 
-| 文档                                                                            | 负责回答什么问题                                                         | 状态                 | 什么时候必须读                       | 什么变化要求同步                                                           |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------- | ------------------------------------ | -------------------------------------------------------------------------- |
-| [AGENTS.md](../AGENTS.md)                                                       | Agent 如何开始任务、如何路由文档、编码/测试/安全/文档同步/Git 规则       | 操作规范             | 每个任务开始前                       | 规则或流程变化时；同步本索引                                               |
-| [CLAUDE.md](../CLAUDE.md)                                                       | Claude Code 的入口指针                                                   | 操作规范             | Claude Code 会话开始时               | `AGENTS.md` 或索引路径变化时                                               |
-| [README.md](../README.md)                                                       | 项目简介、快速上手、常用命令、功能概览、已知限制、安装与隐私入口         | 用户文档             | 涉及用户可见行为、命令、安装或发布时 | 功能、命令、使用方式、限制、发布产物变化时                                 |
-| [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md)                                         | UI 设计来源、token、组件、窗口与无障碍约束                               | 操作规范             | 任何 UI/样式工作前                   | 设计 token、组件规则、视觉验收标准变化时                                   |
-| [GIT_WORKFLOW.md](../GIT_WORKFLOW.md)                                           | 分支、提交、推送、验证、失败处理与汇报格式                               | 操作规范             | 每次提交/推送前                      | Git 流程或汇报格式变化时                                                   |
-| [PRIVACY.md](../PRIVACY.md)                                                     | 对用户公开的数据保存、网络访问、日志与删除方式                           | 用户文档             | 涉及网络、凭据、存储或日志时         | 数据位置、网络目标、凭据处理或删除方式变化时                               |
-| [Windows_桌宠个人助手_技术开发文档.md](../Windows_桌宠个人助手_技术开发文档.md) | 项目最初的完整产品/技术规划、长期约束与阶段任务                          | 历史/规划            | 需要了解原始设计意图或长期约束时     | 仅在状态说明、已确认的过期信息或长期约束变化时更新；不把它当成当前实现清单 |
-| [docs/OPEN_ITEMS.md](OPEN_ITEMS.md)                                             | 未完成项、已知限制、需要外部条件的验证与明确不做的事项                   | 记录（唯一待办入口） | 开始任务前、结束任务前               | 任何待办状态变化；不要让第二份待办清单与之冲突                             |
-| [docs/architecture/overview.md](architecture/overview.md)                       | 当前进程边界、目录职责、IPC、模块生命周期、存储、构建与依赖方向          | 当前事实             | 任何代码改动前                       | 架构、IPC、存储、构建或依赖方向变化时                                      |
-| [docs/development/coding-guidelines.md](development/coding-guidelines.md)       | 当前实际采用的代码组织、命名、类型、错误、日志、配置、测试与新增模块约定 | 操作规范             | 编写或审查代码前                     | 约定或工具配置变化时；区分“已存在”与“建议”                                 |
-| [docs/testing/strategy.md](testing/strategy.md)                                 | 测试分层、现有测试范围、如何运行、自动化与人工边界                       | 操作规范             | 修改测试或评估验证范围时             | 测试分层、脚本、CI 或覆盖范围变化时                                        |
-| [docs/testing/manual-test-plan.md](testing/manual-test-plan.md)                 | 可逐条勾选的功能验收与视觉检查清单                                       | 操作规范             | 每轮功能/样式测试前                  | 用户可见功能、交互、设置项或视觉状态变化时                                 |
-| [docs/README-使用说明.txt](README-使用说明.txt)                                 | 随发布包分发的最终用户说明                                               | 用户文档             | 打包发布前                           | 运行方式、功能、数据位置或卸载方式变化时                                   |
-| [docs/regression-report.md](regression-report.md)                               | 2026-10-17 完整功能与视觉回归的执行结果                                  | 记录                 | 需要查看上一轮回归证据时             | 不重写；新一轮执行另建记录或在文末追加日期                                 |
-| [docs/performance-baseline.md](performance-baseline.md) 等 `performance-*.md`   | 架构/性能优化各阶段的测量与结论                                          | 记录                 | 需要历史性能数据时                   | 不重写；新测量另建记录                                                     |
-| [docs/refactor-*.md](refactor-app-controller.md)                                | 两次重构的范围、验证与结果                                               | 记录                 | 需要了解重构边界时                   | 不重写                                                                     |
-| [docs/screenshots/](screenshots/)                                               | 视觉回归基线截图                                                         | 记录                 | UI 改动前、视觉回归时                | 仅在有意识地更新视觉基线时替换，并说明日期与范围                           |
+| 文档                                                                                              | 负责回答什么问题                                                         | 状态                 | 什么时候必须读                       | 什么变化要求同步                                         |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------- | ------------------------------------ | -------------------------------------------------------- |
+| [AGENTS.md](../AGENTS.md)                                                                         | Agent 如何开始任务、如何路由文档、编码/测试/安全/文档同步/Git 规则       | 操作规范             | 每个任务开始前                       | 规则或流程变化时；同步本索引                             |
+| [CLAUDE.md](../CLAUDE.md)                                                                         | Claude Code 的入口指针                                                   | 操作规范             | Claude Code 会话开始时               | `AGENTS.md` 或索引路径变化时                             |
+| [README.md](../README.md)                                                                         | 项目简介、快速上手、常用命令、功能概览、已知限制、安装与隐私入口         | 用户文档             | 涉及用户可见行为、命令、安装或发布时 | 功能、命令、使用方式、限制、发布产物变化时               |
+| [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md)                                                           | UI 设计来源、token、组件、窗口与无障碍约束                               | 操作规范             | 任何 UI/样式工作前                   | 设计 token、组件规则、视觉验收标准变化时                 |
+| [GIT_WORKFLOW.md](../GIT_WORKFLOW.md)                                                             | 分支、提交、推送、验证、失败处理与汇报格式                               | 操作规范             | 每次提交/推送前                      | Git 流程或汇报格式变化时                                 |
+| [PRIVACY.md](../PRIVACY.md)                                                                       | 对用户公开的数据保存、网络访问、日志与删除方式                           | 用户文档             | 涉及网络、凭据、存储或日志时         | 数据位置、网络目标、凭据处理或删除方式变化时             |
+| [docs/archive/Windows_桌宠个人助手_技术开发文档.md](archive/Windows_桌宠个人助手_技术开发文档.md) | 项目最初的完整产品/技术规划与阶段任务                                    | 归档/历史            | 仅在追溯原始设计意图时读取           | 不在归档中更新；新结论写入当前架构、README 或 OPEN_ITEMS |
+| [docs/OPEN_ITEMS.md](OPEN_ITEMS.md)                                                               | 未完成项、已知限制、需要外部条件的验证与明确不做的事项                   | 记录（唯一待办入口） | 开始任务前、结束任务前               | 任何待办状态变化；不要让第二份待办清单与之冲突           |
+| [docs/architecture/overview.md](architecture/overview.md)                                         | 当前进程边界、目录职责、IPC、模块生命周期、存储、构建与依赖方向          | 当前事实             | 任何代码改动前                       | 架构、IPC、存储、构建或依赖方向变化时                    |
+| [docs/development/coding-guidelines.md](development/coding-guidelines.md)                         | 当前实际采用的代码组织、命名、类型、错误、日志、配置、测试与新增模块约定 | 操作规范             | 编写或审查代码前                     | 约定或工具配置变化时；区分“已存在”与“建议”               |
+| [docs/testing/strategy.md](testing/strategy.md)                                                   | 测试分层、现有测试范围、如何运行、自动化与人工边界                       | 操作规范             | 修改测试或评估验证范围时             | 测试分层、脚本、CI 或覆盖范围变化时                      |
+| [docs/testing/manual-test-plan.md](testing/manual-test-plan.md)                                   | 可逐条勾选的功能验收与视觉检查清单                                       | 操作规范             | 每轮功能/样式测试前                  | 用户可见功能、交互、设置项或视觉状态变化时               |
+| [docs/README-使用说明.txt](README-使用说明.txt)                                                   | 随发布包分发的最终用户说明                                               | 用户文档             | 打包发布前                           | 运行方式、功能、数据位置或卸载方式变化时                 |
+| [docs/regression-report.md](regression-report.md)                                                 | 2026-10-17 完整功能与视觉回归的执行结果                                  | 记录                 | 需要查看上一轮回归证据时             | 不重写；新一轮执行另建记录或在文末追加日期               |
+| [docs/performance-baseline.md](performance-baseline.md) 等 `performance-*.md`                     | 架构/性能优化各阶段的测量与结论                                          | 记录                 | 需要历史性能数据时                   | 不重写；新测量另建记录                                   |
+| [docs/refactor-*.md](refactor-app-controller.md)                                                  | 两次重构的范围、验证与结果                                               | 记录                 | 需要了解重构边界时                   | 不重写                                                   |
+| [docs/screenshots/](screenshots/)                                                                 | 视觉回归基线截图                                                         | 记录                 | UI 改动前、视觉回归时                | 仅在有意识地更新视觉基线时替换，并说明日期与范围         |
+| [docs/archive/](archive/README.md)                                                                | 已完成、已退出日常流程的历史材料                                         | 归档/只读            | 仅追溯历史时                         | 不重写正文；只补充归档说明或修正失效链接                 |
+
+### 归档区
+
+- `docs/archive/` 保存已完成的一次性任务提示词、历史审计报告和已被当前文档取代的初始规划。
+- 归档材料不是当前实现、当前规则或待办清单；日常任务不需要读取，只有追溯设计意图或历史决策时才查询。
+- 新结论、新规则和未完成项必须写入当前权威文档或 [OPEN_ITEMS.md](OPEN_ITEMS.md)，不得只更新归档正文。
+- 归档清单和规则见 [docs/archive/README.md](archive/README.md)。
 
 ## 3. 文档状态标签
 

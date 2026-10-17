@@ -5,7 +5,7 @@
 
 ## 已完成
 
-- [x] 文档体系初始化：新增 `AGENTS.md`、`CLAUDE.md`、`docs/README.md`、架构概览、开发约定、测试策略与手动验收清单；为旧开发文档补充状态说明并修正 README 过期描述（2026-10-17）。
+- [x] 文档体系初始化：新增 `AGENTS.md`、`CLAUDE.md`、`docs/README.md`、架构概览、开发约定、测试策略与手动验收清单；为旧开发文档补充状态说明并修正 README 过期描述；将一次性任务提示词、历史审计报告和初始开发文档归档到 `docs/archive/`（2026-10-17）。
 - [x] 完整功能与视觉回归：功能矩阵 18/18、补充行为 3/3、视觉截图 12/12 与旧构建逐像素一致；回归中发现并修复快捷菜单文字对齐问题，结果见 `docs/regression-report.md`（2026-10-17）。
 - [x] 架构优化阶段 F：同步 I/O 实测不构成可测阻塞，未改异步；新增 Windows CI 与发布打包工作流，`npm run dist:win` 端到端通过，最终回归见 `docs/performance-phase-f.md`（2026-10-17）。
 - [x] 架构优化阶段 E：将 `app-controller.ts` 从 956 行收敛为 490 行协调器，拆出动作执行、overlay 窗口与桌宠窗口三个职责类；新增 6 项动作时序测试，结果见 `docs/refactor-app-controller.md`（2026-10-17）。

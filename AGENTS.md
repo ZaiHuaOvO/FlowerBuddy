@@ -23,7 +23,7 @@
    git log -5 --oneline --decorate
    ```
 2. 识别工作区中已有的未提交修改。它们属于用户，必须保留；不要覆盖、丢弃、回滚或混入本任务无关的提交。
-3. 阅读本文件与 [`docs/README.md`](docs/README.md)。
+3. 阅读本文件与 [`docs/README.md`](docs/README.md)；`docs/archive/` 只在需要追溯原始规划、历史审计或已完成的一次性任务时读取。
 4. 根据任务类型阅读下表中的具体文档。
 5. 阅读相关源码调用链，确认现有行为、输入输出、错误路径和测试，再决定修改范围。
 6. 如果任务与现有文档冲突，先查清事实与目标；不要盲从过期文档，也不要为了消除冲突而擅自改变产品行为。无法确认的内容标记“待核实”。
@@ -42,6 +42,7 @@
 | 构建 / 发布         | `package.json`、`electron-builder.yml`、`electron.vite.config.ts`、`.github/workflows/ci.yml`                                 | README、架构概览的构建数据流、OPEN_ITEMS                                                                   |
 | 依赖升级            | `package.json`、`package-lock.json`、`licenses/` 生成脚本                                                                     | README（命令或行为变化时）、许可证清单、PRIVACY（新增网络/数据处理时）                                     |
 | 纯文档修改          | 本文、[docs/README.md](docs/README.md)、被修改文档                                                                            | 文档索引；若改变规则归属，更新引用链接                                                                     |
+| 历史追溯            | [docs/archive/README.md](docs/archive/README.md)、对应归档文档                                                                | 不重写归档正文；新结论写入当前权威文档或 OPEN_ITEMS                                                        |
 
 完整的影响矩阵见 [`docs/README.md`](docs/README.md#4-改动类型--必读文档--需要同步的文档)。
 
@@ -53,6 +54,7 @@
 - 模块通过 `src/main/modules/registry.ts` 的静态注册表接入；不要引入从文件系统加载任意代码的动态插件机制。
 - 修改公共类型、IPC 通道或存储结构时，先搜索所有使用点，避免只改一侧。
 - 不确定的行为、平台限制或外部 API 约束，标注“待核实”并给出核实办法，不要写成既定事实。
+- `docs/archive/` 是只读归档：只保存已完成或已被当前文档取代的材料，不作为当前实现、规则或待办来源；只在追溯历史时查询。
 
 ## 4. 代码质量约定（摘要）
 

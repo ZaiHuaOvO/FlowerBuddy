@@ -2,7 +2,7 @@
 
 > 适用项目：FlowerBuddy / `flower-buddy`（若仓库最终采用其他名称，以实际仓库为准）  
 > 目的：保证每次有意义的更新都及时记录、推送到用户的 GitHub，并向用户清楚说明改动。  
-> 本文件是 Git 操作的唯一权威入口；任务路由和文档同步要求见 [`AGENTS.md`](AGENTS.md) 与 [`docs/README.md`](docs/README.md)，产品背景见 `Windows_桌宠个人助手_技术开发文档.md`。
+> 本文件是 Git 操作的唯一权威入口；任务路由和文档同步要求见 [`AGENTS.md`](AGENTS.md) 与 [`docs/README.md`](docs/README.md)，历史产品背景见 [`docs/archive/Windows_桌宠个人助手_技术开发文档.md`](docs/archive/Windows_桌宠个人助手_技术开发文档.md)。
 
 ---
 
@@ -275,7 +275,7 @@ Git 状态：
 ## 10. Agent 每次任务的标准启动提示
 
 ```text
-开始修改前，请先阅读项目根目录的 AGENTS.md、docs/README.md、Windows_桌宠个人助手_技术开发文档.md 和 GIT_WORKFLOW.md。
+开始修改前，请先阅读项目根目录的 AGENTS.md、docs/README.md 和 GIT_WORKFLOW.md；仅在需要追溯原始规划时再读 docs/archive/Windows_桌宠个人助手_技术开发文档.md。
 
 先检查当前分支、远程仓库、工作区状态和已有未提交改动，不要覆盖无关修改。按 AGENTS.md 的任务路由只执行当前阶段，不提前开发后续功能。
 

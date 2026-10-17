@@ -1,21 +1,21 @@
 # Windows 桌宠个人助手 — 技术开发文档
 
-> 文档版本：1.1  
-> 编写日期：2026-10-16  
-> 目标：提供给 AI Agent 作为从零开发、分阶段实现、测试和打包的唯一主技术规范。  
-> 产品定位：运行于 Windows 的轻量级桌面宠物与个人信息助手。  
+> 文档版本：1.1
+> 编写日期：2026-10-16
+> 目标：提供给 AI Agent 作为从零开发、分阶段实现、测试和打包的唯一主技术规范。
+> 产品定位：运行于 Windows 的轻量级桌面宠物与个人信息助手。
 > 当前原则：自有代码从零编写，借鉴开源项目的产品交互和架构思路；未经许可证允许，不直接复制其源码或资源。
 
 ---
 
-## 文档状态（2026-10-17 补充）
+## 归档状态（2026-10-17）
 
-**本文是项目最初的完整产品/技术规划与长期约束，不是当前实现清单。** 阶段 0–6 已完成，实际架构、文件位置、配置版本和测试方式以源码及以下文档为准：
+**本文是项目最初的完整产品/技术规划与长期约束，现已归档到 `docs/archive/`，仅用于追溯原始设计意图，不是当前实现清单。** 阶段 0–6 已完成，实际架构、文件位置、配置版本和测试方式以源码及以下文档为准：
 
-- 当前架构与数据流：[docs/architecture/overview.md](docs/architecture/overview.md)
-- 文档索引与权威来源：[docs/README.md](docs/README.md)
-- 未完成项与已知限制：[docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md)
-- Agent 操作规则：[AGENTS.md](AGENTS.md)
+- 当前架构与数据流：[docs/architecture/overview.md](../architecture/overview.md)
+- 文档索引与权威来源：[docs/README.md](../README.md)
+- 未完成项与已知限制：[docs/OPEN_ITEMS.md](../OPEN_ITEMS.md)
+- Agent 操作规则：[AGENTS.md](../../AGENTS.md)
 
 阅读时请注意以下已知差异（不要据此判断当前代码缺失）：
 
@@ -26,7 +26,7 @@
 | 规划 `notifications/notification-service.ts` | 当前由 `AppController.handleGmailNewMessages()` 直接使用 Electron `Notification` |
 | §8.3 规划设置页“打开日志目录 / 复制脱敏诊断信息” | 尚未实现，登记在 `OPEN_ITEMS.md` |
 | 目录示例包含 `tests/integration/` | 当前只有 `tests/unit/` |
-| §12 是“从零开发”的阶段任务 | 阶段 0–6 已完成；历史结果见 `docs/regression-report.md` 与 `docs/performance-*.md` |
+| §12 是“从零开发”的阶段任务 | 阶段 0–6 已完成；历史结果见 `../regression-report.md` 与 `../performance-*.md` |
 
 本文中的产品边界、安全要求、隐私原则和长期技术约束仍然有效；与源码冲突时，先查证事实，再更新本文或登记待办，不要擅自改变产品行为。
 
@@ -34,7 +34,7 @@
 
 ## 0. 给 AI Agent 的最高优先级指令
 
-> 任务开始前还需阅读根目录 [`AGENTS.md`](./AGENTS.md) 和文档索引 [`docs/README.md`](./docs/README.md)；本文件不是当前实现清单，架构事实见 [`docs/architecture/overview.md`](./docs/architecture/overview.md)。
+> 任务开始前还需阅读根目录 [`AGENTS.md`](../../AGENTS.md) 和文档索引 [`docs/README.md`](../README.md)；本文件已归档，不是当前实现清单，架构事实见 [`docs/architecture/overview.md`](../architecture/overview.md)。
 
 开始工作前必须完整阅读本文件，并遵循以下规则：
 
@@ -63,7 +63,7 @@
 
 ## 0.1 Git 与 GitHub 工作流（必须遵守）
 
-Git 的详细执行规范位于项目根目录的 [`GIT_WORKFLOW.md`](./GIT_WORKFLOW.md)。AI Agent 每次开始修改前必须先阅读该文件，并在每次完成一个可独立验收的小更新或大更新后，按其中规定执行检查、提交和推送。
+Git 的详细执行规范位于仓库根目录的 [`GIT_WORKFLOW.md`](../../GIT_WORKFLOW.md)。AI Agent 每次开始修改前必须先阅读该文件，并在每次完成一个可独立验收的小更新或大更新后，按其中规定执行检查、提交和推送。
 
 核心要求：
 
@@ -81,7 +81,7 @@ Git 的详细执行规范位于项目根目录的 [`GIT_WORKFLOW.md`](./GIT_WORK
 
 ## 0.2 视觉设计系统（必须遵守）
 
-项目根目录的 [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) 是 FlowerBuddy 的视觉与交互规范接入说明。AI Agent 在开发任何 UI 前必须阅读该文件，并打开 <https://flowersink.com/design/> 核对花墨设计规范中的实际 token、字体、间距、圆角、阴影、排版、动效、组件状态和无障碍约定。
+仓库根目录的 [`DESIGN_SYSTEM.md`](../../DESIGN_SYSTEM.md) 是 FlowerBuddy 的视觉与交互规范接入说明。AI Agent 在开发任何 UI 前必须阅读该文件，并打开 <https://flowersink.com/design/> 核对花墨设计规范中的实际 token、字体、间距、圆角、阴影、排版、动效、组件状态和无障碍约定。
 
 1. **不要等所有功能完成后再统一做样式。** 从阶段 1 开始建立视觉基线，后续功能直接复用；当前已经完成的功能逻辑不应因此被无必要地推翻。
 2. **不要凭感觉编造样式值。** 具体 token 以设计规范网页实际内容为准；如果暂时无法访问，先查项目中的现有样式和资源并明确记录尚未核验的内容。

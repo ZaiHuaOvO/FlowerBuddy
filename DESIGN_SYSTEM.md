@@ -146,7 +146,7 @@ AI Agent 第一次读取本文件时，要实际检查设计规范页面，并�
 ## 7. 可直接交给 AI Agent 的当前任务提示词
 
 ```text
-请先阅读项目根目录的《Windows_桌宠个人助手_技术开发文档.md》、《GIT_WORKFLOW.md》和《DESIGN_SYSTEM.md》。
+请先阅读项目根目录的《AGENTS.md》《GIT_WORKFLOW.md》和《DESIGN_SYSTEM.md》，以及 docs/README.md；《Windows_桌宠个人助手_技术开发文档.md》已归档到 docs/archive/，仅在追溯原始设计时查询。
 
 我现在已经处于阶段 1。请不要重建项目、不要推翻已经验收的功能，也不要提前实现业务 API。
 
