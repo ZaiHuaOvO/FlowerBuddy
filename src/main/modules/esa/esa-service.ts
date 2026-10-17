@@ -1,10 +1,8 @@
-import {
+import type {
   DescribeSiteTimeSeriesDataRequest,
   DescribeSiteTimeSeriesDataRequestFields
 } from '@alicloud/esa20240910'
-import * as EsaSdk from '@alicloud/esa20240910'
-import { $OpenApiUtil } from '@alicloud/openapi-core'
-import { RuntimeOptions } from '@darabonba/typescript'
+import type { RuntimeOptions } from '@darabonba/typescript'
 import type { EsaTraffic, ModuleActionResult } from '../../../shared/api'
 import { AppError } from '../../shared/errors'
 
@@ -12,14 +10,103 @@ import { AppError } from '../../shared/errors'
  * The SDK is CommonJS; electron-vite's interop may expose the module object as
  * `default`, so accept both `default` and `default.default` shapes.
  */
-const sdkNamespace = EsaSdk as unknown as { default?: unknown }
-const sdkDefault = sdkNamespace.default
-const EsaClientCandidate =
-  typeof sdkDefault === 'function'
-    ? sdkDefault
-    : (sdkDefault as { default?: unknown } | undefined)?.default
-
 type EsaClientConstructor = new (config: unknown) => unknown
+type EsaConfigConstructor = new (options: {
+  accessKeyId: string
+  accessKeySecret: string
+}) => { endpoint: string }
+type EsaRequestConstructor = new (options: {
+  siteId: string
+  startTime: string
+  endTime: string
+  fields: DescribeSiteTimeSeriesDataRequestFields[]
+}) => DescribeSiteTimeSeriesDataRequest
+type EsaRequestFieldsConstructor = new (options: {
+  fieldName: string
+  dimension: string[]
+}) => DescribeSiteTimeSeriesDataRequestFields
+type EsaRuntimeOptionsConstructor = new (options: {
+  connectTimeout: number
+  readTimeout: number
+}) => RuntimeOptions
+
+interface EsaSdkClasses {
+  Client: EsaClientConstructor
+  Config: EsaConfigConstructor
+  Request: EsaRequestConstructor
+  RequestFields: EsaRequestFieldsConstructor
+  RuntimeOptions: EsaRuntimeOptionsConstructor
+}
+
+function pickExport<T>(module: Record<string, unknown>, name: string): T | undefined {
+  const direct = module[name]
+  if (direct !== undefined) {
+    return direct as T
+  }
+  const fallback = module.default
+  if (fallback && typeof fallback === 'object') {
+    return (fallback as Record<string, unknown>)[name] as T | undefined
+  }
+  return undefined
+}
+
+let esaSdkPromise: Promise<EsaSdkClasses> | null = null
+
+async function loadEsaSdk(): Promise<EsaSdkClasses> {
+  esaSdkPromise ??= Promise.all([
+    import('@alicloud/esa20240910'),
+    import('@alicloud/openapi-core'),
+    import('@darabonba/typescript')
+  ])
+    .then(([esaModule, openApiModule, darabonbaModule]) => {
+      const esaExports = esaModule as unknown as Record<string, unknown>
+      const openApiExports = openApiModule as unknown as Record<string, unknown>
+      const darabonbaExports = darabonbaModule as unknown as Record<string, unknown>
+
+      const defaultExport = esaExports.default
+      const clientCandidate =
+        typeof defaultExport === 'function'
+          ? defaultExport
+          : (defaultExport as { default?: unknown } | undefined)?.default
+      const request = pickExport<EsaRequestConstructor>(
+        esaExports,
+        'DescribeSiteTimeSeriesDataRequest'
+      )
+      const requestFields = pickExport<EsaRequestFieldsConstructor>(
+        esaExports,
+        'DescribeSiteTimeSeriesDataRequestFields'
+      )
+      const openApiUtil = pickExport<{ Config?: unknown }>(openApiExports, '$OpenApiUtil')
+      const runtimeOptions = pickExport<EsaRuntimeOptionsConstructor>(
+        darabonbaExports,
+        'RuntimeOptions'
+      )
+      const config = openApiUtil?.Config
+
+      if (
+        typeof clientCandidate !== 'function' ||
+        !request ||
+        !requestFields ||
+        typeof config !== 'function' ||
+        !runtimeOptions
+      ) {
+        throw new AppError('REMOTE_SERVICE_ERROR', 'ESA SDK 初始化失败')
+      }
+
+      return {
+        Client: clientCandidate as EsaClientConstructor,
+        Config: config as EsaConfigConstructor,
+        Request: request,
+        RequestFields: requestFields,
+        RuntimeOptions: runtimeOptions
+      }
+    })
+    .catch((error: unknown) => {
+      esaSdkPromise = null
+      throw error
+    })
+  return esaSdkPromise
+}
 
 /** Public endpoints documented for ESA 2024-09-10. */
 const ESA_ENDPOINT = 'esa.cn-hangzhou.aliyuncs.com'
@@ -59,13 +146,13 @@ export interface EsaTrafficInput {
   clientFactory?: EsaClientFactory | undefined
 }
 
-const defaultClientFactory: EsaClientFactory = ({ accessKeyId, accessKeySecret }) => {
-  if (typeof EsaClientCandidate !== 'function') {
-    throw new AppError('REMOTE_SERVICE_ERROR', 'ESA SDK 初始化失败')
-  }
-  const config = new $OpenApiUtil.Config({ accessKeyId, accessKeySecret })
+function createEsaClient(
+  sdk: EsaSdkClasses,
+  credentials: { accessKeyId: string; accessKeySecret: string }
+): EsaClientLike {
+  const config = new sdk.Config(credentials)
   config.endpoint = ESA_ENDPOINT
-  return new (EsaClientCandidate as EsaClientConstructor)(config) as unknown as EsaClientLike
+  return new sdk.Client(config) as unknown as EsaClientLike
 }
 
 /** Local natural day: 00:00 in the user's timezone converted to UTC ISO. */
@@ -155,16 +242,20 @@ export async function fetchEsaTraffic(input: EsaTrafficInput): Promise<EsaTraffi
 
   let response: { body?: EsaResponseBodyLike }
   try {
-    const client = (input.clientFactory ?? defaultClientFactory)({
+    const sdk = await loadEsaSdk()
+    const credentials = {
       accessKeyId: input.accessKeyId,
       accessKeySecret: input.accessKeySecret
-    })
-    const request = new DescribeSiteTimeSeriesDataRequest({
+    }
+    const client = input.clientFactory
+      ? input.clientFactory(credentials)
+      : createEsaClient(sdk, credentials)
+    const request = new sdk.Request({
       siteId: input.siteId.trim(),
       startTime,
       endTime,
       fields: [
-        new DescribeSiteTimeSeriesDataRequestFields({
+        new sdk.RequestFields({
           fieldName: 'Traffic',
           dimension: ['ALL']
         })
@@ -172,7 +263,7 @@ export async function fetchEsaTraffic(input: EsaTrafficInput): Promise<EsaTraffi
     })
     response = await client.describeSiteTimeSeriesDataWithOptions(
       request,
-      new RuntimeOptions({
+      new sdk.RuntimeOptions({
         connectTimeout: CONNECT_TIMEOUT_MS,
         readTimeout: READ_TIMEOUT_MS
       })

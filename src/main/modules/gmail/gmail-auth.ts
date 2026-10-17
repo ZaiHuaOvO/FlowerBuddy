@@ -1,8 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { CodeChallengeMethod, OAuth2Client } from 'google-auth-library'
-import { google } from 'googleapis'
 import { AppError } from '../../shared/errors'
 
 export const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly'
@@ -82,6 +80,8 @@ export async function runGmailOAuth(options: GmailOAuthOptions): Promise<GmailOA
   if (!options.clientId.trim() || !options.clientSecret.trim()) {
     throw new AppError('NOT_CONFIGURED', '请先填写 Gmail OAuth Client ID 和 Client Secret')
   }
+
+  const { CodeChallengeMethod, OAuth2Client } = await import('google-auth-library')
 
   const state = randomBytes(32).toString('hex')
   let settled = false
@@ -196,6 +196,7 @@ export async function runGmailOAuth(options: GmailOAuthOptions): Promise<GmailOA
     }
 
     oauth2Client.setCredentials(tokens)
+    const { google } = await import('googleapis')
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
     const profile = await withTimeout(
       gmail.users.getProfile({ userId: 'me' }),
@@ -223,6 +224,7 @@ export async function revokeGmailToken(options: {
   refreshToken: string
 }): Promise<void> {
   try {
+    const { OAuth2Client } = await import('google-auth-library')
     const client = new OAuth2Client(options.clientId, options.clientSecret)
     await client.revokeToken(options.refreshToken)
   } catch {

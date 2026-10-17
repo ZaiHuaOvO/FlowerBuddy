@@ -1,6 +1,4 @@
 import type { OAuth2Client } from 'google-auth-library'
-import { OAuth2Client as OAuth2ClientCtor } from 'google-auth-library'
-import { google } from 'googleapis'
 import type { GmailPollSummary, GmailStateView } from '../../../shared/api'
 import {
   SECRET_GMAIL_CLIENT_ID,
@@ -65,8 +63,32 @@ export interface GmailClientLike {
 
 export type GmailClientFactory = (auth: OAuth2Client) => GmailClientLike
 
-const defaultClientFactory: GmailClientFactory = (auth) =>
-  google.gmail({ version: 'v1', auth }) as unknown as GmailClientLike
+type AuthLibrary = typeof import('google-auth-library')
+type GoogleApis = typeof import('googleapis')
+
+let authLibraryPromise: Promise<AuthLibrary> | null = null
+let googleApisPromise: Promise<GoogleApis> | null = null
+
+function loadAuthLibrary(): Promise<AuthLibrary> {
+  authLibraryPromise ??= import('google-auth-library').catch((error: unknown) => {
+    authLibraryPromise = null
+    throw error
+  })
+  return authLibraryPromise
+}
+
+function loadGoogleApis(): Promise<GoogleApis> {
+  googleApisPromise ??= import('googleapis').catch((error: unknown) => {
+    googleApisPromise = null
+    throw error
+  })
+  return googleApisPromise
+}
+
+async function createDefaultGmailClient(auth: OAuth2Client): Promise<GmailClientLike> {
+  const { google } = await loadGoogleApis()
+  return google.gmail({ version: 'v1', auth }) as unknown as GmailClientLike
+}
 
 export interface GmailServiceOptions {
   secretStore: SecretStore
@@ -239,9 +261,12 @@ export class GmailService {
       throw new AppError('AUTH_EXPIRED', 'Gmail 授权已失效，请重新连接')
     }
 
-    const auth = new OAuth2ClientCtor(clientId, clientSecret)
+    const { OAuth2Client } = await loadAuthLibrary()
+    const auth = new OAuth2Client(clientId, clientSecret)
     auth.setCredentials({ refresh_token: refreshToken })
-    const client = (this.options.clientFactory ?? defaultClientFactory)(auth)
+    const client = this.options.clientFactory
+      ? this.options.clientFactory(auth)
+      : await createDefaultGmailClient(auth)
 
     try {
       return await withTimeout(

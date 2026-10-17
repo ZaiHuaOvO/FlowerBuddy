@@ -158,4 +158,4 @@
 - SDK 延迟加载后，除启动时间外还要确认模块未启用时主进程不再顶层 `require` 对应 SDK。
 - 没有改善或出现退步的改动必须如实记录；不以“生成了多个 chunk”作为性能改善的证据。
 
-阶段 B（视图懒加载与 CSS 按需加载）的对比结果见 [performance-phase-b.md](performance-phase-b.md)。
+阶段 B（视图懒加载与 CSS 按需加载）的对比结果见 [performance-phase-b.md](performance-phase-b.md)，阶段 C（外部 SDK 延迟加载）见 [performance-phase-c.md](performance-phase-c.md)。
