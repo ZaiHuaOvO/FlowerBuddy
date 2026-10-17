@@ -4,6 +4,8 @@
 > 用途：作为 AI Agent 开发 FlowerBuddy 时必须遵守的视觉与交互规范。  
 > 花墨设计规范：<https://flowersink.com/design/>  
 > 适用范围：桌宠本体、快捷菜单、思考/结果气泡、设置窗口、设置表单、状态提示及后续功能页面。
+>
+> 文档状态（2026-10-17）：视觉基线已落地，设计 token 位于 [`src/renderer/src/styles/tokens.css`](src/renderer/src/styles/tokens.css)，基线截图位于 [`docs/screenshots/`](docs/screenshots/)。本文仍是 UI 规范唯一入口；规则或 token 变化时必须同步更新本文，并执行视觉回归。
 
 ---
 

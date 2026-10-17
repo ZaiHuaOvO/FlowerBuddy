@@ -8,7 +8,33 @@
 
 ---
 
+## 文档状态（2026-10-17 补充）
+
+**本文是项目最初的完整产品/技术规划与长期约束，不是当前实现清单。** 阶段 0–6 已完成，实际架构、文件位置、配置版本和测试方式以源码及以下文档为准：
+
+- 当前架构与数据流：[docs/architecture/overview.md](docs/architecture/overview.md)
+- 文档索引与权威来源：[docs/README.md](docs/README.md)
+- 未完成项与已知限制：[docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md)
+- Agent 操作规则：[AGENTS.md](AGENTS.md)
+
+阅读时请注意以下已知差异（不要据此判断当前代码缺失）：
+
+| 本文内容 | 当前实现 |
+| --- | --- |
+| 目录示例使用 `service.ts` / `schema.ts` / `oauth.ts` | 实际为 `*-service.ts`、`*-module.ts`、`types.ts`、`gmail-auth.ts` 等 |
+| 配置 schema 示例为 `schemaVersion: 1` | 当前 `CURRENT_CONFIG_SCHEMA_VERSION = 4` |
+| 规划 `notifications/notification-service.ts` | 当前由 `AppController.handleGmailNewMessages()` 直接使用 Electron `Notification` |
+| §8.3 规划设置页“打开日志目录 / 复制脱敏诊断信息” | 尚未实现，登记在 `OPEN_ITEMS.md` |
+| 目录示例包含 `tests/integration/` | 当前只有 `tests/unit/` |
+| §12 是“从零开发”的阶段任务 | 阶段 0–6 已完成；历史结果见 `docs/regression-report.md` 与 `docs/performance-*.md` |
+
+本文中的产品边界、安全要求、隐私原则和长期技术约束仍然有效；与源码冲突时，先查证事实，再更新本文或登记待办，不要擅自改变产品行为。
+
+---
+
 ## 0. 给 AI Agent 的最高优先级指令
+
+> 任务开始前还需阅读根目录 [`AGENTS.md`](./AGENTS.md) 和文档索引 [`docs/README.md`](./docs/README.md)；本文件不是当前实现清单，架构事实见 [`docs/architecture/overview.md`](./docs/architecture/overview.md)。
 
 开始工作前必须完整阅读本文件，并遵循以下规则：
 

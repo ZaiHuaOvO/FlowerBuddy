@@ -2,6 +2,15 @@
 
 Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：桌宠外壳、日期事件、网站检测、DeepSeek 余额、阿里云 ESA 今日流量、Gmail 新邮件提醒，以及 Windows 安装包/便携版/ZIP 发布产物。
 
+## 文档入口
+
+- 贡献者与 AI Agent 的操作规则：[AGENTS.md](AGENTS.md)
+- 文档索引、权威来源与改动影响矩阵：[docs/README.md](docs/README.md)
+- 当前架构与数据流：[docs/architecture/overview.md](docs/architecture/overview.md)
+- 开发约定：[docs/development/coding-guidelines.md](docs/development/coding-guidelines.md)
+- 测试策略与手动验收清单：[docs/testing/strategy.md](docs/testing/strategy.md)、[docs/testing/manual-test-plan.md](docs/testing/manual-test-plan.md)
+- 未完成项与已知限制：[docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md)
+
 ## 最终用户须知
 
 正式发布后，用户只需运行 `FlowerBuddy-Setup-<version>-x64.exe` 安装，或直接运行 `FlowerBuddy-Portable-<version>-x64.exe`。**最终用户不需要安装 Node.js，也不需要打开终端或执行任何命令。**
@@ -14,20 +23,20 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 
 - 透明、无边框、始终置顶的桌宠窗口，按住拖动不误判为点击。
 - 单击桌宠打开快捷菜单，并播放约 220ms 的弹跳动画（可在设置中关闭）。
-- 快捷菜单包含演示动作、打开设置、隐藏桌宠和退出；托盘提供设置、显示/隐藏桌宠和退出入口。
+- 快捷菜单包含已实现且已启用的模块动作、打开设置、隐藏桌宠和退出；托盘提供设置、显示/隐藏桌宠和退出入口。
 - 独立的气泡窗口，支持 `idle` / `loading` / `success` / `empty` / `error` 五种状态、自动消失与手动关闭。
 - 设置窗口：始终置顶、弹跳动画、气泡停留时长、桌宠缩放、导入 PNG、重置位置。
 - 单张 PNG 导入：校验格式与大小（≤15 MB），复制到用户数据目录，保留宽高比。
 - 桌宠位置、尺寸和设置持久化到用户数据目录的 `config.json`，采用临时文件 + rename 原子写入并带 `schemaVersion`。
 - 多显示器与分辨率变化时自动把桌宠移回可见区域；单实例锁避免重复启动。
-- 安全基线：`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true`、窄 preload 桥、IPC sender 校验、导航与 `window.open` 拦截、权限请求全部拒绝、严格 CSP。
+- 安全基线：`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true`、窄 preload 桥、IPC sender 校验、权限请求全部拒绝、生产环境严格 CSP。导航与 `window.open` 拦截尚待核实，见 [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md)。
 - 桌宠图片通过自定义 `flowerbuddy-pet://` 协议提供；主进程只允许读取当前配置的形象和内置默认形象。
 - Vitest 单元测试、ESLint、Prettier、TypeScript 类型检查。
 - electron-builder 的 NSIS 安装版与 portable 便携版配置，产物输出到 `release/`。
 
 ### 阶段 2 新增
 
-- 配置 schema 升级到 `schemaVersion: 2`，新增五个模块的独立开关；v1 配置自动迁移，迁移前与损坏/未来版本文件都会备份，恢复结果会在设置页提示。
+- 阶段 2 将配置 schema 升级到 `schemaVersion: 2`，新增五个模块的独立开关；旧配置自动迁移，迁移前与损坏/未来版本文件都会备份，恢复结果会在设置页提示。当前 schema 版本为 4，以 `src/main/storage/config-schema.ts` 为准。
 - 使用 Electron `safeStorage` 异步 API 的 Secret Store：密文以 Base64 写入 `secrets.enc.json`，密钥只在主进程解密；加密不可用时拒绝保存并明确提示，绝不回退明文。
 - 静态模块注册表（特殊日期、Gmail、ESA、DeepSeek、网站检测）与生命周期管理；未配置的模块不会被启动。
 - 统一任务调度器：同一任务不重叠、可取消、失败指数退避、系统睡眠恢复后从当前时间重新计时。
@@ -134,7 +143,7 @@ release/                 # 安装包输出（不入库）
 ## 使用说明
 
 - 启动后桌宠出现在桌面右下角，默认高度约 160px（可在设置中按 0.5×–2× 缩放）；按住拖动可移动，单击打开快捷菜单，右键同样打开菜单。
-- 单击托盘图标或双击托盘可打开设置；托盘菜单可显示/隐藏桌宠或退出。
+- 双击托盘图标或通过托盘菜单可打开设置；托盘菜单可显示/隐藏桌宠或退出。
 - 设置中的“导入 PNG 图片”会把图片复制到用户数据目录，不会上传到任何外部服务。
 - 关闭设置窗口不会退出程序；必须通过托盘或快捷菜单的“退出 FlowerBuddy”结束。
 - 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`data/`、`pets/` 与 `logs/`。
@@ -155,7 +164,7 @@ release/                 # 安装包输出（不入库）
 
 > 公开分发版本建议由发布者准备统一的 OAuth 客户端，避免要求普通用户自行创建 Google Cloud 项目。
 
-- 快捷菜单中的两个“演示”动作仅用于验证 loading / success / error 状态，后续阶段会被真实功能替代。
+- 快捷菜单只显示已实现、已配置且已启用模块的动作；没有任何可用动作时显示空状态。
 
 ## 设计系统与视觉基线
 
