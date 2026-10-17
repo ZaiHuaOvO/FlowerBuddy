@@ -1,0 +1,45 @@
+appId: com.flowerbuddy.app
+productName: FlowerBuddy
+copyright: Copyright © 2026 FlowerBuddy
+
+directories:
+  buildResources: assets
+  output: release
+
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+
+asar: true
+npmRebuild: false
+
+win:
+  icon: app-icon.ico
+  executableName: FlowerBuddy
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: FlowerBuddy
+  uninstallDisplayName: ${productName} ${version}
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+
+portable:
+  artifactName: ${productName}-Portable-${version}-${arch}.${ext}
+  unpackDirName: FlowerBuddy
+
+extraResources:
+  - from: licenses/THIRD_PARTY_LICENSES.md
+    to: licenses/THIRD_PARTY_LICENSES.md

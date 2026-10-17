@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+release/
+licenses/
+coverage/
+*.tsbuildinfo
+
+# Local environment and secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+
+# Local app data / logs
+*.log
+npm-debug.log*
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

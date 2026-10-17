@@ -1,0 +1,55 @@
+{
+  "name": "flower-buddy",
+  "productName": "FlowerBuddy",
+  "version": "0.1.0",
+  "description": "FlowerBuddy — Windows desktop pet and personal information assistant",
+  "main": "./out/main/index.js",
+  "author": {
+    "name": "FlowerBuddy"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "preview": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.json",
+    "typecheck:web": "tsc --noEmit -p src/renderer/tsconfig.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "npm run typecheck && electron-vite build",
+    "icons": "node scripts/generate-icon.mjs",
+    "licenses": "node scripts/generate-licenses.mjs",
+    "dist:win": "npm run build && npm run licenses && electron-builder --win --x64",
+    "dist:win:dir": "npm run build && electron-builder --win --x64 --dir"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "44.8.0",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2",
+    "vite": "7.3.7",
+    "vitest": "5.0.5"
+  }
+}
