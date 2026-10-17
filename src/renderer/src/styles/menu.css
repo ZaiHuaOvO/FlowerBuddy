@@ -32,7 +32,8 @@
   font-size: var(--font-size-sm);
 }
 
-.menu-item {
+/* Two classes so shared button styles cannot override menu alignment by load order. */
+.menu-panel .menu-item {
   width: 100%;
   justify-content: flex-start;
   padding: 0 var(--space-3);

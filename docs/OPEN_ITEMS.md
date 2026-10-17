@@ -5,6 +5,7 @@
 
 ## 已完成
 
+- [x] 完整功能与视觉回归：功能矩阵 18/18、补充行为 3/3、视觉截图 12/12 与旧构建逐像素一致；回归中发现并修复快捷菜单文字对齐问题，结果见 `docs/regression-report.md`（2026-10-17）。
 - [x] 架构优化阶段 F：同步 I/O 实测不构成可测阻塞，未改异步；新增 Windows CI 与发布打包工作流，`npm run dist:win` 端到端通过，最终回归见 `docs/performance-phase-f.md`（2026-10-17）。
 - [x] 架构优化阶段 E：将 `app-controller.ts` 从 956 行收敛为 490 行协调器，拆出动作执行、overlay 窗口与桌宠窗口三个职责类；新增 6 项动作时序测试，结果见 `docs/refactor-app-controller.md`（2026-10-17）。
 - [x] 架构优化阶段 D：将 `SettingsApp.tsx` 从 1,735 行拆分为 440 行的引导层与 8 个 tab 组件、6 个状态 hook；生产构建前后行为冒烟一致，新增 9 项格式化/渲染测试，结果见 `docs/refactor-settings-app.md`（2026-10-17）。

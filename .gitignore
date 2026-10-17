@@ -7,6 +7,7 @@ release/
 release-*/
 licenses/
 coverage/
+.regression/
 *.tsbuildinfo
 
 # Local environment and secrets (never commit)
