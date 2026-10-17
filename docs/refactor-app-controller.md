@@ -71,3 +71,5 @@
 - 拖动、缩放和 PNG 导入未做自动化交互验证；相关纯几何逻辑已有单元测试。
 - Gmail 系统通知与真实 OAuth 流程仍需外部条件验证。
 - 未在安装版/便携版中逐窗口验收。
+
+阶段 F（I/O 决策、CI 与最终回归）的结果见 [performance-phase-f.md](performance-phase-f.md)。
