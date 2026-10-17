@@ -6,7 +6,6 @@ import {
   MENU_ACTION_GAP,
   MENU_ACTION_ITEM_HEIGHT,
   MENU_ACTION_LIST_PADDING,
-  MENU_CLOSE_GRACE_MS,
   MENU_EMPTY_STATE_HEIGHT,
   MENU_ENTER_DURATION_MS,
   MENU_ENTER_DURATION_STEP_MS,
@@ -54,12 +53,9 @@ export default function QuickMenu() {
   const [listClosing, setListClosing] = useState(false)
   const [hasOpened, setHasOpened] = useState(false)
   const [labelsArmed, setLabelsArmed] = useState(false)
-  const [panelKey, setPanelKey] = useState(0)
-  const [suppressEntry, setSuppressEntry] = useState(false)
+  const [selectedAction, setSelectedAction] = useState<'settings' | null>(null)
   const lastToken = useRef(0)
   const ackedToken = useRef(0)
-  const panelMounted = useRef(false)
-  const closeGraceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const listTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([])
@@ -78,34 +74,17 @@ export default function QuickMenu() {
     }
   }, [])
 
-  const clearResetTimer = useCallback(() => {
-    if (closeGraceTimer.current !== null) {
-      clearTimeout(closeGraceTimer.current)
-      closeGraceTimer.current = null
-    }
-  }, [])
-
   const resetInteraction = useCallback(() => {
     clearListTimer()
     clearHoverTimer()
     setListClosing(false)
     setExpanded(false)
     setLabelsArmed(false)
+    setSelectedAction(null)
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
   }, [clearHoverTimer, clearListTimer])
-
-  const startCloseGrace = useCallback(() => {
-    clearResetTimer()
-    closeGraceTimer.current = setTimeout(() => {
-      closeGraceTimer.current = null
-      panelMounted.current = false
-      setHasOpened(false)
-      setSuppressEntry(false)
-      resetInteraction()
-    }, MENU_CLOSE_GRACE_MS)
-  }, [clearResetTimer, resetInteraction])
 
   const applyPresentation = useCallback(
     (next: MenuPresentation) => {
@@ -121,16 +100,9 @@ export default function QuickMenu() {
         return next
       })
       if (next.phase === 'open') {
-        clearResetTimer()
-        if (!panelMounted.current) {
-          panelMounted.current = true
-          setSuppressEntry(false)
-          setPanelKey((key) => key + 1)
-        } else if (next.token !== lastToken.current) {
-          // Quick reopen while the panel still exists: reuse it and skip the
-          // entry animation instead of unmounting and loading it again.
-          setSuppressEntry(true)
-        }
+        // The panel stays mounted between openings; switching the root from
+        // the closing state back to open restarts the entry animation, so
+        // every open plays it without remounting or reloading the content.
         setHasOpened(true)
         if (next.token !== lastToken.current) {
           lastToken.current = next.token
@@ -138,10 +110,10 @@ export default function QuickMenu() {
         }
         return
       }
+      // Close only drives the CSS exit animation; the panel stays mounted.
       setListClosing(false)
-      startCloseGrace()
     },
-    [clearResetTimer, resetInteraction, startCloseGrace]
+    [resetInteraction]
   )
 
   const loadActions = useCallback(() => {
@@ -180,36 +152,17 @@ export default function QuickMenu() {
         fire(api.close())
       }
     }
-    const onVisibilityChange = (): void => {
-      if (document.visibilityState !== 'hidden') {
-        return
-      }
-      // Keep the panel briefly so an immediate reopen can reuse it; a normal
-      // reopen after the grace mounts a fresh panel with the entry animation.
-      startCloseGrace()
-    }
     window.addEventListener('keydown', onKeyDown)
-    document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
       active = false
       unsubscribe()
-      clearResetTimer()
       clearListTimer()
       clearHoverTimer()
       window.removeEventListener('focus', loadActions)
       window.removeEventListener('keydown', onKeyDown)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
-  }, [
-    api,
-    applyPresentation,
-    loadActions,
-    clearResetTimer,
-    clearListTimer,
-    clearHoverTimer,
-    startCloseGrace
-  ])
+  }, [api, applyPresentation, loadActions, clearListTimer, clearHoverTimer])
 
   useEffect(() => {
     if (!api || presentation.phase !== 'open' || !hasOpened) {
@@ -218,18 +171,27 @@ export default function QuickMenu() {
     if (presentation.token === ackedToken.current) {
       return
     }
-    // The main process waits for this before showing the window, so the first
-    // visible frame is always the freshly mounted panel.
+    // The main process waits for this before enabling menu input, so the
+    // first interactive frame is always the freshly mounted panel.
     ackedToken.current = presentation.token
     void api.opened().catch(() => {})
   }, [api, presentation.phase, presentation.token, hasOpened])
 
   function openActions(): void {
     setLabelsArmed(true)
+    setSelectedAction(null)
     clearHoverTimer()
     clearListTimer()
     setListClosing(false)
     setExpanded(true)
+  }
+
+  function openSettings(): void {
+    setSelectedAction('settings')
+    setLabelsArmed(true)
+    if (api) {
+      fire(api.openSettings())
+    }
   }
 
   function collapseActions(): void {
@@ -282,7 +244,7 @@ export default function QuickMenu() {
 
   return (
     <div
-      className={`menu-root${closing ? ' is-closing' : ''}${closing && presentation.instant ? ' instant-close' : ''}${labelsArmed ? ' labels-armed' : ''}${suppressEntry ? ' no-entry' : ''}`}
+      className={`menu-root${closing ? ' is-closing' : ''}${closing && presentation.instant ? ' instant-close' : ''}${labelsArmed ? ' labels-armed' : ''}`}
       data-placement={presentation.placement}
       style={LAYOUT_STYLE}
       onPointerEnter={() => {
@@ -296,9 +258,8 @@ export default function QuickMenu() {
       onPointerLeave={scheduleActionsCollapse}
       onKeyDown={() => setLabelsArmed(true)}
     >
-      <div className="menu-dismiss" onPointerDown={() => fire(api.close())} />
       {hasOpened ? (
-        <div className="menu-panel" key={panelKey}>
+        <div className="menu-panel">
           {expanded ? (
             <>
               <div
@@ -353,9 +314,9 @@ export default function QuickMenu() {
                   buttonRefs.current[1] = node
                 }}
                 type="button"
-                className="menu-icon-button"
+                className={`menu-icon-button${selectedAction === 'settings' ? ' is-selected' : ''}`}
                 aria-label="打开设置"
-                onClick={() => fire(api.openSettings())}
+                onClick={openSettings}
               >
                 <Settings size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>

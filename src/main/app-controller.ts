@@ -379,7 +379,6 @@ export class AppController {
   }
 
   openSettings(): void {
-    this.overlays.hideMenu(true)
     if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
       this.settingsWindow.show()
       this.settingsWindow.focus()
@@ -439,10 +438,11 @@ export class AppController {
 
   beginDrag(): void {
     this.pet.beginDrag()
-    this.overlays.hideMenu(true)
   }
 
   dragMove(): void {
+    // A real drag moves the pet away from the menu; a plain click must not.
+    this.overlays.hideMenu(true)
     this.pet.dragMove()
   }
 

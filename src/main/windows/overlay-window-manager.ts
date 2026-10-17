@@ -3,12 +3,12 @@ import { IPC_CHANNELS } from '../../shared/api'
 import type { BubblePayload, MenuPresentation } from '../../shared/api'
 import {
   MENU_EXIT_MS,
-  MENU_FOCUS_GUARD_MS,
-  MENU_OPEN_ACK_TIMEOUT_MS,
-  MENU_OPEN_DEBOUNCE_MS
+  MENU_IDLE_CLOSE_MS,
+  MENU_IDLE_POLL_MS,
+  MENU_OPEN_ACK_TIMEOUT_MS
 } from '../../shared/menu-layout'
 import type { MenuLayout, Rect } from './geometry'
-import { computeMenuLayout, placeOverlay } from './geometry'
+import { computeMenuLayout, containsPoint, placeOverlay } from './geometry'
 import { loadViewAndWait } from './load-view'
 import { BUBBLE_SIZE, createBubbleWindow, createMenuWindow } from './overlay-windows'
 
@@ -38,7 +38,8 @@ export class OverlayWindowManager {
   private closeTimer: ReturnType<typeof setTimeout> | null = null
   private openAckResolver: (() => void) | null = null
   private openAckTimer: ReturnType<typeof setTimeout> | null = null
-  private shownAt = 0
+  private idlePollTimer: ReturnType<typeof setInterval> | null = null
+  private awaySince: number | null = null
   private menuGeneration = 0
   private disposed = false
 
@@ -60,17 +61,15 @@ export class OverlayWindowManager {
         instant: false
       }
       this.sendPresentation()
-      this.shownAt = Date.now()
+      this.setMenuInteractive(true)
+      this.menuWindow?.focus()
+      this.startIdleWatch()
       return
     }
 
     if (this.menuState === 'open') {
-      // Ignore a duplicate event from the same gesture, but a deliberate
-      // second click after that toggles the menu closed.
-      if (Date.now() - this.shownAt < MENU_OPEN_DEBOUNCE_MS) {
-        return
-      }
-      this.hideMenu()
+      // Right-clicking the open menu is intentionally a no-op. The menu only
+      // closes after the pointer leaves both the menu and the pet for a while.
       return
     }
 
@@ -111,9 +110,10 @@ export class OverlayWindowManager {
       instant: false
     }
     window.setBounds({ x: layout.x, y: layout.y, width: layout.width, height: layout.height })
-    // Send the open state while the window is still hidden and wait for the
-    // renderer to confirm the fresh panel is mounted before showing it. This
-    // prevents a stale frame (e.g. the previously selected Settings icon).
+    // The window stays visible between openings, so a reopen never goes
+    // through the OS show transition (which reveals the cached surface from
+    // the previous session first and looks like the menu loads twice).
+    // Input is enabled only once the renderer has committed the fresh panel.
     this.sendPresentation()
     await this.waitForOpenAck()
     if (
@@ -124,15 +124,21 @@ export class OverlayWindowManager {
     ) {
       return
     }
-    window.show()
+    this.setMenuInteractive(true)
+    if (!window.isVisible()) {
+      // First open only: show the window once. It is never hidden afterwards,
+      // so later opens skip the OS show transition entirely.
+      window.show()
+    }
     if (!window.isFocused()) {
       window.focus()
     }
     this.menuState = 'open'
-    this.shownAt = Date.now()
+    this.startIdleWatch()
   }
 
   hideMenu(immediate = false): void {
+    this.stopIdleWatch()
     if (this.disposed) {
       return
     }
@@ -141,6 +147,9 @@ export class OverlayWindowManager {
       this.menuGeneration += 1
       this.menuState = 'idle'
       this.resolveOpenAck()
+      this.setMenuInteractive(false)
+      // The renderer may still commit the cancelled open; hide it explicitly.
+      this.pushPresentation('close', true)
       return
     }
 
@@ -150,16 +159,18 @@ export class OverlayWindowManager {
       return
     }
 
-    // A hidden menu must not arm the reopen guard: a plain left click calls
-    // hideMenu() before opening the menu on pointerup.
+    // Only an open menu needs an exit animation; calls made while it is
+    // already idle must stay a no-op.
     if (this.menuState === 'idle' || !window.isVisible()) {
       this.menuState = 'idle'
+      this.setMenuInteractive(false)
       return
     }
     if (this.menuState === 'closing') {
       return
     }
 
+    this.setMenuInteractive(false)
     this.pushPresentation('close', immediate)
     this.menuState = 'closing'
     if (immediate) {
@@ -229,6 +240,7 @@ export class OverlayWindowManager {
     this.disposed = true
     this.menuGeneration += 1
     this.cancelCloseTimer()
+    this.stopIdleWatch()
     this.resolveOpenAck()
     this.menuState = 'idle'
   }
@@ -237,12 +249,24 @@ export class OverlayWindowManager {
     return systemPreferences.getAnimationSettings().prefersReducedMotion ? 0 : MENU_EXIT_MS
   }
 
+  private setMenuInteractive(interactive: boolean): void {
+    const window = this.menuWindow
+    if (!window || window.isDestroyed()) {
+      return
+    }
+    window.setIgnoreMouseEvents(!interactive)
+    if (!interactive) {
+      // The window is never hidden, so it must give up focus on close or the
+      // invisible overlay would keep swallowing keyboard input.
+      window.blur()
+    }
+  }
+
   private finishClose(): void {
     this.cancelCloseTimer()
-    const window = this.menuWindow
-    if (window && !window.isDestroyed()) {
-      window.hide()
-    }
+    this.stopIdleWatch()
+    // The window stays visible (transparent and click-through) so reopening
+    // it never replays the OS show transition.
     this.menuState = 'idle'
   }
 
@@ -311,8 +335,8 @@ export class OverlayWindowManager {
 
     if (view === 'menu') {
       this.menuWindow = window
-      window.on('blur', () => this.handleMenuBlur())
       window.on('closed', () => {
+        this.stopIdleWatch()
         this.menuWindow = null
         this.menuState = 'idle'
         this.cancelCloseTimer()
@@ -340,17 +364,57 @@ export class OverlayWindowManager {
       }
       return null
     }
+    if (view === 'menu') {
+      window.setIgnoreMouseEvents(true)
+    }
     return window
   }
 
-  private handleMenuBlur(): void {
+  private startIdleWatch(): void {
+    this.stopIdleWatch()
+    this.awaySince = null
+    this.idlePollTimer = setInterval(() => this.checkIdle(), MENU_IDLE_POLL_MS)
+  }
+
+  private stopIdleWatch(): void {
+    if (this.idlePollTimer !== null) {
+      clearInterval(this.idlePollTimer)
+      this.idlePollTimer = null
+    }
+    this.awaySince = null
+  }
+
+  private checkIdle(): void {
     if (this.menuState !== 'open') {
+      this.stopIdleWatch()
       return
     }
-    if (Date.now() - this.shownAt < MENU_FOCUS_GUARD_MS) {
+    const window = this.menuWindow
+    if (!window || window.isDestroyed()) {
+      this.stopIdleWatch()
       return
     }
-    this.hideMenu()
+
+    const cursor = screen.getCursorScreenPoint()
+    const menuBounds = window.getBounds()
+    const petBounds = this.options.getPetBounds()
+    const nearMenu = containsPoint(menuBounds, cursor.x, cursor.y)
+    const nearPet = petBounds ? containsPoint(petBounds, cursor.x, cursor.y) : false
+
+    if (nearMenu || nearPet) {
+      this.awaySince = null
+      return
+    }
+
+    const now = Date.now()
+    if (this.awaySince === null) {
+      this.awaySince = now
+      return
+    }
+    if (now - this.awaySince >= MENU_IDLE_CLOSE_MS) {
+      this.stopIdleWatch()
+      this.hideMenu()
+    }
   }
 
   private positionBubble(): void {

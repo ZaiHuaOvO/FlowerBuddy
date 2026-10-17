@@ -3,6 +3,7 @@ import {
   clampToVisibleArea,
   computeMenuLayout,
   computePetWindowSize,
+  containsPoint,
   defaultPetPosition,
   placeOverlay,
   resizeKeepingBottomCenter,
@@ -129,6 +130,23 @@ describe('placeOverlay', () => {
     expect(
       placeOverlay(rightEdge, { width: 340, height: 168 }, PRIMARY_WORK_AREA, 'right')
     ).toEqual({ x: 1452, y: 526 })
+  })
+})
+
+describe('containsPoint', () => {
+  const rect: Rect = { x: 100, y: 200, width: 120, height: 80 }
+
+  it('detects points inside, on the edge, and outside', () => {
+    expect(containsPoint(rect, 160, 240)).toBe(true)
+    expect(containsPoint(rect, 100, 200)).toBe(true)
+    expect(containsPoint(rect, 220, 280)).toBe(true)
+    expect(containsPoint(rect, 99, 200)).toBe(false)
+    expect(containsPoint(rect, 221, 280)).toBe(false)
+  })
+
+  it('applies an optional margin', () => {
+    expect(containsPoint(rect, 95, 240, 8)).toBe(true)
+    expect(containsPoint(rect, 95, 240)).toBe(false)
   })
 })
 

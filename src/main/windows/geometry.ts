@@ -17,6 +17,16 @@ export interface Position {
 
 export interface Rect extends Position, Size {}
 
+/** True when the point lies inside the rectangle (optionally with a margin). */
+export function containsPoint(rect: Rect, x: number, y: number, margin = 0): boolean {
+  return (
+    x >= rect.x - margin &&
+    x <= rect.x + rect.width + margin &&
+    y >= rect.y - margin &&
+    y <= rect.y + rect.height + margin
+  )
+}
+
 export const PET_BASE_HEIGHT = 160
 export const PET_MIN_WIDTH = 40
 export const PET_MAX_WIDTH = 700

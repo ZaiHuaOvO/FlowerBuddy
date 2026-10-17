@@ -26,10 +26,9 @@ export const MENU_EXIT_FADE_MS =
   (MENU_ICON_COUNT - 1) * MENU_EXIT_STAGGER_MS + MENU_EXIT_DURATION_MS
 export const MENU_EXIT_MS = MENU_EXIT_FADE_MS + 20
 
-export const MENU_FOCUS_GUARD_MS = 200
-export const MENU_OPEN_DEBOUNCE_MS = 250
+export const MENU_IDLE_CLOSE_MS = 800
+export const MENU_IDLE_POLL_MS = 120
 export const MENU_OPEN_ACK_TIMEOUT_MS = 1000
-export const MENU_CLOSE_GRACE_MS = 400
 export const MENU_HOVER_COLLAPSE_MS = 180
 export const MENU_LIST_EXIT_MS = 140
 

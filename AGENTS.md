@@ -84,6 +84,7 @@
 - 根据改动运行适用的检查：`npm run typecheck`、`npm run lint`、`npm test`、`npm run build`；涉及打包时运行 `npm run dist:win` 或 `npm run dist:win:dir`。
 - 单元测试位于 `tests/unit/`，使用 Vitest 的 Node 环境；优先使用依赖注入、fake timers 和模拟响应，不使用真实凭据。
 - 必须如实报告运行了哪些检查、结果如何、哪些未运行及原因。没有真实运行记录时，不得声称测试通过。
+- 依赖系统鼠标位置或真实输入时序的自动化/半自动化测试（悬停、拖拽、菜单移出延时关闭、原生窗口定位等）必须在用户未操作鼠标的前提下执行。若观察到光标位置、移动轨迹、焦点或关停时序与脚本预期不符，立即判定该次结果不可信、拒绝将其报告为通过，说明可疑原因并重新测试。
 - 真实 Gmail / DeepSeek / 阿里云凭据测试需要外部条件，按 [`docs/testing/manual-test-plan.md`](docs/testing/manual-test-plan.md) 的前置条件执行，不得把密钥写入仓库或报告。
 
 ## 7. 规则与文档同步机制
