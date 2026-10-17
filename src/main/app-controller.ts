@@ -12,6 +12,7 @@ import type {
   GmailSettingsPatch,
   GmailStateView,
   MenuActionSummary,
+  MenuPresentation,
   ModuleId,
   ModuleSummary,
   PetSettingsPatch,
@@ -58,6 +59,7 @@ export interface AppControllerOptions {
   devServerUrl: string | undefined
   rendererIndexPath: string
   preloadPath: string
+  appIconPath: string
   defaultPetPath: string
   trayIconPath: string
   petsDirectory: string
@@ -76,7 +78,8 @@ export class AppController {
       preloadPath: options.preloadPath,
       devServerUrl: options.devServerUrl,
       rendererIndexPath: options.rendererIndexPath,
-      getPetBounds: () => this.pet.getBounds()
+      getPetBounds: () => this.pet.getBounds(),
+      getMenuActionCount: () => this.getMenuActions().length
     })
     this.pet = new PetWindowController({
       configStore: options.configStore,
@@ -313,7 +316,7 @@ export class AppController {
 
     if (config.modules.gmail.notifyNewMail && Notification.isSupported()) {
       const notification = new Notification({
-        title: 'FlowerBuddy · 新邮件',
+        title: '花伴 · 新邮件',
         body
       })
       notification.on('click', () => this.openSettings())
@@ -355,7 +358,7 @@ export class AppController {
   }
 
   runMenuAction(actionId: string): void {
-    this.overlays.hideMenu()
+    this.overlays.hideMenu(true)
     void this.actions.run(actionId)
   }
 
@@ -363,18 +366,30 @@ export class AppController {
     this.overlays.hideMenu()
   }
 
+  getMenuPresentation(): MenuPresentation {
+    return this.overlays.getPresentation()
+  }
+
+  acknowledgeMenuOpened(): void {
+    this.overlays.acknowledgeOpen()
+  }
+
   dismissBubble(): void {
     this.actions.dismiss()
   }
 
   openSettings(): void {
+    this.overlays.hideMenu(true)
     if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
       this.settingsWindow.show()
       this.settingsWindow.focus()
       return
     }
 
-    const window = createSettingsWindow({ preloadPath: this.options.preloadPath })
+    const window = createSettingsWindow({
+      preloadPath: this.options.preloadPath,
+      iconPath: this.options.appIconPath
+    })
     this.settingsWindow = window
     window.on('closed', () => {
       this.settingsWindow = null
@@ -392,7 +407,7 @@ export class AppController {
 
   hidePet(): void {
     this.pet.hide()
-    this.overlays.hideMenu()
+    this.overlays.hideMenu(true)
     this.overlays.hideBubble()
     this.tray?.setPetVisible(false)
   }
@@ -424,7 +439,7 @@ export class AppController {
 
   beginDrag(): void {
     this.pet.beginDrag()
-    this.overlays.hideMenu()
+    this.overlays.hideMenu(true)
   }
 
   dragMove(): void {

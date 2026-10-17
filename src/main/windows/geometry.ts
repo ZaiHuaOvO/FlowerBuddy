@@ -1,3 +1,10 @@
+import {
+  MENU_MAX_HEIGHT,
+  MENU_ROW_HEIGHT,
+  menuWindowHeight,
+  menuWindowWidth
+} from '../../shared/menu-layout'
+
 export interface Size {
   width: number
   height: number
@@ -140,5 +147,58 @@ export function placeOverlay(
   return {
     x: Math.round(clampNumber(x, workArea.x, workArea.x + workArea.width - overlay.width)),
     y: Math.round(clampNumber(y, workArea.y, workArea.y + workArea.height - overlay.height))
+  }
+}
+
+export type MenuPlacement = 'above' | 'below'
+
+export interface MenuLayout extends Rect {
+  placement: MenuPlacement
+}
+
+export interface MenuLayoutInput {
+  expanded: boolean
+  actionCount: number
+}
+
+/**
+ * Menu window bounds next to the pet. The menu sits above the pet whenever the
+ * icon row fits there, otherwise below; expanding never flips the side, it only
+ * grows away from the pet up to the space available on that side.
+ */
+export function computeMenuLayout(
+  anchor: Rect,
+  workArea: Rect,
+  input: MenuLayoutInput
+): MenuLayout {
+  const width = menuWindowWidth(anchor.width)
+  const minimumHeight = MENU_ROW_HEIGHT
+  const wantedHeight = menuWindowHeight(input.expanded, input.actionCount)
+
+  const availableAbove = anchor.y - OVERLAY_GAP - workArea.y
+  const availableBelow = workArea.y + workArea.height - (anchor.y + anchor.height) - OVERLAY_GAP
+
+  let placement: MenuPlacement
+  if (availableAbove >= minimumHeight) {
+    placement = 'above'
+  } else if (availableBelow >= minimumHeight) {
+    placement = 'below'
+  } else {
+    placement = availableAbove >= availableBelow ? 'above' : 'below'
+  }
+
+  const sideSpace = Math.max(0, placement === 'above' ? availableAbove : availableBelow)
+  const height = Math.max(minimumHeight, Math.min(wantedHeight, sideSpace, MENU_MAX_HEIGHT))
+
+  const x = anchor.x + (anchor.width - width) / 2
+  const y =
+    placement === 'above' ? anchor.y - OVERLAY_GAP - height : anchor.y + anchor.height + OVERLAY_GAP
+
+  return {
+    x: Math.round(clampNumber(x, workArea.x, workArea.x + workArea.width - width)),
+    y: Math.round(clampNumber(y, workArea.y, workArea.y + workArea.height - height)),
+    width,
+    height,
+    placement
   }
 }

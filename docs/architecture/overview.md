@@ -1,4 +1,4 @@
-# FlowerBuddy 架构概览
+# 花伴 架构概览
 
 > 状态：**当前事实**。本文按源码记录 2026-10-17、提交 `a635bb9` 的实际架构。
 > 代码变化后必须同步本文；无法从源码确认的内容会标为“待核实”。
@@ -116,12 +116,12 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 
 一个 Vite renderer 工程通过 `?view=` 渲染四种视图；窗口类型与视图一一对应：
 
-| 视图       | 窗口创建                     | 加载方式                        | 主要行为                                               |
-| ---------- | ---------------------------- | ------------------------------- | ------------------------------------------------------ |
-| `pet`      | `windows/pet-window.ts`      | `loadView(..., view: 'pet')`    | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单   |
-| `menu`     | `windows/overlay-windows.ts` | 按需创建，`waitForLoad` 后显示  | 相对桌宠定位，失焦隐藏，重复打开有 250 ms 保护         |
-| `bubble`   | `windows/overlay-windows.ts` | 按需创建，`waitForLoad` 后显示  | `showInactive()`，接收 `bubble:update` 推送            |
-| `settings` | `windows/settings-window.ts` | 单例窗口，780×720，最小 640×540 | 设置、模块管理、日期、网站、Gmail、DeepSeek、ESA、外观 |
+| 视图       | 窗口创建                     | 加载方式                           | 主要行为                                                                                                                |
+| ---------- | ---------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `pet`      | `windows/pet-window.ts`      | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                    |
+| `menu`     | `windows/overlay-windows.ts` | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位，展开/收起不改窗口尺寸；失焦/关闭有退场动画 |
+| `bubble`   | `windows/overlay-windows.ts` | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                             |
+| `settings` | `windows/settings-window.ts` | 单例窗口，780×720，最小 640×540    | 设置、模块管理、日期、网站、Gmail、DeepSeek、ESA、外观                                                                  |
 
 加载规则（`windows/load-view.ts`）：
 
@@ -191,6 +191,9 @@ preload 的 `unwrapResult` 把 `IpcResult` 解包；失败时抛出一个可序�
 
 - `pet:state-changed` → `pet` 视图（形象与弹跳设置变化）。
 - `bubble:update` → `bubble` 视图（`BubblePayload`）。
+- `menu:presentation` → `menu` 视图（`MenuPresentation`：打开/关闭阶段、上下方向、递增 token）。
+
+`menu` 视图在挂载时通过 `menu:ready` 握手获取当前表现状态，避免首次打开时推送早于订阅。打开时主进程先把 `open` 推送给仍隐藏的窗口，renderer 挂载新面板后通过 `menu:opened` 确认，主进程再 `show()`；因此重新打开时不会显示上一帧的旧菜单内容。菜单窗口在打开时按“展开动作列表”的高度一次性定位并显示；之后展开/收起只由 renderer 切换内容，不再改变窗口尺寸，因此可见窗口不会因 resize 闪烁。关闭后 renderer 会保留面板一小段宽限期（`MENU_CLOSE_GRACE_MS`）；宽限期内重新打开会直接复用面板且不重播入场动画，超过宽限期才卸载并在下次打开时重新播放入场动画。
 
 renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程发起。
 
@@ -268,7 +271,8 @@ interface ModuleDefinition {
 
 ### 6.4 快捷菜单动作与气泡
 
-- 菜单列出 `ModuleManager.getMenuActions()` 的结果。
+- 菜单默认展示 4 个图标（功能、设置、隐藏桌宠、退出）；“功能”展开 `ModuleManager.getMenuActions()` 的结果。
+- 菜单几何由 `src/main/windows/geometry.ts` 的 `computeMenuLayout()` 计算，尺寸/动效常量集中在 `src/shared/menu-layout.ts`，主进程与 renderer 共用。
 - `ModuleActionRunner`（`src/main/actions/module-action-runner.ts`）负责：
   - 生成 `requestId`，新请求使旧结果失效；
   - 先显示 loading 气泡，再显示 success/empty/error；

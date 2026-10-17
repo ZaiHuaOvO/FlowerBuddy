@@ -25,7 +25,7 @@ export class AppTray {
       : image
 
     this.tray = new Tray(icon)
-    this.tray.setToolTip('FlowerBuddy')
+    this.tray.setToolTip('花伴')
     this.tray.setContextMenu(this.buildMenu())
     this.tray.on('double-click', () => this.actions.openSettings())
   }
@@ -48,7 +48,7 @@ export class AppTray {
       },
       { label: '打开设置', click: () => this.actions.openSettings() },
       { type: 'separator' },
-      { label: '退出 FlowerBuddy', click: () => this.actions.quit() }
+      { label: '退出 花伴', click: () => this.actions.quit() }
     ])
   }
 }

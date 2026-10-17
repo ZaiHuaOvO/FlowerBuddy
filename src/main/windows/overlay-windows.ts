@@ -2,14 +2,19 @@ import { BrowserWindow } from 'electron'
 import type { Size } from './geometry'
 import { createSecureWebPreferences } from '../security/web-preferences'
 import type { WindowFactoryOptions } from './pet-window'
+import { MENU_PANEL_MIN_WIDTH, menuWindowHeight } from '../../shared/menu-layout'
 
-export const MENU_SIZE: Size = { width: 236, height: 272 }
 export const BUBBLE_SIZE: Size = { width: 340, height: 168 }
+
+export const DEFAULT_MENU_SIZE: Size = {
+  width: MENU_PANEL_MIN_WIDTH,
+  height: menuWindowHeight(false, 0)
+}
 
 export function createMenuWindow(options: WindowFactoryOptions): BrowserWindow {
   const window = new BrowserWindow({
-    width: MENU_SIZE.width,
-    height: MENU_SIZE.height,
+    width: DEFAULT_MENU_SIZE.width,
+    height: DEFAULT_MENU_SIZE.height,
     transparent: true,
     frame: false,
     resizable: false,
@@ -22,7 +27,12 @@ export function createMenuWindow(options: WindowFactoryOptions): BrowserWindow {
     hasShadow: false,
     show: false,
     backgroundColor: '#00000000',
-    webPreferences: createSecureWebPreferences(options.preloadPath, 'menu')
+    webPreferences: {
+      ...createSecureWebPreferences(options.preloadPath, 'menu'),
+      // The menu is hidden while Settings/another action is active; keep its
+      // timers, effects and IPC acknowledgement responsive while hidden.
+      backgroundThrottling: false
+    }
   })
 
   window.setMenu(null)

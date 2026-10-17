@@ -3,6 +3,15 @@ import type { PetViewState } from '../../../shared/api'
 import '../styles/pet.css'
 
 const CLICK_MOVE_THRESHOLD = 5
+const BOUNCE_KEYFRAMES: Keyframe[] = [
+  { transform: 'scale(1, 1)', offset: 0, easing: 'cubic-bezier(0.3, 0, 0.8, 0.15)' },
+  { transform: 'scale(1, 0.82)', offset: 0.2, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+  { transform: 'scale(1, 1)', offset: 0.45, easing: 'cubic-bezier(0.4, 0, 0.6, 1)' },
+  { transform: 'scale(1, 0.94)', offset: 0.66, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+  { transform: 'scale(1, 1)', offset: 0.84, easing: 'ease-out' },
+  { transform: 'scale(1, 0.985)', offset: 0.93 },
+  { transform: 'scale(1, 1)', offset: 1 }
+]
 
 function fire(operation: Promise<unknown> | undefined): void {
   void operation?.catch(() => {})
@@ -15,6 +24,7 @@ export default function PetView() {
   const pointerSession = useRef<{ startX: number; startY: number; moved: boolean } | null>(null)
   const dragFrame = useRef<number | null>(null)
   const imageRef = useRef<HTMLImageElement | null>(null)
+  const bounceRef = useRef<Animation | null>(null)
 
   useEffect(() => {
     if (!api) {
@@ -42,6 +52,8 @@ export default function PetView() {
         cancelAnimationFrame(dragFrame.current)
         dragFrame.current = null
       }
+      bounceRef.current?.cancel()
+      bounceRef.current = null
     }
   }, [api])
 
@@ -54,17 +66,13 @@ export default function PetView() {
       return
     }
     const tokens = getComputedStyle(document.documentElement)
-    const duration = Number.parseFloat(tokens.getPropertyValue('--motion-normal')) * 1000 || 240
-    const easing = tokens.getPropertyValue('--ease-standard').trim() || 'ease-out'
-    image.animate(
-      [
-        { transform: 'translateY(0)' },
-        { transform: 'translateY(-9%)' },
-        { transform: 'translateY(2%)' },
-        { transform: 'translateY(0)' }
-      ],
-      { duration, easing }
-    )
+    const duration = Number.parseFloat(tokens.getPropertyValue('--motion-pet-bounce')) * 1000 || 520
+    bounceRef.current?.cancel()
+    bounceRef.current = image.animate(BOUNCE_KEYFRAMES, {
+      duration,
+      easing: 'linear',
+      fill: 'none'
+    })
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLImageElement>): void {
@@ -93,13 +101,14 @@ export default function PetView() {
     ) {
       session.moved = true
     }
-
-    if (dragFrame.current === null) {
-      dragFrame.current = requestAnimationFrame(() => {
-        dragFrame.current = null
-        fire(api.dragMove())
-      })
+    if (!session.moved || dragFrame.current !== null) {
+      return
     }
+
+    dragFrame.current = requestAnimationFrame(() => {
+      dragFrame.current = null
+      fire(api.dragMove())
+    })
   }
 
   function finishPointer(event: React.PointerEvent<HTMLImageElement>, allowClick: boolean): void {
@@ -122,7 +131,6 @@ export default function PetView() {
 
     if (allowClick && !session.moved) {
       playBounce(state?.bounceAnimation !== false)
-      fire(api.openMenu())
     }
   }
 
@@ -138,7 +146,7 @@ export default function PetView() {
           ref={imageRef}
           className={`pet-image${dragging ? ' dragging' : ''}`}
           src={state.asset.url}
-          alt="FlowerBuddy 桌宠"
+          alt="花伴 桌宠"
           draggable={false}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

@@ -91,6 +91,27 @@ describe('preload bridge surface', () => {
     expect(createBridge('bubble', bridge)?.key).toBe('bubbleApi')
   })
 
+  it('forwards menu presentation calls', async () => {
+    const { bridge, invocations, subscriptions } = createFakeBridge()
+    const menu = createBridge('menu', bridge)?.value as {
+      ready(): Promise<unknown>
+      opened(): Promise<void>
+      onPresentation(callback: (presentation: unknown) => void): () => void
+    }
+
+    await menu.ready()
+    expect(invocations[0]).toEqual({ channel: IPC_CHANNELS.menuReady, args: [] })
+
+    await menu.opened()
+    expect(invocations[1]).toEqual({ channel: IPC_CHANNELS.menuOpened, args: [] })
+
+    const received: unknown[] = []
+    menu.onPresentation((presentation) => received.push(presentation))
+    expect(subscriptions[0]?.channel).toBe(IPC_CHANNELS.menuPresentation)
+    subscriptions[0]?.listener({ phase: 'open', placement: 'above', token: 1 })
+    expect(received).toEqual([{ phase: 'open', placement: 'above', token: 1 }])
+  })
+
   it('refuses unknown views', () => {
     const { bridge } = createFakeBridge()
     expect(createBridge('devtools', bridge)).toBeNull()

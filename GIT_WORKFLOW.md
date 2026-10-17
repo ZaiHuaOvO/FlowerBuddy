@@ -1,6 +1,6 @@
 # Git 与 GitHub 工作流规范（AI Agent 必须遵守）
 
-> 适用项目：FlowerBuddy / `flower-buddy`（若仓库最终采用其他名称，以实际仓库为准）  
+> 适用项目：花伴 / `flower-buddy`（内部包名与仓库标识保留英文；若仓库最终采用其他名称，以实际仓库为准）\
 > 目的：保证每次有意义的更新都及时记录、推送到用户的 GitHub，并向用户清楚说明改动。  
 > 本文件是 Git 操作的唯一权威入口；任务路由和文档同步要求见 [`AGENTS.md`](AGENTS.md) 与 [`docs/README.md`](docs/README.md)，历史产品背景见 [`docs/archive/Windows_桌宠个人助手_技术开发文档.md`](docs/archive/Windows_桌宠个人助手_技术开发文档.md)。
 

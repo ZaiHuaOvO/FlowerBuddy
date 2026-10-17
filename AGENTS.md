@@ -1,4 +1,4 @@
-# AGENTS.md — FlowerBuddy 操作规则入口
+# AGENTS.md — 花伴 操作规则入口
 
 > 适用对象：在本仓库工作的 AI Agent 与贡献者。
 > 本文是**操作规则入口**，不是架构、功能或设计百科。具体事实查阅 `docs/README.md` 指向的权威文档与源码。

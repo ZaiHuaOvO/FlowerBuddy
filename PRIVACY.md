@@ -1,12 +1,12 @@
-# FlowerBuddy 隐私说明
+# 花伴 隐私说明
 
 > 最后更新：2026-10-17
 
-FlowerBuddy 是一款本地桌面应用。应用没有账号体系、没有遥测，也不会上传用户数据用于分析或广告。
+花伴 是一款本地桌面应用。应用没有账号体系、没有遥测，也不会上传用户数据用于分析或广告。
 
 ## 本地保存的数据
 
-以下内容保存在 Electron 的 `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`）：
+以下内容保存在 Electron 的 `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`；显示名称为“花伴”，数据目录沿用旧名称以兼容升级）：
 
 - `config.json`：普通设置、模块开关、桌面位置、非敏感配置（如 ESA SiteId、轮询间隔）。
 - `secrets.enc.json`：使用 Electron `safeStorage`（Windows DPAPI）加密后的 API Key、AccessKey、OAuth 客户端与 refresh token。
@@ -36,7 +36,7 @@ Gmail 授权页面在系统浏览器中打开；授权完成后通过 `127.0.0.1
 
 ## 删除数据
 
-退出 FlowerBuddy 后，删除 `%APPDATA%\FlowerBuddy` 目录即可清除全部本地配置、凭据、事件、角色图片与日志。卸载程序不会自动删除该目录。
+退出 花伴 后，删除 `%APPDATA%\FlowerBuddy` 目录即可清除全部本地配置、凭据、事件、角色图片与日志。卸载程序不会自动删除该目录。
 
 ## 第三方服务
 

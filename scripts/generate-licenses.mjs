@@ -101,7 +101,7 @@ const rows = [...packages.values()].sort((a, b) =>
 const unknown = rows.filter((row) => row.license === 'UNKNOWN')
 
 const lines = [
-  '# FlowerBuddy 第三方依赖许可证清单',
+  '# 花伴 第三方依赖许可证清单',
   '',
   '本文件由 `npm run licenses` 根据 `node_modules` 中已安装依赖的 `package.json` 元数据生成，用于发布时说明依赖来源与许可证声明。',
   '它不替代各依赖包内实际附带的许可证文本；完整文本位于对应依赖包目录或打包产物中。',

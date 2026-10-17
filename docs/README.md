@@ -1,6 +1,7 @@
-# FlowerBuddy 文档索引
+# 花伴 文档索引
 
 > 本文件是文档体系的**单一入口**。
+> 显示名称：**花伴**。内部包名、可执行文件名、`userData` 目录、`flowerbuddy-pet://` 协议与部分历史记录仍保留 `FlowerBuddy`/`flower-buddy` 标识，以兼容升级和现有数据。
 > 最后核对：2026-10-17，基线提交 `a635bb9`。
 > 操作规则入口是 [`AGENTS.md`](../AGENTS.md)；本文件负责说明“每份文档回答什么问题、什么时候必须读、什么时候必须同步”。
 
@@ -54,6 +55,7 @@
 - 归档材料不是当前实现、当前规则或待办清单；日常任务不需要读取，只有追溯设计意图或历史决策时才查询。
 - 新结论、新规则和未完成项必须写入当前权威文档或 [OPEN_ITEMS.md](OPEN_ITEMS.md)，不得只更新归档正文。
 - 归档清单和规则见 [docs/archive/README.md](archive/README.md)。
+- **名称说明**：`docs/archive/`、`docs/performance-*.md`、`docs/regression-report.md` 等历史记录保留了当时的名称 `FlowerBuddy`，仅作为历史快照，不代表当前显示名称。当前产品名称为 **花伴**。
 
 ## 3. 文档状态标签
 

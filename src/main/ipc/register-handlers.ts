@@ -151,6 +151,8 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
 
   register(IPC_CHANNELS.menuGetActions, null, () => controller.getMenuActions())
+  register(IPC_CHANNELS.menuReady, null, () => controller.getMenuPresentation())
+  register(IPC_CHANNELS.menuOpened, null, () => controller.acknowledgeMenuOpened())
 
   register(IPC_CHANNELS.petGetState, null, () => controller.getPetViewState())
   register(IPC_CHANNELS.petBeginDrag, null, () => controller.beginDrag())

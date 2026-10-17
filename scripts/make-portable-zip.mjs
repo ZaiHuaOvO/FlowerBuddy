@@ -15,11 +15,12 @@ const root = process.cwd()
 const releaseDir = join(root, process.argv[2] ?? 'release')
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const version = packageJson.version
-const portableName = `FlowerBuddy-Portable-${version}-x64.exe`
+const productName = packageJson.productName
+const portableName = `${productName}-Portable-${version}-x64.exe`
 const portablePath = join(releaseDir, portableName)
 const readmePath = join(root, 'docs', 'README-使用说明.txt')
 const licensesPath = join(root, 'licenses', 'THIRD_PARTY_LICENSES.md')
-const outputPath = join(releaseDir, `FlowerBuddy-${version}-x64.zip`)
+const outputPath = join(releaseDir, `${productName}-${version}-x64.zip`)
 
 for (const [label, filePath] of [
   ['portable executable', portablePath],

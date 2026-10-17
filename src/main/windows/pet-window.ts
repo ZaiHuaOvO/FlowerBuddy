@@ -4,6 +4,7 @@ import type { Rect } from './geometry'
 
 export interface WindowFactoryOptions {
   preloadPath: string
+  iconPath?: string
 }
 
 export function createPetWindow(

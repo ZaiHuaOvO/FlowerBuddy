@@ -28,6 +28,14 @@ import { ConfigStore } from './storage/config-store'
 import { JsonStore } from './storage/json-store'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
+
+// The product is now called 花伴. Keep the original userData directory so
+// existing settings, credentials, pets and logs survive the rename. An explicit
+// --user-data-dir (used by tests) still wins.
+if (!app.commandLine.hasSwitch('user-data-dir')) {
+  app.setPath('userData', join(app.getPath('appData'), 'FlowerBuddy'))
+}
+
 const devServerUrl = process.env['ELECTRON_RENDERER_URL']
 const rendererIndexPath = join(__dirname, '../renderer/index.html')
 const preloadPath = join(__dirname, '../preload/index.js')
@@ -36,6 +44,9 @@ const defaultPetPath = join(appRoot, 'assets', 'default-pet', 'flower.png')
 const trayIconPath = app.isPackaged
   ? join(process.resourcesPath, 'assets', 'tray-icon.png')
   : join(appRoot, 'assets', 'tray-icon.png')
+const appIconPath = app.isPackaged
+  ? join(process.resourcesPath, 'assets', 'app-icon.png')
+  : join(appRoot, 'assets', 'app-icon.png')
 
 let controller: AppController | null = null
 let appLogger: Logger | null = null
@@ -138,6 +149,7 @@ async function bootstrap(): Promise<void> {
     preloadPath,
     defaultPetPath,
     trayIconPath,
+    appIconPath,
     petsDirectory: join(userDataPath, 'pets')
   })
   controller = appController
@@ -188,7 +200,7 @@ if (!hasSingleInstanceLock) {
     .whenReady()
     .then(bootstrap)
     .catch((error: unknown) => {
-      console.error('Failed to start FlowerBuddy', error)
+      console.error('Failed to start 花伴', error)
       app.quit()
     })
 }

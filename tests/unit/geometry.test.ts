@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampToVisibleArea,
+  computeMenuLayout,
   computePetWindowSize,
   defaultPetPosition,
   placeOverlay,
   resizeKeepingBottomCenter,
   type Rect
 } from '../../src/main/windows/geometry'
+import { menuActionListHeight, menuWindowHeight } from '../../src/shared/menu-layout'
 
 const PRIMARY_WORK_AREA: Rect = { x: 0, y: 0, width: 1920, height: 1040 }
 
@@ -127,5 +129,65 @@ describe('placeOverlay', () => {
     expect(
       placeOverlay(rightEdge, { width: 340, height: 168 }, PRIMARY_WORK_AREA, 'right')
     ).toEqual({ x: 1452, y: 526 })
+  })
+})
+
+describe('menu layout', () => {
+  const anchor: Rect = { x: 800, y: 500, width: 220, height: 220 }
+  const collapsed = { expanded: false, actionCount: 0 }
+
+  it('derives list and window heights from the shared layout scale', () => {
+    expect(menuActionListHeight(0)).toBe(56)
+    expect(menuActionListHeight(1)).toBe(50)
+    expect(menuActionListHeight(2)).toBe(86)
+    expect(menuWindowHeight(false, 0)).toBe(72)
+    expect(menuWindowHeight(true, 2)).toBe(158)
+  })
+
+  it('prefers the space above the pet and centers the window', () => {
+    const layout = computeMenuLayout(anchor, PRIMARY_WORK_AREA, collapsed)
+    expect(layout.placement).toBe('above')
+    expect(layout.width).toBe(208)
+    expect(layout.height).toBe(72)
+    expect(layout.x).toBe(806)
+    expect(layout.y).toBe(420)
+  })
+
+  it('shrinks to the minimum width for narrow pets', () => {
+    const narrow: Rect = { x: 800, y: 500, width: 40, height: 160 }
+    const layout = computeMenuLayout(narrow, PRIMARY_WORK_AREA, collapsed)
+    expect(layout.width).toBe(176)
+    expect(layout.x).toBe(732)
+  })
+
+  it('flips below when there is no room above', () => {
+    const topEdge: Rect = { x: 800, y: 10, width: 220, height: 220 }
+    const layout = computeMenuLayout(topEdge, PRIMARY_WORK_AREA, collapsed)
+    expect(layout.placement).toBe('below')
+    expect(layout.y).toBe(238)
+  })
+
+  it('grows away from the pet when the action list expands', () => {
+    const layout = computeMenuLayout(anchor, PRIMARY_WORK_AREA, { expanded: true, actionCount: 2 })
+    expect(layout.placement).toBe('above')
+    expect(layout.height).toBe(158)
+    expect(layout.y).toBe(334)
+  })
+
+  it('caps the expanded height to the space on the chosen side', () => {
+    const nearTop: Rect = { x: 800, y: 160, width: 220, height: 220 }
+    const layout = computeMenuLayout(nearTop, PRIMARY_WORK_AREA, {
+      expanded: true,
+      actionCount: 2
+    })
+    expect(layout.placement).toBe('above')
+    expect(layout.height).toBe(152)
+    expect(layout.y).toBe(0)
+  })
+
+  it('clamps the menu to the work area at screen edges', () => {
+    const rightEdge: Rect = { x: 1850, y: 500, width: 40, height: 160 }
+    const layout = computeMenuLayout(rightEdge, PRIMARY_WORK_AREA, collapsed)
+    expect(layout.x).toBe(1744)
   })
 })

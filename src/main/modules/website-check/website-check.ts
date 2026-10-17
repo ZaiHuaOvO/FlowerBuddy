@@ -84,7 +84,7 @@ export async function checkWebsiteUrl(
         method: 'GET',
         redirect: 'manual',
         signal: controller.signal,
-        headers: { 'user-agent': 'FlowerBuddy/0.1 (local availability check)' }
+        headers: { 'user-agent': 'HuaBan/0.1 (local availability check)' }
       })
 
       const location = response.headers.get('location')

@@ -130,6 +130,17 @@ export interface MenuActionSummary {
   moduleId: ModuleId
 }
 
+export type MenuPlacement = 'above' | 'below'
+
+export interface MenuPresentation {
+  phase: 'open' | 'close'
+  placement: MenuPlacement
+  /** Increases on every open so the renderer can replay its entry animation. */
+  token: number
+  /** Close was immediate, so the renderer can drop its panel without a fade. */
+  instant: boolean
+}
+
 export interface ModuleActionDefinition {
   id: string
   label: string
@@ -314,6 +325,9 @@ export const IPC_CHANNELS = {
   gmailSettings: 'gmail:update-settings',
   moduleRefreshInterval: 'modules:set-refresh-interval',
   menuGetActions: 'menu:get-actions',
+  menuOpened: 'menu:opened',
+  menuPresentation: 'menu:presentation',
+  menuReady: 'menu:ready',
   petGetState: 'pet:get-state',
   petStateChanged: 'pet:state-changed',
   petBeginDrag: 'pet:begin-drag',
@@ -342,6 +356,9 @@ export interface PetApi {
 
 export interface MenuApi {
   getActions(): Promise<MenuActionSummary[]>
+  ready(): Promise<MenuPresentation>
+  opened(): Promise<void>
+  onPresentation(callback: (presentation: MenuPresentation) => void): () => void
   runAction(actionId: string): Promise<void>
   openSettings(): Promise<void>
   hidePet(): Promise<void>

@@ -336,7 +336,7 @@ function SettingsContent({
     <div className="settings-root">
       <header className="settings-header">
         <div>
-          <h1>FlowerBuddy 设置</h1>
+          <h1>花伴 设置</h1>
           <p>第一版功能已完成</p>
         </div>
         {appInfo ? (

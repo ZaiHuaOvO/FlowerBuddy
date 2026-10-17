@@ -16,6 +16,7 @@ import {
   type GmailStateView,
   type MenuActionSummary,
   type MenuApi,
+  type MenuPresentation,
   type ModuleId,
   type ModuleSummary,
   type PetApi,
@@ -92,6 +93,12 @@ function createPetApi(ipc: IpcBridge): PetApi {
 function createMenuApi(ipc: IpcBridge): MenuApi {
   return {
     getActions: async () => (await ipc.invoke(IPC_CHANNELS.menuGetActions)) as MenuActionSummary[],
+    ready: async () => (await ipc.invoke(IPC_CHANNELS.menuReady)) as MenuPresentation,
+    opened: async () => {
+      await ipc.invoke(IPC_CHANNELS.menuOpened)
+    },
+    onPresentation: (callback) =>
+      ipc.on(IPC_CHANNELS.menuPresentation, (payload) => callback(payload as MenuPresentation)),
     runAction: async (actionId: string) => {
       await ipc.invoke(IPC_CHANNELS.menuRunAction, actionId)
     },

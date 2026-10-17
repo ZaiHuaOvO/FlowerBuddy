@@ -39,6 +39,7 @@ export class PetWindowController {
   private window: BrowserWindow | null = null
   private asset: PetAssetInfo
   private dragOffset: { x: number; y: number } | null = null
+  private dragMoved = false
 
   constructor(private readonly options: PetWindowControllerOptions) {
     this.asset = this.loadAsset()
@@ -140,6 +141,7 @@ export class PetWindowController {
     const cursor = screen.getCursorScreenPoint()
     const bounds = window.getBounds()
     this.dragOffset = { x: bounds.x - cursor.x, y: bounds.y - cursor.y }
+    this.dragMoved = false
   }
 
   dragMove(): void {
@@ -147,6 +149,7 @@ export class PetWindowController {
     if (!window || window.isDestroyed() || !this.dragOffset) {
       return
     }
+    this.dragMoved = true
     const cursor = screen.getCursorScreenPoint()
     window.setPosition(
       Math.round(cursor.x + this.dragOffset.x),
@@ -155,9 +158,11 @@ export class PetWindowController {
   }
 
   endDrag(): void {
+    const moved = this.dragMoved
     this.dragOffset = null
+    this.dragMoved = false
     const window = this.window
-    if (!window || window.isDestroyed()) {
+    if (!window || window.isDestroyed() || !moved) {
       return
     }
 

@@ -111,14 +111,14 @@ export async function runGmailOAuth(options: GmailOAuthOptions): Promise<GmailOA
     }
 
     if (settled) {
-      finish(400, 'FlowerBuddy', '此授权请求已处理。')
+      finish(400, '花伴', '此授权请求已处理。')
       return
     }
 
     const error = url.searchParams.get('error')
     if (error) {
       settled = true
-      finish(400, '授权未完成', '授权被取消或失败，可以关闭此页面并返回 FlowerBuddy。')
+      finish(400, '授权未完成', '授权被取消或失败，可以关闭此页面并返回 花伴。')
       rejectCode?.(new AppError('AUTH_REQUIRED', 'Gmail 授权被取消或失败'))
       return
     }
@@ -139,7 +139,7 @@ export async function runGmailOAuth(options: GmailOAuthOptions): Promise<GmailOA
     }
 
     settled = true
-    finish(200, '授权完成', '可以关闭此页面并返回 FlowerBuddy。')
+    finish(200, '授权完成', '可以关闭此页面并返回 花伴。')
     resolveCode?.(code)
   })
 

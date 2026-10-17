@@ -1,5 +1,5 @@
 /*
- * FlowerBuddy design tokens
+ * 花伴 design tokens
  *
  * Source: 花墨 design system — https://flowersink.com/design/
  * Checked: 2026-10-17 by reading the published --fi-* CSS custom properties
@@ -105,6 +105,7 @@
   --motion-fast: 0.16s;
   --motion-normal: 0.24s;
   --motion-slow: 0.32s;
+  --motion-pet-bounce: 0.52s;
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Controls */

@@ -1,47 +1,336 @@
 .menu-root {
+  position: relative;
   width: 100%;
   height: 100%;
-  padding: var(--space-2);
+  overflow: clip;
+}
+
+/* Clicking the transparent area around the buttons dismisses the menu. */
+.menu-dismiss {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .menu-panel {
+  position: relative;
+  z-index: 1;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+/* Keep the icon row next to the pet no matter which side the menu opened on. */
+.menu-root[data-placement='above'] .menu-panel {
+  justify-content: flex-end;
+}
+
+.menu-root[data-placement='below'] .menu-panel {
+  justify-content: flex-start;
+}
+
+.menu-actions {
+  order: 1;
+  flex: 0 1 auto;
+  min-height: 0;
+  padding: var(--menu-list-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--menu-item-gap);
+  overflow-y: auto;
+  scrollbar-width: none;
+  pointer-events: auto;
+  animation: menu-list-in var(--motion-fast) var(--ease-standard) both;
+}
+
+.menu-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-actions.is-closing {
+  pointer-events: none;
+  animation: menu-list-out var(--motion-fast) var(--ease-standard) both;
+}
+
+.menu-root[data-placement='below'] .menu-actions {
+  order: 3;
+}
+
+.menu-bar {
+  order: 3;
+  flex: 0 0 var(--menu-row-height);
   padding: var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  overflow: hidden;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
-  animation: fl-fade-in var(--motion-fast) var(--ease-standard);
+  pointer-events: none;
 }
 
-.menu-title {
-  margin: var(--space-1) var(--space-3) var(--space-2);
+.menu-root[data-placement='below'] .menu-bar {
+  order: 1;
+}
+
+.menu-icon-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, calc((100vw - 160px) / 3), 12px);
+  padding: 0 6px;
+  pointer-events: none;
+}
+
+.menu-icon-button {
+  width: var(--menu-icon-size);
+  height: var(--menu-icon-size);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
   color: var(--color-text-muted);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+  animation: menu-icon-in var(--menu-enter-duration) var(--ease-standard) both;
+  animation-duration: calc(var(--menu-enter-duration) + var(--menu-enter-step) * var(--i));
+  animation-delay: calc(var(--menu-enter-stagger) * var(--i));
+}
+
+.menu-icon-button:nth-child(1) {
+  --i: 0;
+}
+
+.menu-icon-button:nth-child(2) {
+  --i: 1;
+}
+
+.menu-icon-button:nth-child(3) {
+  --i: 2;
+}
+
+.menu-icon-button:nth-child(4) {
+  --i: 3;
+}
+
+/* Hover styling only applies after a real pointer/key event in the current
+   menu session; a stale hover can never make a reopened menu look selected. */
+.menu-root.labels-armed .menu-icon-button:hover,
+.menu-icon-button[aria-expanded='true'] {
+  background: var(--color-tag-bg);
+  border-color: var(--color-tag-border);
+  color: var(--color-primary);
+}
+
+.menu-icon-button:active {
+  background: var(--color-tag-bg);
+}
+
+.menu-icon-button:focus-visible {
+  outline-offset: -2px;
+}
+
+.menu-icon-danger {
+  color: var(--color-danger);
+}
+
+.menu-root.labels-armed .menu-icon-danger:hover {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.menu-icon-danger:active {
+  background: var(--color-danger-bg);
+}
+
+.menu-caption {
+  height: 18px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.menu-caption-label {
+  display: none;
+  max-width: 100%;
+  height: 18px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-primary);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.04em;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* The label follows live hover / keyboard focus and only arms after a real
+   pointer or key event, so a reopened menu can never show a stale label. */
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(1):hover)
+  .menu-caption-label:nth-child(1),
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(1):focus-visible)
+  .menu-caption-label:nth-child(1) {
+  display: inline-flex;
+}
+
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(2):hover)
+  .menu-caption-label:nth-child(2),
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(2):focus-visible)
+  .menu-caption-label:nth-child(2) {
+  display: inline-flex;
+}
+
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(3):hover)
+  .menu-caption-label:nth-child(3),
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(3):focus-visible)
+  .menu-caption-label:nth-child(3) {
+  display: inline-flex;
+}
+
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(4):hover)
+  .menu-caption-label:nth-child(4),
+.menu-root.labels-armed
+  .menu-bar:has(.menu-icon-button:nth-child(4):focus-visible)
+  .menu-caption-label:nth-child(4) {
+  display: inline-flex;
+}
+
+.menu-action {
+  flex: 0 0 var(--menu-item-height);
+  height: var(--menu-item-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.menu-action:hover {
+  background: var(--color-tag-bg);
+  border-color: var(--color-tag-border);
+  color: var(--color-primary);
+}
+
+.menu-action:active {
+  background: var(--color-tag-bg);
+}
+
+.menu-action:focus-visible {
+  outline-offset: -2px;
 }
 
 .menu-empty {
-  margin: var(--space-1) var(--space-3) var(--space-2);
+  flex: 0 0 var(--menu-empty-height);
+  height: var(--menu-empty-height);
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
-/* Two classes so shared button styles cannot override menu alignment by load order. */
-.menu-panel .menu-item {
-  width: 100%;
-  justify-content: flex-start;
-  padding: 0 var(--space-3);
-  text-align: left;
+.menu-root.is-closing .menu-panel {
+  animation: menu-panel-out var(--menu-exit-fade) var(--ease-standard) both;
 }
 
-.menu-separator {
-  height: 1px;
-  margin: var(--space-1) var(--space-2);
-  background: var(--color-border);
+.menu-root.is-closing .menu-icon-button {
+  animation: menu-icon-out var(--menu-exit-duration) var(--ease-standard) both;
+  animation-delay: calc(var(--menu-exit-stagger) * (3 - var(--i)));
+}
+
+/* A panel reused during a quick reopen must not replay the entry animation. */
+.menu-root.no-entry .menu-icon-button {
+  animation: none;
+}
+
+/* Action-triggered hides are instantaneous; keep the panel intact so an
+   immediate reopen reuses it without a visible fade in between. */
+.menu-root.instant-close .menu-panel,
+.menu-root.instant-close .menu-icon-button {
+  animation: none;
+}
+
+@keyframes menu-icon-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes menu-icon-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+}
+
+@keyframes menu-list-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menu-list-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes menu-panel-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }

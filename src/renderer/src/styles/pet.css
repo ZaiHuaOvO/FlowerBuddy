@@ -3,6 +3,7 @@
   height: 100%;
   display: grid;
   place-items: center;
+  overflow: clip;
 }
 
 /* The pet image is the lead visual; no card, border or shadow is added by default. */
@@ -12,6 +13,7 @@
   object-fit: contain;
   cursor: grab;
   -webkit-user-drag: none;
+  transform-origin: 50% 100%;
 }
 
 .pet-image.dragging {
