@@ -10,7 +10,7 @@ export interface Position {
 
 export interface Rect extends Position, Size {}
 
-export const PET_BASE_HEIGHT = 220
+export const PET_BASE_HEIGHT = 160
 export const PET_MIN_WIDTH = 40
 export const PET_MAX_WIDTH = 700
 export const PET_MIN_HEIGHT = 60

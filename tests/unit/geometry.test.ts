@@ -11,24 +11,24 @@ import {
 const PRIMARY_WORK_AREA: Rect = { x: 0, y: 0, width: 1920, height: 1040 }
 
 describe('computePetWindowSize', () => {
-  it('uses a 220px base height at scale 1', () => {
-    expect(computePetWindowSize(512, 512, 1)).toEqual({ width: 220, height: 220 })
+  it('uses a 160px base height at scale 1', () => {
+    expect(computePetWindowSize(512, 512, 1)).toEqual({ width: 160, height: 160 })
   })
 
   it('preserves the aspect ratio of wide and tall images', () => {
     const wide = computePetWindowSize(1000, 500, 1)
-    expect(wide.height).toBe(220)
-    expect(wide.width).toBe(440)
+    expect(wide.height).toBe(160)
+    expect(wide.width).toBe(320)
 
     const tall = computePetWindowSize(500, 1000, 1)
-    expect(tall.height).toBe(220)
-    expect(tall.width).toBe(110)
+    expect(tall.height).toBe(160)
+    expect(tall.width).toBe(80)
   })
 
   it('scales with the configured factor and clamps the factor', () => {
-    expect(computePetWindowSize(512, 512, 2)).toEqual({ width: 440, height: 440 })
-    expect(computePetWindowSize(512, 512, 5)).toEqual({ width: 440, height: 440 })
-    expect(computePetWindowSize(512, 512, 0.1)).toEqual({ width: 110, height: 110 })
+    expect(computePetWindowSize(512, 512, 2)).toEqual({ width: 320, height: 320 })
+    expect(computePetWindowSize(512, 512, 5)).toEqual({ width: 320, height: 320 })
+    expect(computePetWindowSize(512, 512, 0.1)).toEqual({ width: 80, height: 80 })
   })
 
   it('caps extreme wide images at the maximum width', () => {
@@ -45,7 +45,7 @@ describe('computePetWindowSize', () => {
   })
 
   it('falls back to a sane size for invalid dimensions', () => {
-    expect(computePetWindowSize(0, 0, Number.NaN)).toEqual({ width: 220, height: 220 })
+    expect(computePetWindowSize(0, 0, Number.NaN)).toEqual({ width: 160, height: 160 })
   })
 })
 
@@ -74,9 +74,9 @@ describe('clampToVisibleArea', () => {
 
 describe('position helpers', () => {
   it('places the pet at the bottom-right of the work area', () => {
-    expect(defaultPetPosition(PRIMARY_WORK_AREA, { width: 220, height: 220 })).toEqual({
-      x: 1676,
-      y: 796
+    expect(defaultPetPosition(PRIMARY_WORK_AREA, { width: 160, height: 160 })).toEqual({
+      x: 1736,
+      y: 856
     })
   })
 
