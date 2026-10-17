@@ -9,7 +9,7 @@ export function createSettingsWindow(options: WindowFactoryOptions): BrowserWind
     minWidth: 640,
     minHeight: 540,
     show: false,
-    title: '花伴 设置',
+    title: '花伴 - 设置',
     autoHideMenuBar: true,
     backgroundColor: '#0f1419',
     ...(options.iconPath ? { icon: options.iconPath } : {}),

@@ -44,6 +44,10 @@ export default function SettingsApp() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    document.title = '花伴 - 设置'
+  }, [])
+
+  useEffect(() => {
     if (!api) {
       return
     }
@@ -335,15 +339,10 @@ function SettingsContent({
   return (
     <div className="settings-root">
       <header className="settings-header">
-        <div>
-          <h1>花伴 设置</h1>
-          <p>第一版功能已完成</p>
-        </div>
-        {appInfo ? (
-          <p className="hint settings-version">
-            版本 {appInfo.version} · Electron {appInfo.electron}
-          </p>
-        ) : null}
+        <h1>
+          花伴 - 设置
+          {appInfo ? <span className="settings-version">版本 {appInfo.version}</span> : null}
+        </h1>
       </header>
 
       {startupNotice || error || status ? (
@@ -375,63 +374,68 @@ function SettingsContent({
         </div>
       ) : null}
 
-      <nav className="settings-tabs" role="tablist" aria-label="设置分区">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            className={`settings-tab${activeTab === tab.id ? ' active' : ''}`}
-            aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <div className="settings-body">
+        <nav className="settings-nav" role="tablist" aria-label="设置分区">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              id={`settings-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              className={`settings-nav-item${activeTab === tab.id ? ' active' : ''}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls="settings-tabpanel"
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-      <div role="tabpanel">
-        {activeTab === 'general' ? (
-          <GeneralSettingsTab config={config} onSave={(patch) => void saveApp(patch)} />
-        ) : null}
-        {activeTab === 'modules' ? (
-          <ModulesSettingsTab
-            modules={modules}
-            security={security}
-            onToggle={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-          />
-        ) : null}
-        {activeTab === 'dates' ? <DatesSettingsTab model={dates} /> : null}
-        {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
-        {activeTab === 'gmail' ? (
-          <GmailSettingsTab
-            config={config}
-            model={gmail}
-            onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-          />
-        ) : null}
-        {activeTab === 'deepseek' ? (
-          <DeepSeekSettingsTab
-            config={config}
-            model={deepSeek}
-            onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-          />
-        ) : null}
-        {activeTab === 'esa' ? (
-          <EsaSettingsTab
-            config={config}
-            model={esa}
-            onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-          />
-        ) : null}
-        {activeTab === 'appearance' ? (
-          <AppearanceSettingsTab config={config} model={appearance} />
-        ) : null}
+        <section
+          id="settings-tabpanel"
+          className="settings-content"
+          role="tabpanel"
+          aria-labelledby={`settings-tab-${activeTab}`}
+        >
+          {activeTab === 'general' ? (
+            <GeneralSettingsTab config={config} onSave={(patch) => void saveApp(patch)} />
+          ) : null}
+          {activeTab === 'modules' ? (
+            <ModulesSettingsTab
+              modules={modules}
+              security={security}
+              onToggle={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            />
+          ) : null}
+          {activeTab === 'dates' ? <DatesSettingsTab model={dates} /> : null}
+          {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
+          {activeTab === 'gmail' ? (
+            <GmailSettingsTab
+              config={config}
+              model={gmail}
+              onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            />
+          ) : null}
+          {activeTab === 'deepseek' ? (
+            <DeepSeekSettingsTab
+              config={config}
+              model={deepSeek}
+              onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            />
+          ) : null}
+          {activeTab === 'esa' ? (
+            <EsaSettingsTab
+              config={config}
+              model={esa}
+              onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            />
+          ) : null}
+          {activeTab === 'appearance' ? (
+            <AppearanceSettingsTab config={config} model={appearance} />
+          ) : null}
+        </section>
       </div>
-
-      <footer className="settings-footer">
-        关闭此窗口不会退出桌宠；请通过托盘菜单或快捷菜单退出。
-      </footer>
     </div>
   )
 }
