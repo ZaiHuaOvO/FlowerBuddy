@@ -6,10 +6,13 @@ import {
   type BubbleApi,
   type BubblePayload,
   type MenuApi,
+  type ModuleId,
+  type ModuleSummary,
   type PetApi,
   type PetSettingsPatch,
   type PetViewState,
   type PublicConfig,
+  type SecurityStatus,
   type SettingsApi,
   type WindowView
 } from '../shared/api'
@@ -113,6 +116,15 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     importPetImage: async () =>
       (await ipc.invoke(IPC_CHANNELS.settingsImportPet)) as PublicConfig | null,
     resetPetPosition: async () =>
-      (await ipc.invoke(IPC_CHANNELS.settingsResetPosition)) as PublicConfig
+      (await ipc.invoke(IPC_CHANNELS.settingsResetPosition)) as PublicConfig,
+    getModules: async () => (await ipc.invoke(IPC_CHANNELS.modulesList)) as ModuleSummary[],
+    setModuleEnabled: async (moduleId: ModuleId, enabled: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.modulesSetEnabled, {
+        moduleId,
+        enabled
+      })) as ModuleSummary[],
+    getSecurityStatus: async () =>
+      (await ipc.invoke(IPC_CHANNELS.securityStatus)) as SecurityStatus,
+    getStartupNotice: async () => (await ipc.invoke(IPC_CHANNELS.startupNotice)) as string | null
   }
 }

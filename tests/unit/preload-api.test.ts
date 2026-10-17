@@ -49,10 +49,14 @@ describe('preload bridge surface', () => {
     expect(Object.keys(exposed?.value ?? {}).sort()).toEqual([
       'getAppInfo',
       'getConfig',
+      'getModules',
+      'getSecurityStatus',
+      'getStartupNotice',
       'importPetImage',
       'resetPetPosition',
       'saveAppSettings',
-      'savePetSettings'
+      'savePetSettings',
+      'setModuleEnabled'
     ])
   })
 

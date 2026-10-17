@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AppInfo, AppSettingsPatch, PublicConfig } from '../../../shared/api'
+import type {
+  AppInfo,
+  AppSettingsPatch,
+  ModuleId,
+  ModuleStatus,
+  ModuleSummary,
+  PublicConfig,
+  SecurityStatus
+} from '../../../shared/api'
 import { Button } from '../components/Button'
 
 const BUBBLE_DURATION_OPTIONS = [3000, 5000, 8000]
@@ -8,13 +16,38 @@ const SCALE_MAX = 2
 const SCALE_STEP = 0.1
 
 function toMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message: unknown }).message
+    if (typeof message === 'string') {
+      return message
+    }
+  }
+  return String(error)
+}
+
+function tagTone(status: ModuleStatus): string {
+  switch (status) {
+    case 'ready':
+      return 'success'
+    case 'auth-expired':
+      return 'danger'
+    case 'not-configured':
+      return 'warning'
+    case 'not-implemented':
+      return 'muted'
+  }
 }
 
 export default function SettingsApp() {
   const api = window.settingsApi
   const [config, setConfig] = useState<PublicConfig | null>(null)
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
+  const [modules, setModules] = useState<ModuleSummary[]>([])
+  const [security, setSecurity] = useState<SecurityStatus | null>(null)
+  const [startupNotice, setStartupNotice] = useState<string | null>(null)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [scaleDraft, setScaleDraft] = useState(1)
@@ -46,6 +79,37 @@ export default function SettingsApp() {
       .then((next) => {
         if (active) {
           setAppInfo(next)
+        }
+      })
+      .catch(() => {})
+
+    void api
+      .getModules()
+      .then((next) => {
+        if (active) {
+          setModules(next)
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(toMessage(cause))
+        }
+      })
+
+    void api
+      .getSecurityStatus()
+      .then((next) => {
+        if (active) {
+          setSecurity(next)
+        }
+      })
+      .catch(() => {})
+
+    void api
+      .getStartupNotice()
+      .then((next) => {
+        if (active) {
+          setStartupNotice(next)
         }
       })
       .catch(() => {})
@@ -122,6 +186,20 @@ export default function SettingsApp() {
     void commitScale(scaleDraft)
   }
 
+  async function handleToggleModule(moduleId: ModuleId, enabled: boolean): Promise<void> {
+    if (!api) {
+      return
+    }
+    setError('')
+    try {
+      const next = await api.setModuleEnabled(moduleId, enabled)
+      setModules(next)
+      flash('已保存')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
   async function handleImport(): Promise<void> {
     if (!api) {
       return
@@ -166,7 +244,7 @@ export default function SettingsApp() {
       <header className="settings-header">
         <div>
           <h1>FlowerBuddy 设置</h1>
-          <p>阶段 1：桌宠窗口、外观与基础交互</p>
+          <p>阶段 2：配置、凭据与模块管理</p>
         </div>
         {appInfo ? (
           <p className="hint settings-version">
@@ -175,8 +253,16 @@ export default function SettingsApp() {
         ) : null}
       </header>
 
-      {error || status ? (
+      {startupNotice || error || status ? (
         <div className="settings-banners">
+          {startupNotice ? (
+            <div className="fl-alert fl-alert-warning" role="status">
+              <span className="fl-alert-icon" aria-hidden="true">
+                !
+              </span>
+              <span className="fl-alert-message">{startupNotice}</span>
+            </div>
+          ) : null}
           {error ? (
             <div className="fl-alert fl-alert-error" role="alert">
               <span className="fl-alert-icon" aria-hidden="true">
@@ -228,6 +314,42 @@ export default function SettingsApp() {
             ))}
           </select>
         </label>
+      </section>
+
+      <section className="panel">
+        <h2>功能管理</h2>
+        {security && !security.encryptionAvailable && security.message ? (
+          <div className="fl-alert fl-alert-warning module-security-alert" role="status">
+            <span className="fl-alert-icon" aria-hidden="true">
+              !
+            </span>
+            <span className="fl-alert-message">{security.message}</span>
+          </div>
+        ) : null}
+        <div className="module-list">
+          {modules.map((module) => (
+            <div className="module-card" key={module.id} data-module={module.id}>
+              <div className="module-main">
+                <div className="module-title-row">
+                  <span className="module-name">{module.name}</span>
+                  <span className={`fl-tag fl-tag-${tagTone(module.status)}`}>
+                    {module.statusLabel}
+                  </span>
+                </div>
+                <p className="hint">{module.description}</p>
+              </div>
+              <label className="module-switch">
+                <input
+                  type="checkbox"
+                  checked={module.enabled}
+                  onChange={(event) => void handleToggleModule(module.id, event.target.checked)}
+                />
+                <span>{module.enabled ? '已启用' : '已停用'}</span>
+              </label>
+            </div>
+          ))}
+        </div>
+        <p className="hint">开关立即生效；未配置或尚未实现的模块不会发起任何后台请求。</p>
       </section>
 
       <section className="panel">

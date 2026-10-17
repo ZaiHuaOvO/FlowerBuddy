@@ -5,17 +5,21 @@ import type { OpenDialogOptions } from 'electron'
 import { IPC_CHANNELS } from '../shared/api'
 import type {
   AppInfo,
+  AppSettingsPatch,
   BubblePayload,
+  ModuleId,
+  ModuleSummary,
   PetAssetInfo,
+  PetSettingsPatch,
   PetViewState,
-  PublicConfig
+  PublicConfig,
+  SecurityStatus
 } from '../shared/api'
+import type { ModuleManager } from './modules/module-manager'
 import { PET_ASSET_SCHEME } from './protocol/pet-asset-protocol'
-import {
-  ConfigStore,
-  sanitizeAppSettingsPatch,
-  sanitizePetSettingsPatch
-} from './storage/config-store'
+import type { SecretStore } from './security/secret-store'
+import type { LoggerLike } from './shared/logger'
+import { ConfigStore } from './storage/config-store'
 import {
   PetAssetError,
   importPetFile,
@@ -45,10 +49,13 @@ const DEMO_ACTIONS = new Set(['demo:success', 'demo:error'])
 const DEMO_DELAY_MS = 900
 const REQUEST_TIMEOUT_MS = 15000
 const MENU_REOPEN_GUARD_MS = 250
-const FALLBACK_PET_DIMENSION = 220
+const FALLBACK_PET_DIMENSION = 160
 
 export interface AppControllerOptions {
   configStore: ConfigStore
+  moduleManager: ModuleManager
+  secretStore: SecretStore
+  logger: LoggerLike
   devServerUrl: string | undefined
   rendererIndexPath: string
   preloadPath: string
@@ -86,6 +93,8 @@ export class AppController {
     })
     this.tray.create()
 
+    this.options.moduleManager.start()
+
     screen.on('display-added', this.onDisplaysChanged)
     screen.on('display-removed', this.onDisplaysChanged)
     screen.on('display-metrics-changed', this.onDisplaysChanged)
@@ -115,8 +124,7 @@ export class AppController {
     }
   }
 
-  updateAppSettings(raw: unknown): PublicConfig {
-    const patch = sanitizeAppSettingsPatch(raw)
+  updateAppSettings(patch: AppSettingsPatch): PublicConfig {
     const next = this.options.configStore.updateApp(patch)
 
     if (this.petWindow && !this.petWindow.isDestroyed()) {
@@ -126,13 +134,39 @@ export class AppController {
     return next
   }
 
-  updatePetSettings(raw: unknown): PublicConfig {
+  updatePetSettings(patch: PetSettingsPatch): PublicConfig {
     const previous = this.config
-    const next = this.options.configStore.updatePet(sanitizePetSettingsPatch(raw))
+    const next = this.options.configStore.updatePet(patch)
     if (next.pet.scale !== previous.pet.scale) {
       this.resizePetWindow()
     }
     return next
+  }
+
+  getModules(): ModuleSummary[] {
+    return this.options.moduleManager.list()
+  }
+
+  getStartupNotice(): string | null {
+    return this.options.configStore.getRecoveryNotice()
+  }
+
+  setModuleEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {
+    return this.options.moduleManager.setEnabled(moduleId, enabled)
+  }
+
+  async getSecurityStatus(): Promise<SecurityStatus> {
+    const encryptionAvailable = await this.options.secretStore.isAvailable()
+    return {
+      encryptionAvailable,
+      message: encryptionAvailable
+        ? null
+        : '系统安全存储当前不可用。应用不会把任何密钥以明文写入磁盘。'
+    }
+  }
+
+  handleResume(): void {
+    this.options.moduleManager.handleResume()
   }
 
   async importPetImage(): Promise<PublicConfig | null> {
@@ -336,6 +370,7 @@ export class AppController {
 
   dispose(): void {
     this.disposed = true
+    this.options.moduleManager.stop()
     this.clearBubbleTimers()
     screen.removeListener('display-added', this.onDisplaysChanged)
     screen.removeListener('display-removed', this.onDisplaysChanged)

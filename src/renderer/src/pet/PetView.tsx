@@ -3,6 +3,10 @@ import type { PetViewState } from '../../../shared/api'
 
 const CLICK_MOVE_THRESHOLD = 5
 
+function fire(operation: Promise<unknown> | undefined): void {
+  void operation?.catch(() => {})
+}
+
 export default function PetView() {
   const api = window.petApi
   const [state, setState] = useState<PetViewState | null>(null)
@@ -17,11 +21,14 @@ export default function PetView() {
     }
     let active = true
 
-    void api.getState().then((next) => {
-      if (active) {
-        setState(next)
-      }
-    })
+    void api
+      .getState()
+      .then((next) => {
+        if (active) {
+          setState(next)
+        }
+      })
+      .catch(() => {})
 
     const unsubscribe = api.onStateChanged((next) => {
       setState(next)
@@ -70,7 +77,7 @@ export default function PetView() {
       moved: false
     }
     setDragging(true)
-    void api.beginDrag()
+    fire(api.beginDrag())
   }
 
   function handlePointerMove(event: React.PointerEvent<HTMLImageElement>): void {
@@ -89,7 +96,7 @@ export default function PetView() {
     if (dragFrame.current === null) {
       dragFrame.current = requestAnimationFrame(() => {
         dragFrame.current = null
-        void api.dragMove()
+        fire(api.dragMove())
       })
     }
   }
@@ -110,17 +117,17 @@ export default function PetView() {
       dragFrame.current = null
     }
 
-    void api.endDrag()
+    fire(api.endDrag())
 
     if (allowClick && !session.moved) {
       playBounce(state?.bounceAnimation !== false)
-      void api.openMenu()
+      fire(api.openMenu())
     }
   }
 
   function handleContextMenu(event: React.MouseEvent): void {
     event.preventDefault()
-    void window.petApi?.openMenu()
+    fire(window.petApi?.openMenu())
   }
 
   return (

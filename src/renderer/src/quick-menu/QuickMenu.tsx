@@ -6,6 +6,10 @@ const DEMO_ACTIONS = [
   { id: 'demo:error', label: '演示：加载失败' }
 ]
 
+function fire(operation: Promise<unknown> | undefined): void {
+  void operation?.catch(() => {})
+}
+
 export default function QuickMenu() {
   const api = window.menuApi
 
@@ -15,7 +19,7 @@ export default function QuickMenu() {
     }
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
-        void api.close()
+        fire(api.close())
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -37,7 +41,7 @@ export default function QuickMenu() {
             className="menu-item"
             role="menuitem"
             data-action={action.id}
-            onClick={() => void api.runAction(action.id)}
+            onClick={() => fire(api.runAction(action.id))}
           >
             {action.label}
           </Button>
@@ -47,7 +51,7 @@ export default function QuickMenu() {
           variant="ghost"
           className="menu-item"
           role="menuitem"
-          onClick={() => void api.openSettings()}
+          onClick={() => fire(api.openSettings())}
         >
           打开设置
         </Button>
@@ -55,7 +59,7 @@ export default function QuickMenu() {
           variant="ghost"
           className="menu-item"
           role="menuitem"
-          onClick={() => void api.hidePet()}
+          onClick={() => fire(api.hidePet())}
         >
           隐藏桌宠
         </Button>
@@ -63,7 +67,7 @@ export default function QuickMenu() {
           variant="danger"
           className="menu-item"
           role="menuitem"
-          onClick={() => void api.quit()}
+          onClick={() => fire(api.quit())}
         >
           退出 FlowerBuddy
         </Button>

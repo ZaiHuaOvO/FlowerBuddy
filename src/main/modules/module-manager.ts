@@ -1,0 +1,112 @@
+import type { ModuleId, ModuleStatus, ModuleSummary } from '../../shared/api'
+import type { LoggerLike } from '../shared/logger'
+import type { TaskScheduler } from '../scheduler/task-scheduler'
+import type { ConfigStore } from '../storage/config-store'
+import type { ModuleDefinition } from './types'
+
+const STATUS_LABELS: Record<ModuleStatus, string> = {
+  ready: '已就绪',
+  'not-configured': '未配置',
+  'auth-expired': '授权已失效',
+  'not-implemented': '待实现'
+}
+
+export interface ModuleManagerOptions {
+  modules: ModuleDefinition[]
+  configStore: ConfigStore
+  scheduler: TaskScheduler
+  logger: LoggerLike
+}
+
+/** Owns module lifecycle: enabled && configured modules are started. */
+export class ModuleManager {
+  private readonly started = new Set<ModuleId>()
+
+  constructor(private readonly options: ModuleManagerOptions) {}
+
+  start(): void {
+    for (const module of this.options.modules) {
+      this.syncModule(module)
+    }
+    this.options.logger.info('module manager started', {
+      started: [...this.started].sort(),
+      modules: this.list().map((module) => ({
+        id: module.id,
+        enabled: module.enabled,
+        status: module.status
+      }))
+    })
+  }
+
+  stop(): void {
+    for (const module of this.options.modules) {
+      if (this.started.has(module.id)) {
+        this.stopModule(module)
+      }
+    }
+    this.options.scheduler.stopAll()
+  }
+
+  setEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {
+    this.options.configStore.setModuleEnabled(moduleId, enabled)
+    const module = this.options.modules.find((entry) => entry.id === moduleId)
+    if (module) {
+      this.syncModule(module)
+    }
+    return this.list()
+  }
+
+  list(): ModuleSummary[] {
+    return this.options.modules.map((module) => {
+      const enabled = this.options.configStore.isModuleEnabled(module.id)
+      const configured = module.isConfigured()
+      const status = module.getStatus()
+      return {
+        id: module.id,
+        name: module.name,
+        description: module.description,
+        enabled,
+        configured,
+        implemented: module.implemented,
+        status,
+        statusLabel: STATUS_LABELS[status]
+      }
+    })
+  }
+
+  handleResume(): void {
+    this.options.scheduler.handleResume()
+  }
+
+  private shouldRun(module: ModuleDefinition): boolean {
+    return this.options.configStore.isModuleEnabled(module.id) && module.isConfigured()
+  }
+
+  private syncModule(module: ModuleDefinition): void {
+    if (this.shouldRun(module)) {
+      if (!this.started.has(module.id)) {
+        this.startModule(module)
+      }
+      return
+    }
+    if (this.started.has(module.id)) {
+      this.stopModule(module)
+    }
+  }
+
+  private startModule(module: ModuleDefinition): void {
+    module.start({
+      scheduler: this.options.scheduler,
+      logger: this.options.logger
+    })
+    this.started.add(module.id)
+    this.options.logger.info('module started', { module: module.id })
+  }
+
+  private stopModule(module: ModuleDefinition): void {
+    module.stop()
+    this.options.scheduler.stopByOwner(module.id)
+    this.started.delete(module.id)
+    this.options.logger.info('module stopped', { module: module.id })
+  }
+}

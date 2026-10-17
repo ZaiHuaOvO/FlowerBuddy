@@ -153,3 +153,51 @@
 .fl-alert-error .fl-alert-icon {
   color: var(--color-danger);
 }
+
+.fl-alert-warning {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.fl-alert-warning .fl-alert-icon {
+  color: var(--color-warning);
+}
+
+.fl-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-tag-border);
+  border-radius: var(--radius-tag);
+  background: var(--color-tag-bg);
+  color: var(--color-tag-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fl-tag-muted {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.fl-tag-success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-text);
+}
+
+.fl-tag-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+  color: var(--color-text);
+}
+
+.fl-tag-danger {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+  color: var(--color-text);
+}

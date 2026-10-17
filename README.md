@@ -1,6 +1,6 @@
 # FlowerBuddy
 
-Windows 桌面宠物与个人信息助手。当前已完成 **阶段 1：桌宠窗口、外观和基础交互**，尚未接入任何第三方 API 或业务模块（日期、Gmail、ESA、DeepSeek、网站检测均未开始）。
+Windows 桌面宠物与个人信息助手。当前已完成 **阶段 2：配置中心、凭据加密、模块注册表与调度层**；尚未接入任何第三方 API 或实现业务模块（日期、Gmail、ESA、DeepSeek、网站检测尚未开始）。
 
 ## 最终用户须知
 
@@ -24,6 +24,16 @@ Windows 桌面宠物与个人信息助手。当前已完成 **阶段 1：桌宠�
 - 桌宠图片通过自定义 `flowerbuddy-pet://` 协议提供；主进程只允许读取当前配置的形象和内置默认形象。
 - Vitest 单元测试、ESLint、Prettier、TypeScript 类型检查。
 - electron-builder 的 NSIS 安装版与 portable 便携版配置，产物输出到 `release/`。
+
+### 阶段 2 新增
+
+- 配置 schema 升级到 `schemaVersion: 2`，新增五个模块的独立开关；v1 配置自动迁移，迁移前与损坏/未来版本文件都会备份，恢复结果会在设置页提示。
+- 使用 Electron `safeStorage` 异步 API 的 Secret Store：密文以 Base64 写入 `secrets.enc.json`，密钥只在主进程解密；加密不可用时拒绝保存并明确提示，绝不回退明文。
+- 静态模块注册表（特殊日期、Gmail、ESA、DeepSeek、网站检测）与生命周期管理；未配置的模块不会被启动。
+- 统一任务调度器：同一任务不重叠、可取消、失败指数退避、系统睡眠恢复后从当前时间重新计时。
+- 统一错误类型与 IPC 输入 Zod 校验；渲染进程只收到安全的错误码、用户说明和是否可重试。
+- 脱敏日志写入用户数据目录的 `logs/app.log`，覆盖 Authorization、API Key、AccessKey、token、邮件正文等敏感字段，按大小轮转并保留 7 天。
+- 设置窗口新增“功能管理”卡片：模块状态标签、独立开关与安全存储可用性提示。
 
 ## 开发者环境
 
@@ -62,10 +72,13 @@ npm install
 ```text
 src/
   main/                  # 主进程：窗口、托盘、IPC、安全策略
-    ipc/                 # IPC 注册与 sender 校验
+    ipc/                 # IPC 注册、sender 校验与 Zod 输入校验
+    modules/             # 静态模块注册表与生命周期管理
     protocol/            # 桌宠图片自定义协议
-    security/            # 安全窗口选项
-    storage/             # 配置存储与图片导入
+    scheduler/           # 统一任务调度器
+    security/            # 安全窗口选项与 Secret Store
+    shared/              # 统一错误类型与脱敏日志
+    storage/             # 配置 schema/迁移与图片导入
     tray/                # 系统托盘
     windows/             # 桌宠/菜单/气泡/设置窗口与几何计算
   preload/               # contextBridge 窄桥（按窗口分域）
@@ -87,7 +100,8 @@ release/                 # 安装包输出（不入库）
 - 单击托盘图标或双击托盘可打开设置；托盘菜单可显示/隐藏桌宠或退出。
 - 设置中的“导入 PNG 图片”会把图片复制到用户数据目录，不会上传到任何外部服务。
 - 关闭设置窗口不会退出程序；必须通过托盘或快捷菜单的“退出 FlowerBuddy”结束。
-- 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json` 与 `pets/`。
+- 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`pets/` 与 `logs/`。
+- 设置中的“功能管理”可以独立启用/停用每个模块；未配置或尚未实现的模块不会发起后台请求。
 - 快捷菜单中的两个“演示”动作仅用于验证 loading / success / error 状态，后续阶段会被真实功能替代。
 
 ## 设计系统与视觉基线
@@ -103,9 +117,10 @@ release/                 # 安装包输出（不入库）
 ## 安全设计
 
 - 凭据只允许在主进程中处理；渲染进程永远不持有 API Key、AccessKey Secret 或 OAuth token。
-- `config.json`、日志、导出文件不得包含明文密钥；敏感值将使用 Electron `safeStorage` 加密（阶段 2 实现）。
+- 敏感值使用 Electron `safeStorage` 异步 API 加密后写入 `secrets.enc.json`；加密不可用时拒绝保存，不回退明文。密钥读取没有渲染进程接口。
+- 日志统一脱敏，且不记录密钥、完整认证信息或邮件正文；日志按大小轮转并保留 7 天。
 - 所有窗口统一使用 `src/main/security/web-preferences.ts` 中的安全选项。
-- 每个 IPC handler 先校验 `event.senderFrame.url`，只接受本应用渲染内容。
+- 每个 IPC handler 先校验 `event.senderFrame.url`，再用 Zod 校验输入，只向渲染进程返回安全的错误码与说明。
 - 生产环境渲染进程只加载本地文件，并注入严格 CSP；开发环境额外允许 React Refresh 内联脚本与本地 HMR WebSocket。
 
 ## 打包
@@ -121,10 +136,9 @@ npm run dist:win
 
 用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。
 
-## 已知限制（阶段 1）
+## 已知限制（阶段 2）
 
-- 尚无任何业务功能；快捷菜单中的演示动作不是真实数据。
-- `safeStorage` 加密存储、配置迁移、调度器、模块注册表属于阶段 2。
+- 尚无任何业务功能；快捷菜单中的演示动作不是真实数据，模块卡片显示“未配置”或“待实现”。
 - 全局快捷键、开机启动、点击穿透、多角色管理尚未实现。
 - 未配置代码签名；安装包哈希尚未纳入自动发布流程。
 - 尚未在“无 Node.js 的干净 Windows 环境”中做安装验证（阶段 6 要求）。

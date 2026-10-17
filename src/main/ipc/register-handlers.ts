@@ -1,102 +1,92 @@
+import { randomUUID } from 'node:crypto'
 import { ipcMain } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
+import type { z } from 'zod'
 import { IPC_CHANNELS } from '../../shared/api'
+import type { AppSettingsPatch, IpcResult, PetSettingsPatch } from '../../shared/api'
 import type { AppController } from '../app-controller'
+import { AppError, toPublicError } from '../shared/errors'
+import type { LoggerLike } from '../shared/logger'
+import {
+  appSettingsPatchSchema,
+  menuActionSchema,
+  moduleEnabledInputSchema,
+  parseInput,
+  petSettingsPatchSchema
+} from './schemas'
 
 export type SenderValidator = (url: string | undefined) => boolean
 
-export function registerIpcHandlers(
-  controller: AppController,
+export interface IpcDependencies {
+  controller: AppController
   isTrustedSender: SenderValidator
-): void {
+  logger: LoggerLike
+}
+
+export function registerIpcHandlers(deps: IpcDependencies): void {
+  const { controller, isTrustedSender, logger } = deps
+
   const assertTrusted = (event: IpcMainInvokeEvent): void => {
     if (!isTrustedSender(event.senderFrame?.url)) {
-      throw new Error('UNTRUSTED_SENDER')
+      throw new AppError('UNTRUSTED_SENDER', '请求来源不受信任')
     }
   }
 
-  ipcMain.handle(IPC_CHANNELS.appInfo, (event) => {
-    assertTrusted(event)
-    return controller.getAppInfo()
-  })
+  const register = <TInput, TOutput>(
+    channel: string,
+    schema: z.ZodType<TInput> | null,
+    handler: (input: TInput) => TOutput | Promise<TOutput>
+  ): void => {
+    ipcMain.handle(channel, async (event, raw: unknown): Promise<IpcResult<TOutput>> => {
+      const requestId = randomUUID()
+      try {
+        assertTrusted(event)
+        const input = schema ? parseInput(schema, raw) : (undefined as TInput)
+        const value = await handler(input)
+        return { ok: true, value }
+      } catch (error) {
+        const publicError = toPublicError(error)
+        logger.warn('ipc request failed', {
+          channel,
+          code: publicError.code,
+          requestId
+        })
+        return { ok: false, error: publicError }
+      }
+    })
+  }
 
-  ipcMain.handle(IPC_CHANNELS.configGet, (event) => {
-    assertTrusted(event)
-    return controller.getPublicConfig()
-  })
+  register(IPC_CHANNELS.appInfo, null, () => controller.getAppInfo())
+  register(IPC_CHANNELS.configGet, null, () => controller.getPublicConfig())
+  register(IPC_CHANNELS.startupNotice, null, () => controller.getStartupNotice())
 
-  ipcMain.handle(IPC_CHANNELS.settingsSaveApp, (event, patch: unknown) => {
-    assertTrusted(event)
-    return controller.updateAppSettings(patch)
-  })
+  register(IPC_CHANNELS.settingsSaveApp, appSettingsPatchSchema, (patch) =>
+    controller.updateAppSettings(patch as AppSettingsPatch)
+  )
+  register(IPC_CHANNELS.settingsSavePet, petSettingsPatchSchema, (patch) =>
+    controller.updatePetSettings(patch as PetSettingsPatch)
+  )
+  register(IPC_CHANNELS.settingsImportPet, null, () => controller.importPetImage())
+  register(IPC_CHANNELS.settingsResetPosition, null, () => controller.resetPetPosition())
 
-  ipcMain.handle(IPC_CHANNELS.settingsSavePet, (event, patch: unknown) => {
-    assertTrusted(event)
-    return controller.updatePetSettings(patch)
-  })
+  register(IPC_CHANNELS.modulesList, null, () => controller.getModules())
+  register(IPC_CHANNELS.modulesSetEnabled, moduleEnabledInputSchema, (input) =>
+    controller.setModuleEnabled(input.moduleId, input.enabled)
+  )
+  register(IPC_CHANNELS.securityStatus, null, () => controller.getSecurityStatus())
 
-  ipcMain.handle(IPC_CHANNELS.settingsImportPet, (event) => {
-    assertTrusted(event)
-    return controller.importPetImage()
-  })
+  register(IPC_CHANNELS.petGetState, null, () => controller.getPetViewState())
+  register(IPC_CHANNELS.petBeginDrag, null, () => controller.beginDrag())
+  register(IPC_CHANNELS.petDragMove, null, () => controller.dragMove())
+  register(IPC_CHANNELS.petEndDrag, null, () => controller.endDrag())
+  register(IPC_CHANNELS.petOpenMenu, null, () => controller.openQuickMenu())
 
-  ipcMain.handle(IPC_CHANNELS.settingsResetPosition, (event) => {
-    assertTrusted(event)
-    return controller.resetPetPosition()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.petGetState, (event) => {
-    assertTrusted(event)
-    return controller.getPetViewState()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.petBeginDrag, (event) => {
-    assertTrusted(event)
-    controller.beginDrag()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.petDragMove, (event) => {
-    assertTrusted(event)
-    controller.dragMove()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.petEndDrag, (event) => {
-    assertTrusted(event)
-    controller.endDrag()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.petOpenMenu, (event) => {
-    assertTrusted(event)
-    return controller.openQuickMenu()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.menuRunAction, (event, actionId: unknown) => {
-    assertTrusted(event)
+  register(IPC_CHANNELS.menuRunAction, menuActionSchema, (actionId) => {
     controller.runMenuAction(actionId)
   })
-
-  ipcMain.handle(IPC_CHANNELS.menuOpenSettings, (event) => {
-    assertTrusted(event)
-    controller.openSettings()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.menuHidePet, (event) => {
-    assertTrusted(event)
-    controller.hidePet()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.menuQuit, (event) => {
-    assertTrusted(event)
-    controller.quitApp()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.menuClose, (event) => {
-    assertTrusted(event)
-    controller.closeMenu()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.bubbleDismiss, (event) => {
-    assertTrusted(event)
-    controller.dismissBubble()
-  })
+  register(IPC_CHANNELS.menuOpenSettings, null, () => controller.openSettings())
+  register(IPC_CHANNELS.menuHidePet, null, () => controller.hidePet())
+  register(IPC_CHANNELS.menuQuit, null, () => controller.quitApp())
+  register(IPC_CHANNELS.menuClose, null, () => controller.closeMenu())
+  register(IPC_CHANNELS.bubbleDismiss, null, () => controller.dismissBubble())
 }

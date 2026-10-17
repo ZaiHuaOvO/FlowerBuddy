@@ -8,6 +8,10 @@ const STATE_SYMBOL: Record<Exclude<BubbleState, 'loading'>, string> = {
   error: '!'
 }
 
+function fire(operation: Promise<unknown> | undefined): void {
+  void operation?.catch(() => {})
+}
+
 export default function BubbleView() {
   const api = window.bubbleApi
   const [payload, setPayload] = useState<BubblePayload | null>(null)
@@ -39,7 +43,7 @@ export default function BubbleView() {
           className="bubble-close"
           aria-label="关闭气泡"
           data-action="bubble:dismiss"
-          onClick={() => void api?.dismiss()}
+          onClick={() => fire(api?.dismiss())}
         >
           ×
         </button>

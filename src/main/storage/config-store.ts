@@ -6,137 +6,32 @@ import {
   renameSync,
   writeFileSync
 } from 'node:fs'
-import { dirname } from 'node:path'
-import type {
-  AppSettings,
-  AppSettingsPatch,
-  PetSettings,
-  PetSettingsPatch,
-  PublicConfig
-} from '../../shared/api'
+import { basename, dirname } from 'node:path'
+import type { AppSettingsPatch, ModuleId, PublicConfig } from '../../shared/api'
+import type { LoggerLike } from '../shared/logger'
+import { CURRENT_CONFIG_SCHEMA_VERSION, createDefaultConfig, migrateConfig } from './config-schema'
 
-export const CONFIG_SCHEMA_VERSION = 1
-export const DEFAULT_BUBBLE_DURATION_MS = 5000
-export const MIN_BUBBLE_DURATION_MS = 1500
-export const MAX_BUBBLE_DURATION_MS = 30000
-export const MIN_PET_SCALE = 0.5
-export const MAX_PET_SCALE = 2
+export { CURRENT_CONFIG_SCHEMA_VERSION, createDefaultConfig }
 
-const ASSET_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/
-const MAX_POSITION = 100000
-
-export function createDefaultConfig(): PublicConfig {
-  return {
-    schemaVersion: CONFIG_SCHEMA_VERSION,
-    app: {
-      alwaysOnTop: true,
-      bounceAnimation: true,
-      bubbleDurationMs: DEFAULT_BUBBLE_DURATION_MS
-    },
-    pet: {
-      assetId: 'default',
-      scale: 1,
-      position: null
-    }
-  }
+export interface ConfigStoreOptions {
+  saveDelayMs?: number
+  logger?: LoggerLike
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
-}
-
-function clampNumber(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
-}
-
-function sanitizePosition(value: unknown): { x: number; y: number } | null {
-  if (!isRecord(value) || !isFiniteNumber(value.x) || !isFiniteNumber(value.y)) {
-    return null
-  }
-  return {
-    x: Math.round(clampNumber(value.x, -MAX_POSITION, MAX_POSITION)),
-    y: Math.round(clampNumber(value.y, -MAX_POSITION, MAX_POSITION))
-  }
-}
-
-/** Rebuilds a config from untrusted JSON, dropping unknown or invalid fields. */
-export function sanitizeConfig(raw: unknown): PublicConfig {
-  const defaults = createDefaultConfig()
-  if (!isRecord(raw)) {
-    return defaults
-  }
-
-  const rawApp = isRecord(raw.app) ? raw.app : {}
-  const rawPet = isRecord(raw.pet) ? raw.pet : {}
-
-  const app: AppSettings = {
-    alwaysOnTop:
-      typeof rawApp.alwaysOnTop === 'boolean' ? rawApp.alwaysOnTop : defaults.app.alwaysOnTop,
-    bounceAnimation:
-      typeof rawApp.bounceAnimation === 'boolean'
-        ? rawApp.bounceAnimation
-        : defaults.app.bounceAnimation,
-    bubbleDurationMs: isFiniteNumber(rawApp.bubbleDurationMs)
-      ? Math.round(
-          clampNumber(rawApp.bubbleDurationMs, MIN_BUBBLE_DURATION_MS, MAX_BUBBLE_DURATION_MS)
-        )
-      : defaults.app.bubbleDurationMs
-  }
-
-  const pet: PetSettings = {
-    assetId:
-      typeof rawPet.assetId === 'string' && ASSET_ID_PATTERN.test(rawPet.assetId)
-        ? rawPet.assetId
-        : defaults.pet.assetId,
-    scale: isFiniteNumber(rawPet.scale)
-      ? clampNumber(rawPet.scale, MIN_PET_SCALE, MAX_PET_SCALE)
-      : defaults.pet.scale,
-    position: sanitizePosition(rawPet.position)
-  }
-
-  return { schemaVersion: CONFIG_SCHEMA_VERSION, app, pet }
-}
-
-export function sanitizeAppSettingsPatch(raw: unknown): AppSettingsPatch {
-  if (!isRecord(raw)) {
-    return {}
-  }
-
-  const patch: AppSettingsPatch = {}
-  if (typeof raw.alwaysOnTop === 'boolean') {
-    patch.alwaysOnTop = raw.alwaysOnTop
-  }
-  if (typeof raw.bounceAnimation === 'boolean') {
-    patch.bounceAnimation = raw.bounceAnimation
-  }
-  if (isFiniteNumber(raw.bubbleDurationMs)) {
-    patch.bubbleDurationMs = Math.round(
-      clampNumber(raw.bubbleDurationMs, MIN_BUBBLE_DURATION_MS, MAX_BUBBLE_DURATION_MS)
-    )
-  }
-  return patch
-}
-
-export function sanitizePetSettingsPatch(raw: unknown): PetSettingsPatch {
-  if (!isRecord(raw) || !isFiniteNumber(raw.scale)) {
-    return {}
-  }
-  return { scale: clampNumber(raw.scale, MIN_PET_SCALE, MAX_PET_SCALE) }
-}
-
-/** Small JSON store with atomic writes and a short write debounce. */
 export class ConfigStore {
   private current: PublicConfig = createDefaultConfig()
   private timer: ReturnType<typeof setTimeout> | null = null
+  private readonly saveDelayMs: number
+  private readonly logger: LoggerLike | undefined
+  private recoveryNotice: string | null = null
 
   constructor(
     private readonly filePath: string,
-    private readonly saveDelayMs = 150
-  ) {}
+    options: ConfigStoreOptions = {}
+  ) {
+    this.saveDelayMs = options.saveDelayMs ?? 150
+    this.logger = options.logger
+  }
 
   load(): PublicConfig {
     try {
@@ -147,14 +42,49 @@ export class ConfigStore {
       }
 
       const parsed: unknown = JSON.parse(readFileSync(this.filePath, 'utf8'))
-      this.current = sanitizeConfig(parsed)
+      const result = migrateConfig(parsed)
+
+      if (result.futureVersion) {
+        const backupPath = this.backup(`future-v${result.fromVersion}`)
+        this.current = createDefaultConfig()
+        this.writeNow()
+        this.recoveryNotice = backupPath
+          ? `配置来自更高版本，无法安全读取。已备份为 ${basename(backupPath)} 并恢复默认设置。`
+          : '配置来自更高版本，无法安全读取。已恢复默认设置。'
+        this.logger?.warn('config file has a newer schema version; backed up and reset', {
+          fromVersion: result.fromVersion,
+          currentVersion: CURRENT_CONFIG_SCHEMA_VERSION
+        })
+        return this.get()
+      }
+
+      if (result.migrated) {
+        this.backup(`v${result.fromVersion}`)
+        this.current = result.config
+        this.writeNow()
+        this.logger?.info('config migrated', {
+          fromVersion: result.fromVersion,
+          toVersion: CURRENT_CONFIG_SCHEMA_VERSION
+        })
+        return this.get()
+      }
+
+      this.current = result.config
       return this.get()
     } catch {
-      this.backupCorruptFile()
+      const backupPath = this.backup('corrupt')
       this.current = createDefaultConfig()
       this.writeNow()
+      this.recoveryNotice = backupPath
+        ? `配置文件无法读取，已备份为 ${basename(backupPath)} 并恢复默认设置。`
+        : '配置文件无法读取，已恢复默认设置。'
+      this.logger?.warn('config file was unreadable; backed up and reset')
       return this.get()
     }
+  }
+
+  getRecoveryNotice(): string | null {
+    return this.recoveryNotice
   }
 
   get(): PublicConfig {
@@ -170,13 +100,67 @@ export class ConfigStore {
     return this.get()
   }
 
-  updatePet(patch: Partial<PetSettings>): PublicConfig {
+  updatePet(patch: Partial<PublicConfig['pet']>): PublicConfig {
     this.current = {
       ...this.current,
       pet: { ...this.current.pet, ...patch }
     }
     this.scheduleSave()
     return this.get()
+  }
+
+  setModuleEnabled(moduleId: ModuleId, enabled: boolean): PublicConfig {
+    const modules = this.current.modules
+    switch (moduleId) {
+      case 'dates':
+        this.current = {
+          ...this.current,
+          modules: { ...modules, dates: { ...modules.dates, enabled } }
+        }
+        break
+      case 'gmail':
+        this.current = {
+          ...this.current,
+          modules: { ...modules, gmail: { ...modules.gmail, enabled } }
+        }
+        break
+      case 'esa':
+        this.current = {
+          ...this.current,
+          modules: { ...modules, esa: { ...modules.esa, enabled } }
+        }
+        break
+      case 'deepseek':
+        this.current = {
+          ...this.current,
+          modules: { ...modules, deepseek: { ...modules.deepseek, enabled } }
+        }
+        break
+      case 'website-check':
+        this.current = {
+          ...this.current,
+          modules: { ...modules, websiteCheck: { ...modules.websiteCheck, enabled } }
+        }
+        break
+    }
+    this.scheduleSave()
+    return this.get()
+  }
+
+  isModuleEnabled(moduleId: ModuleId): boolean {
+    const modules = this.current.modules
+    switch (moduleId) {
+      case 'dates':
+        return modules.dates.enabled
+      case 'gmail':
+        return modules.gmail.enabled
+      case 'esa':
+        return modules.esa.enabled
+      case 'deepseek':
+        return modules.deepseek.enabled
+      case 'website-check':
+        return modules.websiteCheck.enabled
+    }
   }
 
   flush(): void {
@@ -205,13 +189,16 @@ export class ConfigStore {
     renameSync(temporaryPath, this.filePath)
   }
 
-  private backupCorruptFile(): void {
+  private backup(reason: string): string | null {
     try {
       if (existsSync(this.filePath)) {
-        copyFileSync(this.filePath, `${this.filePath}.corrupt-${Date.now()}`)
+        const backupPath = `${this.filePath}.${reason}-${Date.now()}.json`
+        copyFileSync(this.filePath, backupPath)
+        return backupPath
       }
     } catch {
-      // Backup is best-effort; a corrupt file must never stop startup.
+      // Backup is best-effort; a bad file must never stop startup.
     }
+    return null
   }
 }
