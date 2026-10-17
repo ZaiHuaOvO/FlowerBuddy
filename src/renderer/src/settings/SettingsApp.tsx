@@ -335,6 +335,7 @@ function SettingsContent({
     flash,
     setError
   })
+  const isFirstTab = TABS.findIndex((tab) => tab.id === activeTab) === 0
 
   return (
     <div className="settings-root">
@@ -394,7 +395,7 @@ function SettingsContent({
 
         <section
           id="settings-tabpanel"
-          className="settings-content"
+          className={`settings-content${isFirstTab ? ' is-first' : ''}`}
           role="tabpanel"
           aria-labelledby={`settings-tab-${activeTab}`}
         >
