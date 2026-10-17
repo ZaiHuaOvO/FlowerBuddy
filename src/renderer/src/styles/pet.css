@@ -1,0 +1,19 @@
+.pet-root {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+/* The pet image is the lead visual; no card, border or shadow is added by default. */
+.pet-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  cursor: grab;
+  -webkit-user-drag: none;
+}
+
+.pet-image.dragging {
+  cursor: grabbing;
+}

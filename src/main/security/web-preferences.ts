@@ -1,12 +1,14 @@
 import type { WebPreferences } from 'electron'
+import type { WindowView } from '../../shared/api'
 
 /**
  * Single source of truth for the security-critical window options.
  * Renderers must never get direct Node.js or Electron access.
  */
-export function createSecureWebPreferences(preloadPath: string): WebPreferences {
+export function createSecureWebPreferences(preloadPath: string, view: WindowView): WebPreferences {
   return {
     preload: preloadPath,
+    additionalArguments: [`--fb-view=${view}`],
     nodeIntegration: false,
     nodeIntegrationInWorker: false,
     nodeIntegrationInSubFrames: false,

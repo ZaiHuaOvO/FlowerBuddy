@@ -1,36 +1,124 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createPetApi } from '../../src/preload/api'
+import { createBridge, type IpcBridge } from '../../src/preload/api'
 import { IPC_CHANNELS } from '../../src/shared/api'
 
+function createFakeBridge() {
+  const invocations: Array<{ channel: string; args: unknown[] }> = []
+  const subscriptions: Array<{
+    channel: string
+    listener: (payload: unknown) => void
+    unsubscribe: () => void
+  }> = []
+
+  const bridge: IpcBridge = {
+    invoke: async (channel, ...args) => {
+      invocations.push({ channel, args })
+      return { ok: true }
+    },
+    on: (channel, listener) => {
+      const unsubscribe = vi.fn()
+      subscriptions.push({ channel, listener, unsubscribe })
+      return unsubscribe
+    }
+  }
+
+  return { bridge, invocations, subscriptions }
+}
+
 describe('preload bridge surface', () => {
-  it('exposes exactly the declared methods', () => {
-    const api = createPetApi({ invoke: vi.fn() })
-    expect(Object.keys(api).sort()).toEqual(['getAppInfo'])
+  it('exposes only the pet api in the pet window', () => {
+    const { bridge } = createFakeBridge()
+    const exposed = createBridge('pet', bridge)
+
+    expect(exposed?.key).toBe('petApi')
+    expect(Object.keys(exposed?.value ?? {}).sort()).toEqual([
+      'beginDrag',
+      'dragMove',
+      'endDrag',
+      'getState',
+      'onStateChanged',
+      'openMenu'
+    ])
   })
 
-  it('uses the fixed app info channel and passes no extra arguments', async () => {
-    const invoke = vi.fn().mockResolvedValue({ version: '0.1.0' })
-    const api = createPetApi({ invoke })
+  it('exposes only the settings api in the settings window', () => {
+    const { bridge } = createFakeBridge()
+    const exposed = createBridge('settings', bridge)
 
-    await api.getAppInfo()
+    expect(exposed?.key).toBe('settingsApi')
+    expect(Object.keys(exposed?.value ?? {}).sort()).toEqual([
+      'getAppInfo',
+      'getConfig',
+      'importPetImage',
+      'resetPetPosition',
+      'saveAppSettings',
+      'savePetSettings'
+    ])
+  })
 
-    expect(invoke).toHaveBeenCalledTimes(1)
-    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.appInfo)
-    expect(invoke.mock.calls[0]).toHaveLength(1)
+  it('exposes narrow apis for the menu and bubble windows', () => {
+    const { bridge } = createFakeBridge()
+    expect(createBridge('menu', bridge)?.key).toBe('menuApi')
+    expect(createBridge('bubble', bridge)?.key).toBe('bubbleApi')
+  })
+
+  it('refuses unknown views', () => {
+    const { bridge } = createFakeBridge()
+    expect(createBridge('devtools', bridge)).toBeNull()
+    expect(createBridge('', bridge)).toBeNull()
   })
 
   it('does not leak Node.js or Electron primitives', () => {
-    const api = createPetApi({ invoke: vi.fn() }) as unknown as Record<string, unknown>
-
-    for (const name of ['ipcRenderer', 'require', 'process', 'fs', 'shell', 'invoke']) {
-      expect(name in api).toBe(false)
+    const { bridge } = createFakeBridge()
+    for (const view of ['pet', 'menu', 'bubble', 'settings']) {
+      const value = createBridge(view, bridge)?.value as Record<string, unknown>
+      for (const name of ['ipcRenderer', 'require', 'process', 'fs', 'shell', 'invoke', 'on']) {
+        expect(name in value).toBe(false)
+      }
     }
   })
 
-  it('propagates rejections instead of hiding them', async () => {
-    const invoke = vi.fn().mockRejectedValue(new Error('UNTRUSTED_SENDER'))
-    const api = createPetApi({ invoke })
+  it('uses fixed channels and forwards only the declared arguments', async () => {
+    const { bridge, invocations } = createFakeBridge()
+    const pet = createBridge('pet', bridge)?.value as {
+      openMenu(): Promise<void>
+      getState(): Promise<unknown>
+    }
 
-    await expect(api.getAppInfo()).rejects.toThrow('UNTRUSTED_SENDER')
+    await pet.openMenu()
+    expect(invocations[0]).toEqual({ channel: IPC_CHANNELS.petOpenMenu, args: [] })
+
+    await pet.getState()
+    expect(invocations[1]?.channel).toBe(IPC_CHANNELS.petGetState)
+    expect(invocations[1]?.args).toEqual([])
+  })
+
+  it('passes settings patches through the fixed channel', async () => {
+    const { bridge, invocations } = createFakeBridge()
+    const settings = createBridge('settings', bridge)?.value as {
+      saveAppSettings(patch: { alwaysOnTop: boolean }): Promise<unknown>
+    }
+
+    await settings.saveAppSettings({ alwaysOnTop: true })
+    expect(invocations).toEqual([
+      { channel: IPC_CHANNELS.settingsSaveApp, args: [{ alwaysOnTop: true }] }
+    ])
+  })
+
+  it('subscribes and unsubscribes to main-process pushes', () => {
+    const { bridge, subscriptions } = createFakeBridge()
+    const pet = createBridge('pet', bridge)?.value as {
+      onStateChanged(callback: (state: unknown) => void): () => void
+    }
+    const received: unknown[] = []
+
+    const unsubscribe = pet.onStateChanged((state) => received.push(state))
+    expect(subscriptions[0]?.channel).toBe(IPC_CHANNELS.petStateChanged)
+
+    subscriptions[0]?.listener({ bounceAnimation: false })
+    expect(received).toEqual([{ bounceAnimation: false }])
+
+    unsubscribe()
+    expect(subscriptions[0]?.unsubscribe).toHaveBeenCalledOnce()
   })
 })

@@ -1,65 +1,77 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, session } from 'electron'
+import { app, Menu, nativeTheme, session } from 'electron'
+import { AppController } from './app-controller'
 import { registerIpcHandlers } from './ipc/register-handlers'
 import { createSenderValidator } from './ipc/validate-sender'
-import { createSecureWebPreferences } from './security/web-preferences'
+import { handlePetAssetRequests, registerPetAssetScheme } from './protocol/pet-asset-protocol'
+import { ConfigStore } from './storage/config-store'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
-const RENDERER_INDEX_PATH = join(__dirname, '../renderer/index.html')
-const PRELOAD_PATH = join(__dirname, '../preload/index.js')
 const devServerUrl = process.env['ELECTRON_RENDERER_URL']
+const rendererIndexPath = join(__dirname, '../renderer/index.html')
+const preloadPath = join(__dirname, '../preload/index.js')
+const appRoot = app.getAppPath()
+const defaultPetPath = join(appRoot, 'assets', 'default-pet', 'flower.png')
+const trayIconPath = app.isPackaged
+  ? join(process.resourcesPath, 'assets', 'tray-icon.png')
+  : join(appRoot, 'assets', 'tray-icon.png')
 
-function createMainWindow(): BrowserWindow {
-  const mainWindow = new BrowserWindow({
-    width: 960,
-    height: 660,
-    minWidth: 720,
-    minHeight: 480,
-    show: false,
-    autoHideMenuBar: true,
-    backgroundColor: '#0f1419',
-    webPreferences: createSecureWebPreferences(PRELOAD_PATH)
-  })
+let controller: AppController | null = null
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
-  })
-
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!devServerUrl || new URL(url).origin !== new URL(devServerUrl).origin) {
-      event.preventDefault()
-    }
-  })
-
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-
-  if (devServerUrl) {
-    void mainWindow.loadURL(devServerUrl)
-  } else {
-    void mainWindow.loadFile(RENDERER_INDEX_PATH)
-  }
-
-  return mainWindow
-}
-
-app.whenReady().then(() => {
+async function bootstrap(): Promise<void> {
   app.setAppUserModelId(APP_USER_MODEL_ID)
+  nativeTheme.themeSource = 'light'
+  Menu.setApplicationMenu(null)
 
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false)
   })
   session.defaultSession.setPermissionCheckHandler(() => false)
 
-  registerIpcHandlers(
-    createSenderValidator({
-      devServerUrl,
-      rendererIndexPath: RENDERER_INDEX_PATH
-    })
-  )
+  const userDataPath = app.getPath('userData')
+  const configStore = new ConfigStore(join(userDataPath, 'config.json'))
+  configStore.load()
 
-  createMainWindow()
-})
+  const appController = new AppController({
+    configStore,
+    devServerUrl,
+    rendererIndexPath,
+    preloadPath,
+    defaultPetPath,
+    trayIconPath,
+    petsDirectory: join(userDataPath, 'pets')
+  })
+  controller = appController
 
-app.on('window-all-closed', () => {
+  handlePetAssetRequests((assetId) => appController.resolveAssetPath(assetId))
+  registerIpcHandlers(appController, createSenderValidator({ devServerUrl, rendererIndexPath }))
+  await appController.start()
+}
+
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!hasSingleInstanceLock) {
   app.quit()
-})
+} else {
+  registerPetAssetScheme()
+
+  app.on('second-instance', () => {
+    controller?.handleSecondInstance()
+  })
+
+  app.on('before-quit', () => {
+    controller?.flush()
+    controller?.dispose()
+  })
+
+  // Closing every window leaves the pet running in the tray by design.
+  app.on('window-all-closed', () => {})
+
+  app
+    .whenReady()
+    .then(bootstrap)
+    .catch((error: unknown) => {
+      console.error('Failed to start FlowerBuddy', error)
+      app.quit()
+    })
+}

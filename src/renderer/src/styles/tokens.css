@@ -1,0 +1,114 @@
+/*
+ * FlowerBuddy design tokens
+ *
+ * Source: 花墨 design system — https://flowersink.com/design/
+ * Checked: 2026-10-17 by reading the published --fi-* CSS custom properties
+ * and component rules in the page's stylesheet.
+ *
+ * Verified from that source: colour values, spacing scale, radius scale,
+ * three shadow levels, font sizes/weights/line-heights, motion durations and
+ * easing, control heights, and form state colours.
+ *
+ * Derived / adapted (call out before changing):
+ * - "Microsoft YaHei UI" is appended to the font stack so Chinese text renders
+ *   correctly on Windows when Inter/Noto Sans SC are not installed.
+ * - Pressed surfaces reuse the verified page background colour.
+ * - The primary button fill uses --fi-primary with --fi-text-inverse. The page
+ *   ships Ant Design's default blue button rules, so the exact built button fill
+ *   could not be confirmed from the stylesheet.
+ */
+:root {
+  color-scheme: light;
+
+  /* Colour */
+  --color-bg-page: #fff8f3;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fcf8f2;
+  --color-surface-hover: #fffdf9;
+  --color-text: #2f2117;
+  --color-text-muted: #7a6756;
+  --color-text-inverse: #fffaf5;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d0c0b0;
+  --color-primary: #8b5a2b;
+  --color-primary-hover: #7a4d23;
+  --color-primary-active: #6a411d;
+  --color-primary-outline: rgba(139, 90, 43, 0.18);
+  --color-success: #5a8a3c;
+  --color-success-bg: #eef5e8;
+  --color-warning: #c8952e;
+  --color-warning-bg: #fdf5e6;
+  --color-danger: #b54a3a;
+  --color-danger-bg: #fdeeed;
+  --color-info: #5b7fa5;
+  --color-info-bg: #e8f0f5;
+  --color-tag-bg: #f4e7d8;
+  --color-tag-border: #d8bd9d;
+  --color-tag-text: #7b5530;
+
+  /* Form controls */
+  --color-form-bg: #ffffff;
+  --color-form-bg-hover: #fffdf9;
+  --color-form-bg-disabled: #f5f1eb;
+  --color-form-border: #d8c8b8;
+  --color-form-border-hover: #cda983;
+  --color-form-placeholder: #a88b73;
+  --color-form-disabled-text: #b39a84;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 52px;
+
+  /* Radius */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-input: 5px;
+  --radius-tag: 6px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-soft: 0 8px 18px rgba(58, 39, 22, 0.08);
+  --shadow: 0 10px 26px rgba(58, 39, 22, 0.1);
+  --shadow-hover: 0 16px 30px rgba(58, 39, 22, 0.15);
+
+  /* Typography */
+  --font-base:
+    'InterVar', 'NotoSansSCVar', 'NotoEmojiVar', 'Inter', 'Noto Sans SC', 'PingFang SC',
+    'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 24px;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Motion */
+  --motion-fast: 0.16s;
+  --motion-normal: 0.24s;
+  --motion-slow: 0.32s;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Controls */
+  --control-height-sm: 28px;
+  --control-height-md: 36px;
+  --control-height-lg: 44px;
+  --focus-ring: 0 0 0 2px var(--color-primary-outline);
+}

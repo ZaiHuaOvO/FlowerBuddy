@@ -1,67 +1,14 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { deflateSync } from 'node:zlib'
+import { downsample, encodePng } from './lib/png.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const OUTPUT = resolve(ROOT, 'assets', 'app-icon.ico')
+const ICON_OUTPUT = resolve(ROOT, 'assets', 'app-icon.ico')
+const TRAY_OUTPUT = resolve(ROOT, 'assets', 'tray-icon.png')
 const MASTER_SIZE = 1024
 const ICON_SIZES = [16, 24, 32, 48, 64, 128, 256]
-
-let crcTable
-
-function crc32(buffer) {
-  if (!crcTable) {
-    crcTable = new Uint32Array(256)
-    for (let n = 0; n < 256; n += 1) {
-      let value = n
-      for (let bit = 0; bit < 8; bit += 1) {
-        value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1
-      }
-      crcTable[n] = value >>> 0
-    }
-  }
-
-  let crc = 0xffffffff
-  for (const byte of buffer) {
-    crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8)
-  }
-  return (crc ^ 0xffffffff) >>> 0
-}
-
-function pngChunk(type, data) {
-  const typeBuffer = Buffer.from(type, 'ascii')
-  const length = Buffer.alloc(4)
-  length.writeUInt32BE(data.length, 0)
-  const crc = Buffer.alloc(4)
-  crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0)
-  return Buffer.concat([length, typeBuffer, data, crc])
-}
-
-function encodePng(size, rgba) {
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(size, 0)
-  ihdr.writeUInt32BE(size, 4)
-  ihdr[8] = 8
-  ihdr[9] = 6
-  ihdr[10] = 0
-  ihdr[11] = 0
-  ihdr[12] = 0
-
-  const stride = size * 4
-  const raw = Buffer.alloc((stride + 1) * size)
-  for (let y = 0; y < size; y += 1) {
-    rgba.copy(raw, y * (stride + 1) + 1, y * stride, y * stride + stride)
-  }
-
-  return Buffer.concat([
-    signature,
-    pngChunk('IHDR', ihdr),
-    pngChunk('IDAT', deflateSync(raw, { level: 9 })),
-    pngChunk('IEND', Buffer.alloc(0))
-  ])
-}
+const TRAY_SIZE = 64
 
 function insideRoundedRect(x, y, size, margin, radius) {
   const left = margin
@@ -139,45 +86,6 @@ function renderMaster(size) {
   return pixels
 }
 
-function downsample(master, masterSize, size) {
-  const output = Buffer.alloc(size * size * 4)
-
-  for (let y = 0; y < size; y += 1) {
-    const sourceY0 = Math.floor((y * masterSize) / size)
-    const sourceY1 = Math.max(sourceY0 + 1, Math.floor(((y + 1) * masterSize) / size))
-
-    for (let x = 0; x < size; x += 1) {
-      const sourceX0 = Math.floor((x * masterSize) / size)
-      const sourceX1 = Math.max(sourceX0 + 1, Math.floor(((x + 1) * masterSize) / size))
-
-      let red = 0
-      let green = 0
-      let blue = 0
-      let alpha = 0
-      let count = 0
-
-      for (let sourceY = sourceY0; sourceY < sourceY1; sourceY += 1) {
-        for (let sourceX = sourceX0; sourceX < sourceX1; sourceX += 1) {
-          const source = (sourceY * masterSize + sourceX) * 4
-          red += master[source]
-          green += master[source + 1]
-          blue += master[source + 2]
-          alpha += master[source + 3]
-          count += 1
-        }
-      }
-
-      const target = (y * size + x) * 4
-      output[target] = Math.round(red / count)
-      output[target + 1] = Math.round(green / count)
-      output[target + 2] = Math.round(blue / count)
-      output[target + 3] = Math.round(alpha / count)
-    }
-  }
-
-  return output
-}
-
 function buildIco(frames) {
   const header = Buffer.alloc(6)
   header.writeUInt16LE(0, 0)
@@ -210,7 +118,9 @@ const frames = ICON_SIZES.map((size) => ({
   data: encodePng(size, downsample(master, MASTER_SIZE, size))
 }))
 
-mkdirSync(dirname(OUTPUT), { recursive: true })
-writeFileSync(OUTPUT, buildIco(frames))
+mkdirSync(dirname(ICON_OUTPUT), { recursive: true })
+writeFileSync(ICON_OUTPUT, buildIco(frames))
+writeFileSync(TRAY_OUTPUT, encodePng(TRAY_SIZE, downsample(master, MASTER_SIZE, TRAY_SIZE)))
 
-console.log(`Wrote ${OUTPUT} (${ICON_SIZES.join(', ')} px)`)
+console.log(`Wrote ${ICON_OUTPUT} (${ICON_SIZES.join(', ')} px)`)
+console.log(`Wrote ${TRAY_OUTPUT} (${TRAY_SIZE} px)`)

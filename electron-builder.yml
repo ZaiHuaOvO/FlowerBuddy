@@ -9,10 +9,12 @@ directories:
 files:
   - out/**/*
   - package.json
+  - assets/default-pet/**/*
   - '!**/*.map'
 
 asar: true
 npmRebuild: false
+electronDist: node_modules/electron/dist
 
 win:
   icon: app-icon.ico
@@ -43,3 +45,5 @@ portable:
 extraResources:
   - from: licenses/THIRD_PARTY_LICENSES.md
     to: licenses/THIRD_PARTY_LICENSES.md
+  - from: assets/tray-icon.png
+    to: assets/tray-icon.png

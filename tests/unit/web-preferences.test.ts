@@ -3,7 +3,7 @@ import { createSecureWebPreferences } from '../../src/main/security/web-preferen
 
 describe('secure web preferences', () => {
   it('disables Node.js access in every renderer scope', () => {
-    const prefs = createSecureWebPreferences('preload.js')
+    const prefs = createSecureWebPreferences('preload.js', 'pet')
 
     expect(prefs.preload).toBe('preload.js')
     expect(prefs.nodeIntegration).toBe(false)
@@ -12,7 +12,7 @@ describe('secure web preferences', () => {
   })
 
   it('keeps isolation, sandbox and web security enabled', () => {
-    const prefs = createSecureWebPreferences('preload.js')
+    const prefs = createSecureWebPreferences('preload.js', 'pet')
 
     expect(prefs.contextIsolation).toBe(true)
     expect(prefs.sandbox).toBe(true)
@@ -22,9 +22,18 @@ describe('secure web preferences', () => {
   })
 
   it('disables webview and drag-and-drop navigation', () => {
-    const prefs = createSecureWebPreferences('preload.js')
+    const prefs = createSecureWebPreferences('preload.js', 'pet')
 
     expect(prefs.webviewTag).toBe(false)
     expect(prefs.navigateOnDragDrop).toBe(false)
+  })
+
+  it('tells the preload which narrow api namespace to expose', () => {
+    expect(createSecureWebPreferences('preload.js', 'pet').additionalArguments).toEqual([
+      '--fb-view=pet'
+    ])
+    expect(createSecureWebPreferences('preload.js', 'settings').additionalArguments).toEqual([
+      '--fb-view=settings'
+    ])
   })
 })

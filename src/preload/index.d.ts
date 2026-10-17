@@ -1,8 +1,11 @@
-import type { PetApi } from '../shared/api'
+import type { BubbleApi, MenuApi, PetApi, SettingsApi } from '../shared/api'
 
 declare global {
   interface Window {
-    petApi: PetApi
+    petApi?: PetApi
+    menuApi?: MenuApi
+    bubbleApi?: BubbleApi
+    settingsApi?: SettingsApi
   }
 }
 

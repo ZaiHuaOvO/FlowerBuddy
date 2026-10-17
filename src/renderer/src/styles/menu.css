@@ -1,0 +1,41 @@
+.menu-root {
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2);
+}
+
+.menu-panel {
+  height: 100%;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  animation: fl-fade-in var(--motion-fast) var(--ease-standard);
+}
+
+.menu-title {
+  margin: var(--space-1) var(--space-3) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+}
+
+.menu-item {
+  width: 100%;
+  min-height: var(--control-height-md);
+  justify-content: flex-start;
+  padding: 0 var(--space-3);
+  text-align: left;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: var(--space-1) var(--space-2);
+  background: var(--color-border);
+}
