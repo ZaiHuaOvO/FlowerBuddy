@@ -12,12 +12,15 @@ import { parseIsoDate } from '../modules/dates/dates-compute'
 import { isHttpUrl } from '../modules/website-check/website-types'
 import { AppError } from '../shared/errors'
 
+export const moduleIdSchema = z.enum(['dates', 'gmail', 'esa', 'deepseek', 'website-check'])
+
 export const appSettingsPatchSchema = z
   .object({
     alwaysOnTop: z.boolean().optional(),
     bounceAnimation: z.boolean().optional(),
-    bubbleDurationMs: z.number().int().min(1500).max(30000).optional(),
+    bubbleDurationMs: z.number().int().min(1000).max(30000).optional(),
     launchAtLogin: z.boolean().optional(),
+    moduleOrder: z.array(moduleIdSchema).max(5).optional(),
     showPetOnStartup: z.boolean().optional()
   })
   .strict()
@@ -27,8 +30,6 @@ export const petSettingsPatchSchema = z
     scale: z.number().min(0.5).max(2).optional()
   })
   .strict()
-
-export const moduleIdSchema = z.enum(['dates', 'gmail', 'esa', 'deepseek', 'website-check'])
 
 export const moduleEnabledInputSchema = z
   .object({

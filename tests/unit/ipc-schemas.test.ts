@@ -30,12 +30,17 @@ describe('IPC input schemas', () => {
       bubbleDurationMs: 8000
     })
     expect(parseAppSettingsPatch({})).toEqual({})
+    expect(parseAppSettingsPatch({ moduleOrder: ['dates', 'gmail'] })).toEqual({
+      moduleOrder: ['dates', 'gmail']
+    })
+    expect(parseAppSettingsPatch({ bubbleDurationMs: 1000 })).toEqual({ bubbleDurationMs: 1000 })
     expect(parsePetSettingsPatch({ scale: 1.5 })).toEqual({ scale: 1.5 })
   })
 
   it('rejects invalid ranges and unknown keys', () => {
     expect(() => parseAppSettingsPatch({ bubbleDurationMs: 10 })).toThrow(AppError)
     expect(() => parseAppSettingsPatch({ alwaysOnTop: 'yes' })).toThrow(AppError)
+    expect(() => parseAppSettingsPatch({ moduleOrder: ['unknown'] })).toThrow(AppError)
     expect(() => parseAppSettingsPatch({ unexpected: true })).toThrow(AppError)
     expect(() => parsePetSettingsPatch({ scale: 3 })).toThrow(AppError)
     expect(() => parsePetSettingsPatch({ assetId: '../x' })).toThrow(AppError)

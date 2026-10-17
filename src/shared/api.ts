@@ -25,6 +25,7 @@ export interface AppSettings {
   bounceAnimation: boolean
   bubbleDurationMs: number
   launchAtLogin: boolean
+  moduleOrder: ModuleId[]
   showPetOnStartup: boolean
 }
 
@@ -33,6 +34,7 @@ export interface AppSettingsPatch {
   bounceAnimation?: boolean
   bubbleDurationMs?: number
   launchAtLogin?: boolean
+  moduleOrder?: ModuleId[]
   showPetOnStartup?: boolean
 }
 

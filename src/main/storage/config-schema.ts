@@ -1,7 +1,18 @@
 import { z } from 'zod'
-import type { ModulesSettings, PublicConfig } from '../../shared/api'
+import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 4
+export const CURRENT_CONFIG_SCHEMA_VERSION = 5
+
+export const MODULE_ID_VALUES = [
+  'dates',
+  'gmail',
+  'esa',
+  'deepseek',
+  'website-check'
+] as const satisfies readonly ModuleId[]
+
+const moduleIdSchema = z.enum(MODULE_ID_VALUES)
+const defaultModuleOrder: ModuleId[] = ['dates', 'website-check']
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -50,6 +61,47 @@ function nullableIntervalField(min: number, max: number) {
     })
 }
 
+function moduleOrderField() {
+  return z
+    .array(moduleIdSchema)
+    .catch([])
+    .transform((ids) => [...new Set(ids)])
+}
+
+function isModuleEnabledIn(modules: ModulesSettings, moduleId: ModuleId): boolean {
+  switch (moduleId) {
+    case 'dates':
+      return modules.dates.enabled
+    case 'gmail':
+      return modules.gmail.enabled
+    case 'esa':
+      return modules.esa.enabled
+    case 'deepseek':
+      return modules.deepseek.enabled
+    case 'website-check':
+      return modules.websiteCheck.enabled
+  }
+}
+
+/** Keeps only enabled ids, preserves user order, then appends newly enabled ids. */
+export function normalizeModuleOrder(
+  order: readonly ModuleId[],
+  modules: ModulesSettings
+): ModuleId[] {
+  const next: ModuleId[] = []
+  for (const id of order) {
+    if (!next.includes(id) && isModuleEnabledIn(modules, id)) {
+      next.push(id)
+    }
+  }
+  for (const id of MODULE_ID_VALUES) {
+    if (isModuleEnabledIn(modules, id) && !next.includes(id)) {
+      next.push(id)
+    }
+  }
+  return next
+}
+
 const positionSchema = z
   .object({ x: z.number(), y: z.number() })
   .nullable()
@@ -67,8 +119,9 @@ const positionSchema = z
 const appSchema = z.object({
   alwaysOnTop: booleanField(true),
   bounceAnimation: booleanField(true),
-  bubbleDurationMs: integerField(1500, 30000, 5000),
+  bubbleDurationMs: integerField(1000, 30000, 5000),
   launchAtLogin: booleanField(false),
+  moduleOrder: moduleOrderField(),
   showPetOnStartup: booleanField(true)
 })
 
@@ -158,6 +211,7 @@ const configSchema = z
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     }),
     pet: petSchema.default({ assetId: 'default', scale: 1, position: null }),
@@ -176,6 +230,7 @@ const configSchema = z
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     },
     pet: { assetId: 'default', scale: 1, position: null },
@@ -206,6 +261,7 @@ export function createDefaultConfig(): PublicConfig {
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     },
     pet: {
@@ -220,7 +276,14 @@ export function createDefaultConfig(): PublicConfig {
 /** Repairs unknown or invalid values instead of rejecting the whole file. */
 export function parseConfig(raw: unknown): PublicConfig {
   const parsed = configSchema.parse(raw ?? {})
-  return { ...parsed, schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION }
+  return {
+    ...parsed,
+    app: {
+      ...parsed.app,
+      moduleOrder: normalizeModuleOrder(parsed.app.moduleOrder, parsed.modules)
+    },
+    schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION
+  }
 }
 
 export function readSchemaVersion(raw: unknown): number {

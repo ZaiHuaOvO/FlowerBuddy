@@ -15,7 +15,12 @@ import type {
   RefreshableModuleId
 } from '../../shared/api'
 import type { LoggerLike } from '../shared/logger'
-import { CURRENT_CONFIG_SCHEMA_VERSION, createDefaultConfig, migrateConfig } from './config-schema'
+import {
+  CURRENT_CONFIG_SCHEMA_VERSION,
+  createDefaultConfig,
+  migrateConfig,
+  normalizeModuleOrder
+} from './config-schema'
 
 export { CURRENT_CONFIG_SCHEMA_VERSION, createDefaultConfig }
 
@@ -98,9 +103,13 @@ export class ConfigStore {
   }
 
   updateApp(patch: AppSettingsPatch): PublicConfig {
+    const app = { ...this.current.app, ...patch }
+    if (patch.moduleOrder !== undefined) {
+      app.moduleOrder = normalizeModuleOrder(patch.moduleOrder, this.current.modules)
+    }
     this.current = {
       ...this.current,
-      app: { ...this.current.app, ...patch }
+      app
     }
     this.scheduleSave()
     return this.get()
@@ -148,6 +157,14 @@ export class ConfigStore {
           modules: { ...modules, websiteCheck: { ...modules.websiteCheck, enabled } }
         }
         break
+    }
+    const moduleOrder = this.current.app.moduleOrder.filter((id) => id !== moduleId)
+    if (enabled) {
+      moduleOrder.push(moduleId)
+    }
+    this.current = {
+      ...this.current,
+      app: { ...this.current.app, moduleOrder }
     }
     this.scheduleSave()
     return this.get()

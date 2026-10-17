@@ -82,7 +82,7 @@ src/
       main.tsx                   # React 根与全局样式
       App.tsx                    # 按 ?view= 选择视图
       pet/ menu/ bubbles/        # 常驻视图
-      settings/                  # 懒加载设置应用、8 个 tab、6 个 hook
+      settings/                  # 懒加载设置应用：核心导航 + 启用模块导航、7 个页面组件、5 个状态 hook
       components/                # Button / Field / Tag / EmptyState 等
       styles/                    # tokens.css + 各视图样式
   shared/api.ts                  # 共享类型与 IPC_CHANNELS
@@ -121,7 +121,7 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 | `pet`      | `windows/pet-window.ts`      | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
 | `menu`     | `windows/overlay-windows.ts` | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
 | `bubble`   | `windows/overlay-windows.ts` | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
-| `settings` | `windows/settings-window.ts` | 单例窗口，780×720，最小 640×540    | 设置、模块管理、日期、网站、Gmail、DeepSeek、ESA、外观                                                                            |
+| `settings` | `windows/settings-window.ts` | 单例窗口，780×720，最小 640×540    | 常规、功能管理，以及按启用顺序动态出现的日期、网站、Gmail、DeepSeek、ESA 页面                                                     |
 
 加载规则（`windows/load-view.ts`）：
 
@@ -285,15 +285,15 @@ interface ModuleDefinition {
 
 所有可变数据写入 `app.getPath('userData')`，不写入安装目录：
 
-| 文件/目录                  | 内容                                                                | 写入者                   | 安全处理                                                                                              |
-| -------------------------- | ------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `config.json`              | 应用设置、桌宠配置、模块开关、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`            | `schemaVersion` 当前为 4；Zod 修复非法值；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
-| `secrets.enc.json`         | 加密后的 API Key、AccessKey、OAuth Client/Refresh Token             | `SecretStore`            | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                              |
-| `data/dates.json`          | 日期事件                                                            | `JsonStore<DatesData>`   | `sanitizeDatesData` 修复非法输入；原子写入                                                            |
-| `data/website-checks.json` | 网站检测配置与最近结果                                              | `JsonStore<WebsiteData>` | `sanitizeWebsiteData`；结果只保留展示字段                                                             |
-| `data/gmail-state.json`    | 邮箱地址、`historyId`、已通知消息 ID、授权失效标记                  | `JsonStore<GmailState>`  | 不保存正文；消息 ID 有上限                                                                            |
-| `pets/<uuid>.png`          | 用户导入的桌宠图片                                                  | `storage/pet-assets.ts`  | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                          |
-| `logs/app.log`             | JSON Lines 脱敏日志                                                 | `Logger`                 | 密钥/token/邮件主题等脱敏；2 MB 轮转；保留 7 天                                                       |
+| 文件/目录                  | 内容                                                                                                   | 写入者                   | 安全处理                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `config.json`              | 应用设置、桌宠配置、模块开关、启用模块顺序（`app.moduleOrder`）、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`            | `schemaVersion` 当前为 5；Zod 修复非法值并归一化模块顺序；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
+| `secrets.enc.json`         | 加密后的 API Key、AccessKey、OAuth Client/Refresh Token                                                | `SecretStore`            | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                                              |
+| `data/dates.json`          | 日期事件                                                                                               | `JsonStore<DatesData>`   | `sanitizeDatesData` 修复非法输入；原子写入                                                                            |
+| `data/website-checks.json` | 网站检测配置与最近结果                                                                                 | `JsonStore<WebsiteData>` | `sanitizeWebsiteData`；结果只保留展示字段                                                                             |
+| `data/gmail-state.json`    | 邮箱地址、`historyId`、已通知消息 ID、授权失效标记                                                     | `JsonStore<GmailState>`  | 不保存正文；消息 ID 有上限                                                                                            |
+| `pets/<uuid>.png`          | 用户导入的桌宠图片                                                                                     | `storage/pet-assets.ts`  | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                                          |
+| `logs/app.log`             | JSON Lines 脱敏日志                                                                                    | `Logger`                 | 密钥/token/邮件主题等脱敏；2 MB 轮转；保留 7 天                                                                       |
 
 凭据 ID（`src/main/security/secret-ids.ts`）：
 
@@ -392,7 +392,7 @@ main    ←  renderer（不得导入）
 | 旧规划                                               | 当前实现                                                                           |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | 目录示例使用 `service.ts` / `schema.ts` / `oauth.ts` | 实际使用 `*-service.ts`、`*-module.ts`、`types.ts`、`gmail-auth.ts` 等             |
-| 配置 schema 示例为 `schemaVersion: 1`                | 当前 `CURRENT_CONFIG_SCHEMA_VERSION = 4`                                           |
+| 配置 schema 示例为 `schemaVersion: 1`                | 当前 `CURRENT_CONFIG_SCHEMA_VERSION = 5`                                           |
 | 规划 `notifications/notification-service.ts`         | 当前由 `AppController.handleGmailNewMessages()` 直接使用 Electron `Notification`   |
 | 规划设置页“打开日志目录 / 复制脱敏诊断信息”          | 尚未实现，登记在 `OPEN_ITEMS.md`                                                   |
 | 规划目录包含 `tests/integration/`                    | 当前只有 `tests/unit/`                                                             |

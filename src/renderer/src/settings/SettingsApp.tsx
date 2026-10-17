@@ -11,7 +11,6 @@ import type {
   SecurityStatus,
   WebsiteCheckConfig
 } from '../../../shared/api'
-import { AppearanceSettingsTab } from './tabs/AppearanceSettingsTab'
 import { DatesSettingsTab } from './tabs/DatesSettingsTab'
 import { DeepSeekSettingsTab } from './tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from './tabs/EsaSettingsTab'
@@ -19,13 +18,12 @@ import { GeneralSettingsTab } from './tabs/GeneralSettingsTab'
 import { GmailSettingsTab } from './tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from './tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from './tabs/WebsitesSettingsTab'
-import { useAppearanceSettings } from './hooks/useAppearanceSettings'
 import { useDatesSettings } from './hooks/useDatesSettings'
 import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
 import { useGmailSettings } from './hooks/useGmailSettings'
 import { useWebsiteSettings } from './hooks/useWebsiteSettings'
-import { TABS } from './utils/constants'
+import { CORE_TABS, MODULE_TAB_BY_ID } from './utils/constants'
 import type { SettingsTab } from './utils/constants'
 import { toMessage } from './utils/formatters'
 import type { SettingsApi } from './types'
@@ -149,7 +147,7 @@ export default function SettingsApp() {
   if (!api) {
     return (
       <div className="settings-root">
-        <p className="hint">设置接口不可用。</p>
+        <SettingsHeader appInfo={appInfo} status="设置接口不可用。" isError />
       </div>
     )
   }
@@ -157,17 +155,11 @@ export default function SettingsApp() {
   if (!config) {
     return (
       <div className="settings-root">
-        <p className="hint">正在读取配置…</p>
-        {error ? (
-          <div className="settings-banners">
-            <div className="fl-alert fl-alert-error" role="alert">
-              <span className="fl-alert-icon" aria-hidden="true">
-                !
-              </span>
-              <span className="fl-alert-message">{error}</span>
-            </div>
-          </div>
-        ) : null}
+        <SettingsHeader
+          appInfo={appInfo}
+          status={error || '正在读取配置…'}
+          isError={Boolean(error)}
+        />
       </div>
     )
   }
@@ -269,7 +261,30 @@ function SettingsContent({
     setError('')
     try {
       setModules(await api.setModuleEnabled(moduleId, enabled))
+      setConfig(await api.getConfig())
       flash('已保存')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function reorderModules(order: ModuleId[]): Promise<void> {
+    setError('')
+    try {
+      setConfig(await api.saveAppSettings({ moduleOrder: order }))
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function importPetImage(): Promise<void> {
+    setError('')
+    try {
+      const next = await api.importPetImage()
+      if (next) {
+        setConfig(next)
+        flash('已导入新形象')
+      }
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -328,56 +343,38 @@ function SettingsContent({
     flash,
     setError
   })
-  const appearance = useAppearanceSettings({
-    api,
-    config,
-    setConfig,
-    flash,
-    setError
-  })
-  const isFirstTab = TABS.findIndex((tab) => tab.id === activeTab) === 0
+  const modulesById = new Map(modules.map((module) => [module.id, module]))
+  const enabledModules = config.app.moduleOrder
+    .map((id) => modulesById.get(id))
+    .filter((module): module is ModuleSummary => module?.enabled === true)
+  for (const module of modules) {
+    if (module.enabled && !enabledModules.includes(module)) {
+      enabledModules.push(module)
+    }
+  }
+  const orderedModules = [...enabledModules, ...modules.filter((module) => !module.enabled)]
+  const headerStatus = error || status || startupNotice || ''
+  const isFirstTab = activeTab === 'general'
+
+  useEffect(() => {
+    if (activeTab === 'general' || activeTab === 'modules') {
+      return
+    }
+    const hasEnabledModule = modules.some(
+      (module) => module.enabled && MODULE_TAB_BY_ID[module.id] === activeTab
+    )
+    if (!hasEnabledModule) {
+      setActiveTab('modules')
+    }
+  }, [activeTab, modules])
 
   return (
     <div className="settings-root">
-      <header className="settings-header">
-        <h1>
-          花伴 - 设置
-          {appInfo ? <span className="settings-version">版本 {appInfo.version}</span> : null}
-        </h1>
-      </header>
-
-      {startupNotice || error || status ? (
-        <div className="settings-banners">
-          {startupNotice ? (
-            <div className="fl-alert fl-alert-warning" role="status">
-              <span className="fl-alert-icon" aria-hidden="true">
-                !
-              </span>
-              <span className="fl-alert-message">{startupNotice}</span>
-            </div>
-          ) : null}
-          {error ? (
-            <div className="fl-alert fl-alert-error" role="alert">
-              <span className="fl-alert-icon" aria-hidden="true">
-                !
-              </span>
-              <span className="fl-alert-message">{error}</span>
-            </div>
-          ) : null}
-          {status ? (
-            <div className="fl-alert fl-alert-success" role="status">
-              <span className="fl-alert-icon" aria-hidden="true">
-                ✓
-              </span>
-              <span className="fl-alert-message">{status}</span>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <SettingsHeader appInfo={appInfo} status={headerStatus} isError={Boolean(error)} />
 
       <div className="settings-body">
         <nav className="settings-nav" role="tablist" aria-label="设置分区">
-          {TABS.map((tab) => (
+          {CORE_TABS.map((tab) => (
             <button
               key={tab.id}
               id={`settings-tab-${tab.id}`}
@@ -388,9 +385,32 @@ function SettingsContent({
               aria-controls="settings-tabpanel"
               onClick={() => setActiveTab(tab.id)}
             >
-              {tab.label}
+              <span className="settings-nav-label">{tab.label}</span>
             </button>
           ))}
+
+          {enabledModules.length > 0 ? (
+            <div className="settings-nav-divider" role="separator" />
+          ) : null}
+
+          {enabledModules.map((module) => {
+            const tabId = MODULE_TAB_BY_ID[module.id]
+            return (
+              <button
+                key={module.id}
+                id={`settings-tab-${tabId}`}
+                type="button"
+                role="tab"
+                className={`settings-nav-item${activeTab === tabId ? ' active' : ''}`}
+                aria-selected={activeTab === tabId}
+                aria-controls="settings-tabpanel"
+                onClick={() => setActiveTab(tabId)}
+              >
+                <span className="settings-nav-label">{module.name}</span>
+                {module.configured ? null : <span className="settings-nav-badge">未配置</span>}
+              </button>
+            )
+          })}
         </nav>
 
         <section
@@ -400,13 +420,18 @@ function SettingsContent({
           aria-labelledby={`settings-tab-${activeTab}`}
         >
           {activeTab === 'general' ? (
-            <GeneralSettingsTab config={config} onSave={(patch) => void saveApp(patch)} />
+            <GeneralSettingsTab
+              config={config}
+              onSave={(patch) => void saveApp(patch)}
+              onImportImage={() => void importPetImage()}
+            />
           ) : null}
           {activeTab === 'modules' ? (
             <ModulesSettingsTab
-              modules={modules}
+              modules={orderedModules}
               security={security}
               onToggle={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+              onReorder={(order) => void reorderModules(order)}
             />
           ) : null}
           {activeTab === 'dates' ? <DatesSettingsTab model={dates} /> : null}
@@ -432,11 +457,33 @@ function SettingsContent({
               onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
             />
           ) : null}
-          {activeTab === 'appearance' ? (
-            <AppearanceSettingsTab config={config} model={appearance} />
-          ) : null}
         </section>
       </div>
     </div>
+  )
+}
+
+interface SettingsHeaderProps {
+  appInfo: AppInfo | null
+  status: string
+  isError?: boolean
+}
+
+function SettingsHeader({ appInfo, status, isError = false }: SettingsHeaderProps) {
+  return (
+    <header className="settings-header">
+      <h1>
+        花伴 - 设置
+        {appInfo ? <span className="settings-version">版本 {appInfo.version}</span> : null}
+      </h1>
+      {status ? (
+        <p
+          className={`settings-status${isError ? ' is-error' : ''}`}
+          role={isError ? 'alert' : 'status'}
+        >
+          {status}
+        </p>
+      ) : null}
+    </header>
   )
 }

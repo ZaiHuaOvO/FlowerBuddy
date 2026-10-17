@@ -2,7 +2,6 @@ import { createElement, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { ModuleSummary, PublicConfig } from '../../src/shared/api'
-import { AppearanceSettingsTab } from '../../src/renderer/src/settings/tabs/AppearanceSettingsTab'
 import { DatesSettingsTab } from '../../src/renderer/src/settings/tabs/DatesSettingsTab'
 import { DeepSeekSettingsTab } from '../../src/renderer/src/settings/tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from '../../src/renderer/src/settings/tabs/EsaSettingsTab'
@@ -10,7 +9,6 @@ import { GeneralSettingsTab } from '../../src/renderer/src/settings/tabs/General
 import { GmailSettingsTab } from '../../src/renderer/src/settings/tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from '../../src/renderer/src/settings/tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from '../../src/renderer/src/settings/tabs/WebsitesSettingsTab'
-import type { useAppearanceSettings } from '../../src/renderer/src/settings/hooks/useAppearanceSettings'
 import type { useDatesSettings } from '../../src/renderer/src/settings/hooks/useDatesSettings'
 import type { useDeepSeekSettings } from '../../src/renderer/src/settings/hooks/useDeepSeekSettings'
 import type { useEsaSettings } from '../../src/renderer/src/settings/hooks/useEsaSettings'
@@ -23,12 +21,13 @@ const asyncNoop = async (): Promise<void> => {}
 
 function makeConfig(): PublicConfig {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     app: {
       alwaysOnTop: true,
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      moduleOrder: ['dates', 'website-check'],
       showPetOnStartup: true
     },
     pet: { assetId: 'default', scale: 1, position: null },
@@ -143,24 +142,29 @@ const esaModel = {
   saveRefreshInterval: asyncNoop
 } as unknown as ReturnType<typeof useEsaSettings>
 
-const appearanceModel = {
-  scaleDraft: 1,
-  handleScaleChange: noop,
-  handleScaleCommit: noop,
-  importImage: asyncNoop,
-  resetPosition: asyncNoop
-} as unknown as ReturnType<typeof useAppearanceSettings>
-
 describe('settings tabs render', () => {
   it('renders every tab without a DOM', () => {
     const config = makeConfig()
     const render = (element: ReactElement): string => renderToStaticMarkup(element)
 
-    expect(render(createElement(GeneralSettingsTab, { config, onSave: noop }))).toContain(
-      '<h2>常规</h2>'
-    )
     expect(
-      render(createElement(ModulesSettingsTab, { modules, security: null, onToggle: noop }))
+      render(
+        createElement(GeneralSettingsTab, {
+          config,
+          onSave: noop,
+          onImportImage: noop
+        })
+      )
+    ).toContain('<h2>常规</h2>')
+    expect(
+      render(
+        createElement(ModulesSettingsTab, {
+          modules,
+          security: null,
+          onToggle: noop,
+          onReorder: noop
+        })
+      )
     ).toContain('<h2>功能管理</h2>')
     expect(render(createElement(DatesSettingsTab, { model: datesModel }))).toContain(
       '<h2>日期事件</h2>'
@@ -179,8 +183,5 @@ describe('settings tabs render', () => {
     expect(
       render(createElement(EsaSettingsTab, { config, model: esaModel, onToggleModule: noop }))
     ).toContain('ESA 今日流量')
-    expect(
-      render(createElement(AppearanceSettingsTab, { config, model: appearanceModel }))
-    ).toContain('<h2>外观</h2>')
   })
 })
