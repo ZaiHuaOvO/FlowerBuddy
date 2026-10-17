@@ -256,7 +256,7 @@
 .tooltip-trigger::after {
   content: attr(data-tooltip);
   position: absolute;
-  top: calc(100% + var(--space-1));
+  bottom: calc(100% + var(--space-1));
   left: 50%;
   z-index: 20;
   width: max-content;
@@ -272,7 +272,7 @@
   white-space: normal;
   opacity: 0;
   visibility: hidden;
-  transform: translate(-50%, -2px);
+  transform: translate(-50%, 2px);
   transition:
     opacity var(--motion-fast) var(--ease-standard),
     transform var(--motion-fast) var(--ease-standard),
@@ -290,7 +290,7 @@
 .tooltip-left::after {
   right: 0;
   left: auto;
-  transform: translateY(-2px);
+  transform: translateY(2px);
 }
 
 .tooltip-left:hover::after,
