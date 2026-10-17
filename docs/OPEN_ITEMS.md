@@ -5,6 +5,7 @@
 
 ## 已完成
 
+- [x] 架构优化阶段 A：完成 Windows 依赖重装、质量检查/构建/打包计时、产物与依赖体积、冷/热启动和空闲资源基线，结果见 `docs/performance-baseline.md`（2026-10-17）。
 - [x] 阶段 6：安装版、便携版与 ZIP 构建；安装/卸载、无 Node 路径、密钥扫描、隐私说明与最终文档验收。
 - [x] 阶段 5：Gmail OAuth 2.0（回环回调 + PKCE + state）、增量同步、Message ID 去重、historyId 重建、元数据通知与设置界面。
 - [x] 阶段 4：DeepSeek 余额（官方 `/user/balance`）与 ESA 今日流量（官方 SDK、Traffic/ALL、本地自然日转 UTC、采样提示）。
