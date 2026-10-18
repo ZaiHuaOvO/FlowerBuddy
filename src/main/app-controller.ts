@@ -4,7 +4,8 @@ import type {
   AppSettingsPatch,
   DeepSeekBalance,
   EsaCredentialsInput,
-  EsaTraffic,
+  EsaDisplayRanges,
+  EsaTrafficSummary,
   GmailPollSummary,
   GmailSettingsPatch,
   GmailStateView,
@@ -387,8 +388,12 @@ export class AppController {
     return this.options.moduleManager.refresh()
   }
 
-  async fetchEsaTraffic(): Promise<EsaTraffic> {
+  async fetchEsaTraffic(): Promise<EsaTrafficSummary> {
     return this.options.esaModule.queryTraffic()
+  }
+
+  setEsaDisplayRanges(ranges: EsaDisplayRanges): PublicConfig {
+    return this.options.configStore.setEsaDisplayRanges(ranges)
   }
 
   setModuleRefreshInterval(moduleId: RefreshableModuleId, minutes: number | null): PublicConfig {

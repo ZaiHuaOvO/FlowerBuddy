@@ -14,7 +14,8 @@ import {
   type MemoSummary,
   type DeepSeekBalance,
   type EsaCredentialsInput,
-  type EsaTraffic,
+  type EsaDisplayRanges,
+  type EsaTrafficSummary,
   type GmailPollSummary,
   type GmailSettingsPatch,
   type GmailStateView,
@@ -273,7 +274,9 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
       (await ipc.invoke(IPC_CHANNELS.esaSaveCredentials, input)) as ModuleSummary[],
     clearEsaCredentials: async () =>
       (await ipc.invoke(IPC_CHANNELS.esaClearCredentials)) as ModuleSummary[],
-    fetchEsaTraffic: async () => (await ipc.invoke(IPC_CHANNELS.esaTraffic)) as EsaTraffic,
+    fetchEsaTraffic: async () => (await ipc.invoke(IPC_CHANNELS.esaTraffic)) as EsaTrafficSummary,
+    setEsaDisplayRanges: async (ranges: EsaDisplayRanges) =>
+      (await ipc.invoke(IPC_CHANNELS.esaSetDisplayRanges, ranges)) as PublicConfig,
     saveGmailClient: async (clientId: string, clientSecret: string) =>
       (await ipc.invoke(IPC_CHANNELS.gmailSaveClient, {
         clientId,

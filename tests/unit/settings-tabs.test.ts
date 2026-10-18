@@ -44,7 +44,12 @@ function makeConfig(): PublicConfig {
         notifyNewMail: true,
         hideSubject: true
       },
-      esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+      esa: {
+        enabled: false,
+        siteId: '',
+        refreshIntervalMinutes: null,
+        displayRanges: { last24h: true, last7d: true, last30d: true }
+      },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
     }
@@ -228,7 +233,14 @@ describe('settings tabs render', () => {
       )
     ).toContain('DeepSeek 余额')
     expect(
-      render(createElement(EsaSettingsTab, { config, model: esaModel, onToggleModule: noop }))
-    ).toContain('ESA 今日流量')
+      render(
+        createElement(EsaSettingsTab, {
+          config,
+          model: esaModel,
+          onToggleModule: noop,
+          onSaveDisplayRanges: noop
+        })
+      )
+    ).toContain('ESA 流量')
   })
 })

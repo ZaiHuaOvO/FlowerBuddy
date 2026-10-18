@@ -24,6 +24,7 @@ import {
   bubbleHeightInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
+  esaDisplayRangesSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
@@ -201,6 +202,9 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.esaClearCredentials, null, () => controller.clearEsaCredentials())
   register(IPC_CHANNELS.esaTraffic, null, () => controller.fetchEsaTraffic())
+  register(IPC_CHANNELS.esaSetDisplayRanges, esaDisplayRangesSchema, (input) =>
+    controller.setEsaDisplayRanges(input)
+  )
 
   register(IPC_CHANNELS.gmailSaveClient, gmailClientInputSchema, (input) =>
     controller.saveGmailClient(input.clientId, input.clientSecret)

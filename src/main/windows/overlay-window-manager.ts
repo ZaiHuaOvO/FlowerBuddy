@@ -51,7 +51,8 @@ export class OverlayWindowManager {
   private awaySince: number | null = null
   private menuGeneration = 0
   private bubbles: BubbleItem[] = []
-  private readonly bubbleTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private readonly bubbleTimers = new Map<string, { remainingMs: number; lastTick: number }>()
+  private bubbleTick: ReturnType<typeof setInterval> | null = null
   private bubbleHeight = BUBBLE_SIZE.height
   private disposed = false
 
@@ -237,7 +238,7 @@ export class OverlayWindowManager {
     } else {
       this.bubbles = [...this.bubbles, item]
     }
-    this.scheduleBubbleTimer(payload, id)
+    this.setBubbleTimer(payload, id)
 
     const window = await this.ensureOverlayWindow('bubble')
     if (!window) {
@@ -314,10 +315,11 @@ export class OverlayWindowManager {
     this.cancelCloseTimer()
     this.stopIdleWatch()
     this.resolveOpenAck()
-    for (const timer of this.bubbleTimers.values()) {
-      clearTimeout(timer)
-    }
     this.bubbleTimers.clear()
+    if (this.bubbleTick !== null) {
+      clearInterval(this.bubbleTick)
+      this.bubbleTick = null
+    }
     this.menuState = 'idle'
   }
 
@@ -515,23 +517,72 @@ export class OverlayWindowManager {
     })
   }
 
-  private scheduleBubbleTimer(payload: BubblePayload, id: string): void {
-    this.clearBubbleTimer(id)
-    if (payload.persistent || payload.autoHide === false) {
+  private setBubbleTimer(payload: BubblePayload, id: string): void {
+    const autoHide = payload.persistent !== true && payload.autoHide !== false
+    if (!autoHide) {
+      this.bubbleTimers.delete(id)
+      this.stopBubbleTickIfIdle()
       return
     }
-    const timer = setTimeout(() => {
-      this.bubbleTimers.delete(id)
-      this.dismissBubble(id)
-    }, this.options.getBubbleDurationMs())
-    this.bubbleTimers.set(id, timer)
+    this.bubbleTimers.set(id, {
+      remainingMs: this.options.getBubbleDurationMs(),
+      lastTick: Date.now()
+    })
+    this.startBubbleTick()
   }
 
   private clearBubbleTimer(id: string): void {
-    const timer = this.bubbleTimers.get(id)
-    if (timer) {
-      clearTimeout(timer)
-      this.bubbleTimers.delete(id)
+    this.bubbleTimers.delete(id)
+    this.stopBubbleTickIfIdle()
+  }
+
+  private startBubbleTick(): void {
+    if (this.bubbleTick !== null) {
+      return
     }
+    this.bubbleTick = setInterval(() => this.tickBubbles(), 250)
+  }
+
+  private stopBubbleTickIfIdle(): void {
+    if (this.bubbleTimers.size === 0 && this.bubbleTick !== null) {
+      clearInterval(this.bubbleTick)
+      this.bubbleTick = null
+    }
+  }
+
+  private tickBubbles(): void {
+    if (this.disposed || this.bubbleTimers.size === 0) {
+      this.stopBubbleTickIfIdle()
+      return
+    }
+    const now = Date.now()
+    const hovered = this.isPointerOverPetOrBubble()
+    for (const [id, timer] of this.bubbleTimers) {
+      const elapsed = now - timer.lastTick
+      timer.lastTick = now
+      if (!hovered) {
+        timer.remainingMs -= elapsed
+        if (timer.remainingMs <= 0) {
+          this.dismissBubble(id)
+        }
+      }
+    }
+    this.stopBubbleTickIfIdle()
+  }
+
+  private isPointerOverPetOrBubble(): boolean {
+    const bubble = this.bubbleWindow
+    if (!bubble || bubble.isDestroyed() || !bubble.isVisible()) {
+      return false
+    }
+    const cursor = screen.getCursorScreenPoint()
+    if (containsPoint(bubble.getBounds(), cursor.x, cursor.y)) {
+      return true
+    }
+    if (!this.options.isPetVisible()) {
+      return false
+    }
+    const pet = this.options.getPetBounds()
+    return pet ? containsPoint(pet, cursor.x, cursor.y) : false
   }
 }

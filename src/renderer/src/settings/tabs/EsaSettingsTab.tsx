@@ -1,10 +1,11 @@
-import type { ModuleId, PublicConfig } from '../../../../shared/api'
+import type { EsaDisplayRanges, ModuleId, PublicConfig } from '../../../../shared/api'
+import { ESA_TRAFFIC_RANGES } from '../../../../shared/esa'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { Field } from '../../components/Field'
 import { Tag } from '../../components/Tag'
 import type { useEsaSettings } from '../hooks/useEsaSettings'
-import { formatBytes, formatTime, formatTrafficRange } from '../utils/formatters'
+import { formatBytes, formatTime } from '../utils/formatters'
 
 type EsaModel = ReturnType<typeof useEsaSettings>
 
@@ -12,9 +13,10 @@ interface Props {
   config: PublicConfig
   model: EsaModel
   onToggleModule: (moduleId: ModuleId, enabled: boolean) => void
+  onSaveDisplayRanges: (ranges: EsaDisplayRanges) => void
 }
 
-export function EsaSettingsTab({ config, model, onToggleModule }: Props) {
+export function EsaSettingsTab({ config, model, onToggleModule, onSaveDisplayRanges }: Props) {
   const {
     summary,
     keyIdDraft,
@@ -35,7 +37,7 @@ export function EsaSettingsTab({ config, model, onToggleModule }: Props) {
     <section className="panel">
       <div className="panel-header-row">
         <div className="module-title-row">
-          <h2>ESA 今日流量</h2>
+          <h2>ESA 流量</h2>
           <Tag tone={summary?.configured ? 'success' : 'warning'}>
             {summary?.statusLabel ?? '未配置'}
           </Tag>
@@ -100,7 +102,7 @@ export function EsaSettingsTab({ config, model, onToggleModule }: Props) {
         </Field>
         <div className="form-actions">
           <Button variant="primary" disabled={busy} onClick={() => void saveCredentials()}>
-            {busy ? '处理中…' : '保存并查询今日流量'}
+            {busy ? '处理中…' : '保存并查询流量'}
           </Button>
           <Button
             variant="secondary"
@@ -118,22 +120,53 @@ export function EsaSettingsTab({ config, model, onToggleModule }: Props) {
           </Button>
         </div>
       </div>
+      <div className="esa-display-ranges">
+        <span className="field-label">快捷气泡显示内容</span>
+        <div className="esa-range-options">
+          {ESA_TRAFFIC_RANGES.map((range) => (
+            <label className="esa-range-option" key={range.key}>
+              <input
+                type="checkbox"
+                checked={config.modules.esa.displayRanges[range.key]}
+                onChange={(event) =>
+                  onSaveDisplayRanges({
+                    ...config.modules.esa.displayRanges,
+                    [range.key]: event.target.checked
+                  })
+                }
+              />
+              <span>{range.label}</span>
+            </label>
+          ))}
+        </div>
+        <p className="hint">至少勾选一项；快捷菜单的流量气泡会按此显示。</p>
+      </div>
       <div className="fl-alert fl-alert-info panel-alert" role="note">
         <span className="fl-alert-icon" aria-hidden="true">
           i
         </span>
         <span className="fl-alert-message">
-          今日范围按本机时区 00:00 至当前时刻换算为
-          UTC；高访问时官方数据可能采样，不能当作精确账单。
+          流量按当前时刻向前滚动统计；高访问时官方数据可能采样，不能当作精确账单。
         </span>
       </div>
       {traffic ? (
         <div className="result-card">
-          <p className="result-title">今日累计流量</p>
-          <p className="result-value result-big">{formatBytes(traffic.bytes)}</p>
-          <p className="hint">{formatTrafficRange(traffic.startTime, traffic.endTime)}</p>
+          <p className="result-title">流量概览</p>
+          {traffic.ranges.map((range) => (
+            <div className="result-row" key={range.key}>
+              <span>{range.label}</span>
+              <span className="result-value">{formatBytes(range.bytes)}</span>
+            </div>
+          ))}
           <p className="hint">
-            {traffic.samplingRate === null ? '官方未提供采样率' : `采样率 ${traffic.samplingRate}%`}
+            {traffic.ranges
+              .map(
+                (range) =>
+                  `${range.label}采样率 ${
+                    range.samplingRate === null ? '未知' : `${range.samplingRate}%`
+                  }`
+              )
+              .join('；')}
             ；统计可能有延迟，不等同于精确账单。
           </p>
           <p className="hint">更新于 {formatTime(traffic.fetchedAt)}</p>
@@ -143,7 +176,7 @@ export function EsaSettingsTab({ config, model, onToggleModule }: Props) {
           title="尚未查询流量"
           description={
             summary?.configured
-              ? '点击“刷新流量”查询今日累计流量。'
+              ? '点击“刷新流量”查询所选流量范围。'
               : '保存 AccessKey 与 SiteId 后即可查询。'
           }
         />

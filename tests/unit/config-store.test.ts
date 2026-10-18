@@ -44,6 +44,11 @@ describe('config schema', () => {
     expect(config.modules.gmail.hideSubject).toBe(true)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(config.modules.esa.refreshIntervalMinutes).toBeNull()
+    expect(config.modules.esa.displayRanges).toEqual({
+      last24h: true,
+      last7d: true,
+      last30d: true
+    })
     expect(config.modules.websiteCheck.enabled).toBe(false)
     expect(config.modules.websiteCheck.defaultTimeoutMs).toBe(8000)
     expect(config.app.moduleOrder).toEqual(['memo', 'interval-reminder'])
@@ -194,6 +199,7 @@ describe('config store', () => {
     store.setMemoAnchorNew(true)
     store.setModuleRefreshInterval('deepseek', 15)
     store.setEsaSiteId('site-42')
+    store.setEsaDisplayRanges({ last24h: true, last7d: false, last30d: true })
     store.updateGmailSettings({ pollIntervalMinutes: 5, hideSubject: false })
     store.flush()
 
@@ -209,6 +215,11 @@ describe('config store', () => {
     expect(reloaded.modules.memo.anchorNewMemos).toBe(true)
     expect(reloaded.modules.deepseek.refreshIntervalMinutes).toBe(15)
     expect(reloaded.modules.esa.siteId).toBe('site-42')
+    expect(reloaded.modules.esa.displayRanges).toEqual({
+      last24h: true,
+      last7d: false,
+      last30d: true
+    })
     expect(reloaded.app.launchAtLogin).toBe(true)
     expect(reloaded.app.moduleOrder).toEqual(['interval-reminder', 'memo', 'gmail'])
   })
@@ -316,6 +327,15 @@ describe('config store', () => {
     expect(config).toEqual(createDefaultConfig())
     expect(readdirSync(directory).some((name) => name.includes('.future-v99-'))).toBe(true)
     expect(store.getRecoveryNotice()).toContain('更高版本')
+  })
+
+  it('rejects an empty ESA display range selection', () => {
+    const directory = createTemporaryDirectory()
+    const store = new ConfigStore(join(directory, 'config.json'))
+    store.load()
+    expect(() =>
+      store.setEsaDisplayRanges({ last24h: false, last7d: false, last30d: false })
+    ).toThrow()
   })
 
   it('reads and writes module switches by module id', () => {

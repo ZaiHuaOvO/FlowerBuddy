@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { EsaTraffic, ModuleSummary } from '../../../../shared/api'
+import type { EsaTrafficSummary, ModuleSummary } from '../../../../shared/api'
 import { toMessage } from '../utils/formatters'
 import type { SettingsApi } from '../types'
 
@@ -26,7 +26,7 @@ export function useEsaSettings({
   const [keySecretDraft, setKeySecretDraft] = useState('')
   const [siteIdDraft, setSiteIdDraft] = useState(initialSiteId)
   const [busy, setBusy] = useState(false)
-  const [traffic, setTraffic] = useState<EsaTraffic | null>(null)
+  const [traffic, setTraffic] = useState<EsaTrafficSummary | null>(null)
   const lastSiteId = useRef(initialSiteId)
 
   useEffect(() => {

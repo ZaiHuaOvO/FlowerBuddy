@@ -83,6 +83,7 @@ describe('preload bridge surface', () => {
       'saveEsaCredentials',
       'saveGmailClient',
       'savePetSettings',
+      'setEsaDisplayRanges',
       'setIntervalReminderEnabled',
       'setMemoAnchorNew',
       'setMemoAnchored',

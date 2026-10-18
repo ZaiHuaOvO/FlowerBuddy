@@ -3,7 +3,13 @@ import type {
   DescribeSiteTimeSeriesDataRequestFields
 } from '@alicloud/esa20240910'
 import type { RuntimeOptions } from '@darabonba/typescript'
-import type { EsaTraffic, ModuleActionResult } from '../../../shared/api'
+import type {
+  EsaTrafficRange,
+  EsaTrafficRangeKey,
+  EsaTrafficSummary,
+  ModuleActionResult
+} from '../../../shared/api'
+import { ESA_TRAFFIC_RANGES } from '../../../shared/esa'
 import { AppError } from '../../shared/errors'
 
 /**
@@ -141,6 +147,7 @@ export interface EsaTrafficInput {
   accessKeyId: string
   accessKeySecret: string
   siteId: string
+  ranges: EsaTrafficRangeKey[]
   now?: (() => Date) | undefined
   clientFactory?: EsaClientFactory | undefined
 }
@@ -152,16 +159,6 @@ function createEsaClient(
   const config = new sdk.Config(credentials)
   config.endpoint = ESA_ENDPOINT
   return new sdk.Client(config) as unknown as EsaClientLike
-}
-
-/** Local natural day: 00:00 in the user's timezone converted to UTC ISO. */
-export function todayRangeUtc(now: Date): { startTime: string; endTime: string } {
-  const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const end = now.getTime() <= startLocal.getTime() ? new Date(startLocal.getTime() + 1000) : now
-  return {
-    startTime: startLocal.toISOString(),
-    endTime: end.toISOString()
-  }
 }
 
 function isNetworkError(error: unknown): boolean {
@@ -225,21 +222,25 @@ function mapEsaError(error: unknown): AppError {
 }
 
 /**
- * Queries today's Traffic aggregate through the official ESA SDK.
- * The AccessKey is only used to build the SDK client and is never logged.
+ * Queries Traffic aggregates for the selected rolling windows through the
+ * official ESA SDK. The AccessKey is only used to build the SDK client and is
+ * never logged.
  */
-export async function fetchEsaTraffic(input: EsaTrafficInput): Promise<EsaTraffic> {
+export async function fetchEsaTraffic(input: EsaTrafficInput): Promise<EsaTrafficSummary> {
   if (!input.accessKeyId.trim() || !input.accessKeySecret.trim()) {
     throw new AppError('NOT_CONFIGURED', '请先在设置中填写 ESA AccessKey')
   }
   if (!input.siteId.trim()) {
     throw new AppError('NOT_CONFIGURED', '请先在设置中填写 ESA SiteId')
   }
+  const selected = ESA_TRAFFIC_RANGES.filter((range) => input.ranges.includes(range.key))
+  if (selected.length === 0) {
+    throw new AppError('INVALID_INPUT', '至少选择一项 ESA 流量范围')
+  }
 
   const now = input.now?.() ?? new Date()
-  const { startTime, endTime } = todayRangeUtc(now)
+  const ranges: EsaTrafficRange[] = []
 
-  let response: { body?: EsaResponseBodyLike }
   try {
     const sdk = await loadEsaSdk()
     const credentials = {
@@ -249,24 +250,59 @@ export async function fetchEsaTraffic(input: EsaTrafficInput): Promise<EsaTraffi
     const client = input.clientFactory
       ? input.clientFactory(credentials)
       : createEsaClient(sdk, credentials)
-    const request = new sdk.Request({
-      siteId: input.siteId.trim(),
-      startTime,
-      endTime,
-      fields: [
-        new sdk.RequestFields({
-          fieldName: 'Traffic',
-          dimension: ['ALL']
-        })
-      ]
+    const runtime = new sdk.RuntimeOptions({
+      connectTimeout: CONNECT_TIMEOUT_MS,
+      readTimeout: READ_TIMEOUT_MS
     })
-    response = await client.describeSiteTimeSeriesDataWithOptions(
-      request,
-      new sdk.RuntimeOptions({
-        connectTimeout: CONNECT_TIMEOUT_MS,
-        readTimeout: READ_TIMEOUT_MS
+
+    for (const range of selected) {
+      const start = new Date(now.getTime() - range.durationMs)
+      const end = now
+      const startTime = start.toISOString()
+      const endTime = end.toISOString()
+      const request = new sdk.Request({
+        siteId: input.siteId.trim(),
+        startTime,
+        endTime,
+        fields: [
+          new sdk.RequestFields({
+            fieldName: 'Traffic',
+            dimension: ['ALL']
+          })
+        ]
       })
-    )
+      const response = await client.describeSiteTimeSeriesDataWithOptions(request, runtime)
+      const body = response.body
+      if (!body || !Array.isArray(body.summarizedData)) {
+        throw new AppError('INVALID_RESPONSE', 'ESA 未返回时序汇总数据')
+      }
+      const trafficEntries = body.summarizedData.filter((entry) => entry.fieldName === 'Traffic')
+      if (trafficEntries.length === 0) {
+        throw new AppError('INVALID_RESPONSE', 'ESA 响应中缺少 Traffic 聚合值')
+      }
+
+      let bytes = 0
+      for (const entry of trafficEntries) {
+        const value = Number(entry.value)
+        if (!Number.isFinite(value)) {
+          throw new AppError('INVALID_RESPONSE', 'ESA Traffic 聚合值不是有效数字')
+        }
+        bytes += value
+      }
+
+      ranges.push({
+        key: range.key,
+        label: range.label,
+        bytes,
+        samplingRate:
+          typeof body.samplingRate === 'number' && Number.isFinite(body.samplingRate)
+            ? body.samplingRate
+            : null,
+        intervalSeconds: typeof body.interval === 'number' ? body.interval : null,
+        startTime: typeof body.startTime === 'string' ? body.startTime : startTime,
+        endTime: typeof body.endTime === 'string' ? body.endTime : endTime
+      })
+    }
   } catch (error) {
     if (error instanceof AppError) {
       throw error
@@ -274,38 +310,7 @@ export async function fetchEsaTraffic(input: EsaTrafficInput): Promise<EsaTraffi
     throw mapEsaError(error)
   }
 
-  const body = response.body
-  if (!body || !Array.isArray(body.summarizedData)) {
-    throw new AppError('INVALID_RESPONSE', 'ESA 未返回时序汇总数据')
-  }
-
-  const trafficEntries = body.summarizedData.filter((entry) => entry.fieldName === 'Traffic')
-  if (trafficEntries.length === 0) {
-    throw new AppError('INVALID_RESPONSE', 'ESA 响应中缺少 Traffic 聚合值')
-  }
-
-  let bytes = 0
-  for (const entry of trafficEntries) {
-    const value = Number(entry.value)
-    if (!Number.isFinite(value)) {
-      throw new AppError('INVALID_RESPONSE', 'ESA Traffic 聚合值不是有效数字')
-    }
-    bytes += value
-  }
-
-  const samplingRate =
-    typeof body.samplingRate === 'number' && Number.isFinite(body.samplingRate)
-      ? body.samplingRate
-      : null
-
-  return {
-    bytes,
-    samplingRate,
-    intervalSeconds: typeof body.interval === 'number' ? body.interval : null,
-    startTime: typeof body.startTime === 'string' ? body.startTime : startTime,
-    endTime: typeof body.endTime === 'string' ? body.endTime : endTime,
-    fetchedAt: now.toISOString()
-  }
+  return { ranges, fetchedAt: now.toISOString() }
 }
 
 export function formatBytes(bytes: number): string {
@@ -320,18 +325,13 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(digits)} ${units[index]}`
 }
 
-export function formatTrafficResult(traffic: EsaTraffic): ModuleActionResult {
-  const end = new Date(traffic.endTime)
-  const time = Number.isNaN(end.getTime())
-    ? ''
-    : end.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  const sampling =
-    traffic.samplingRate === null
-      ? '官方未提供采样率；统计可能有延迟，不等同于精确账单。'
-      : `采样率 ${traffic.samplingRate}%；统计可能有延迟，不等同于精确账单。`
-
+export function formatTrafficResult(traffic: EsaTrafficSummary): ModuleActionResult {
+  if (traffic.ranges.length === 0) {
+    return { state: 'empty', message: '暂无可展示的 ESA 流量数据' }
+  }
+  const lines = traffic.ranges.map((range) => `${range.label}：${formatBytes(range.bytes)}`)
   return {
     state: 'success',
-    message: `今日流量（截至 ${time}）\n${formatBytes(traffic.bytes)}\n${sampling}`
+    message: `ESA 流量\n${lines.join('\n')}`
   }
 }

@@ -243,6 +243,32 @@
   margin-bottom: var(--space-3);
 }
 
+.esa-display-ranges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.esa-range-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.esa-range-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.esa-range-option input {
+  accent-color: var(--color-primary);
+}
+
 .result-card {
   margin-top: var(--space-3);
   padding: var(--space-4);

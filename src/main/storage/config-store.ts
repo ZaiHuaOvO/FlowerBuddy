@@ -9,11 +9,13 @@ import {
 import { basename, dirname } from 'node:path'
 import type {
   AppSettingsPatch,
+  EsaDisplayRanges,
   GmailSettingsPatch,
   ModuleId,
   PublicConfig,
   RefreshableModuleId
 } from '../../shared/api'
+import { AppError } from '../shared/errors'
 import type { LoggerLike } from '../shared/logger'
 import {
   CURRENT_CONFIG_SCHEMA_VERSION,
@@ -239,6 +241,21 @@ export class ConfigStore {
           ...this.current.modules.esa,
           siteId: siteId.trim().slice(0, 128)
         }
+      }
+    }
+    this.scheduleSave()
+    return this.get()
+  }
+
+  setEsaDisplayRanges(ranges: EsaDisplayRanges): PublicConfig {
+    if (!ranges.last24h && !ranges.last7d && !ranges.last30d) {
+      throw new AppError('INVALID_INPUT', '至少选择一项 ESA 流量范围')
+    }
+    this.current = {
+      ...this.current,
+      modules: {
+        ...this.current.modules,
+        esa: { ...this.current.modules.esa, displayRanges: { ...ranges } }
       }
     }
     this.scheduleSave()

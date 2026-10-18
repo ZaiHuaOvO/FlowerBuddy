@@ -3,6 +3,7 @@ import {
   appSettingsPatchSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
+  esaDisplayRangesSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   menuActionSchema,
@@ -266,6 +267,16 @@ describe('IPC input schemas', () => {
         accessKeySecret: 'secret'
       })
     ).toThrow(AppError)
+  })
+
+  it('validates ESA display range selections', () => {
+    expect(
+      parseInput(esaDisplayRangesSchema, { last24h: true, last7d: false, last30d: true })
+    ).toEqual({ last24h: true, last7d: false, last30d: true })
+    expect(() =>
+      parseInput(esaDisplayRangesSchema, { last24h: false, last7d: false, last30d: false })
+    ).toThrow(AppError)
+    expect(() => parseInput(esaDisplayRangesSchema, { last24h: true })).toThrow(AppError)
   })
 
   it('validates refresh interval inputs', () => {

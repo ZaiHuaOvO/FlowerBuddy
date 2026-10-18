@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type {
   AppInfo,
   AppSettingsPatch,
+  EsaDisplayRanges,
   GmailStateView,
   IntervalReminderSummary,
   MemoSummary,
@@ -423,6 +424,21 @@ function SettingsContent({
     flash,
     setError
   })
+
+  async function saveEsaDisplayRanges(ranges: EsaDisplayRanges): Promise<void> {
+    if (!ranges.last24h && !ranges.last7d && !ranges.last30d) {
+      setError('至少选择一项 ESA 流量范围')
+      return
+    }
+    setError('')
+    try {
+      setConfig(await api.setEsaDisplayRanges(ranges))
+      await esa.refresh()
+      flash('已保存')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
   const modulesById = new Map(modules.map((module) => [module.id, module]))
   const enabledModules = config.app.moduleOrder
     .map((id) => modulesById.get(id))
@@ -545,6 +561,7 @@ function SettingsContent({
               config={config}
               model={esa}
               onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+              onSaveDisplayRanges={(ranges) => void saveEsaDisplayRanges(ranges)}
             />
           ) : null}
         </section>

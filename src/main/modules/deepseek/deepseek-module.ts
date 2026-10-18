@@ -3,7 +3,7 @@ import { SECRET_DEEPSEEK_API_KEY } from '../../security/secret-ids'
 import { AppError } from '../../shared/errors'
 import type { ConfigStore } from '../../storage/config-store'
 import type { ModuleContext, ModuleDefinition, SecretReader } from '../types'
-import { fetchDeepSeekBalance, formatCurrencyAmount } from './deepseek-service'
+import { fetchDeepSeekBalance } from './deepseek-service'
 
 export const DEEPSEEK_BALANCE_ACTION = 'deepseek:balance'
 
@@ -17,21 +17,19 @@ export function formatBalanceResult(balance: DeepSeekBalance): ModuleActionResul
   if (!balance.isAvailable) {
     return {
       state: 'error',
-      message: 'DeepSeek 账户当前不可用（余额不足或受到限制）'
+      message: '大鲸鱼现在吃不到米饭喵（账户余额不可用）'
     }
   }
-  if (balance.balances.length === 0) {
-    return { state: 'empty', message: 'DeepSeek 未返回余额信息' }
+  const info = balance.balances.find((entry) => entry.currency === 'CNY') ?? balance.balances[0]
+  if (!info) {
+    return { state: 'empty', message: '大鲸鱼没有查到米饭余额喵' }
   }
-
-  const lines = balance.balances.map(
-    (info) =>
-      `${formatCurrencyAmount(info.currency, info.totalBalance)}（赠送 ${formatCurrencyAmount(
-        info.currency,
-        info.grantedBalance
-      )} / 充值 ${formatCurrencyAmount(info.currency, info.toppedUpBalance)}）`
-  )
-  return { state: 'success', message: `DeepSeek 余额\n${lines.join('\n')}` }
+  const amount =
+    info.currency === 'CNY' ? `¥${info.totalBalance}` : `${info.currency} ${info.totalBalance}`
+  return {
+    state: 'success',
+    message: `大鲸鱼还有 ${amount} 的米饭可以吃喵`
+  }
 }
 
 export class DeepSeekModule implements ModuleDefinition {

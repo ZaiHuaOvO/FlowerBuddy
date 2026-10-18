@@ -65,7 +65,7 @@ describe('DeepSeek module', () => {
     expect(module.actions.map((action) => action.id)).toEqual(['deepseek:balance'])
   })
 
-  it('formats multi-currency balances without inventing daily spend', async () => {
+  it('formats the quick bubble balance phrase without daily spend', async () => {
     const module = new DeepSeekModule({
       secretStore: secretReader({ [SECRET_DEEPSEEK_API_KEY]: 'sk-test' }),
       configStore: createConfigStore(),
@@ -74,9 +74,8 @@ describe('DeepSeek module', () => {
 
     const result = await module.runAction('deepseek:balance')
     expect(result.state).toBe('success')
-    expect(result.message).toContain('CNY')
-    expect(result.message).toContain('110')
-    expect(result.message).toContain('赠送')
+    expect(result.message).toBe('大鲸鱼还有 ¥110.00 的米饭可以吃喵')
+    expect(result.message).not.toContain('赠送')
     expect(result.message).not.toContain('今日花费')
   })
 

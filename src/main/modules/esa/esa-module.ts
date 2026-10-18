@@ -1,4 +1,5 @@
-import type { EsaTraffic, ModuleActionResult } from '../../../shared/api'
+import type { EsaTrafficRangeKey, EsaTrafficSummary, ModuleActionResult } from '../../../shared/api'
+import { selectedEsaRangeKeys } from '../../../shared/esa'
 import { SECRET_ESA_ACCESS_KEY_ID, SECRET_ESA_ACCESS_KEY_SECRET } from '../../security/secret-ids'
 import { AppError } from '../../shared/errors'
 import type { ConfigStore } from '../../storage/config-store'
@@ -14,26 +15,26 @@ export interface EsaModuleOptions {
     accessKeyId: string
     accessKeySecret: string
     siteId: string
-  }) => Promise<EsaTraffic>
+    ranges: EsaTrafficRangeKey[]
+  }) => Promise<EsaTrafficSummary>
 }
 
 export class EsaModule implements ModuleDefinition {
   readonly id = 'esa' as const
   readonly name = 'ESA 流量'
-  readonly description = '阿里云 ESA 今日流量，需要只读 AccessKey'
+  readonly description = '阿里云 ESA 流量统计，需要只读 AccessKey'
   readonly requiresCredentials = true
   readonly implemented = true
   readonly actions = [
     {
       id: ESA_TRAFFIC_ACTION,
-      label: '今日流量',
-      loadingMessage: '正在查询 ESA 今日流量…'
+      label: '流量概览',
+      loadingMessage: '正在查询 ESA 流量…'
     }
   ]
 
   private context: ModuleContext | null = null
   private readonly fetchTraffic: NonNullable<EsaModuleOptions['fetchTraffic']>
-
   constructor(private readonly options: EsaModuleOptions) {
     this.fetchTraffic = options.fetchTraffic ?? ((input) => fetchEsaTraffic(input))
   }
@@ -93,8 +94,10 @@ export class EsaModule implements ModuleDefinition {
     return formatTrafficResult(await this.queryTraffic())
   }
 
-  async queryTraffic(): Promise<EsaTraffic> {
+  async queryTraffic(): Promise<EsaTrafficSummary> {
     const siteId = this.options.configStore.get().modules.esa.siteId.trim()
+    const displayRanges = this.options.configStore.get().modules.esa.displayRanges
+    const ranges = selectedEsaRangeKeys(displayRanges)
     const accessKeyId = await this.options.secretStore.get(SECRET_ESA_ACCESS_KEY_ID)
     const accessKeySecret = await this.options.secretStore.get(SECRET_ESA_ACCESS_KEY_SECRET)
 
@@ -106,7 +109,7 @@ export class EsaModule implements ModuleDefinition {
     }
 
     try {
-      return await this.fetchTraffic({ accessKeyId, accessKeySecret, siteId })
+      return await this.fetchTraffic({ accessKeyId, accessKeySecret, siteId, ranges })
     } catch (error) {
       if (this.context && error instanceof AppError) {
         const cause = error.cause as

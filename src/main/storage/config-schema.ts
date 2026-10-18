@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
+import { DEFAULT_ESA_DISPLAY_RANGES } from '../../shared/esa'
 
 export const CURRENT_CONFIG_SCHEMA_VERSION = 8
 
@@ -160,13 +161,33 @@ const gmailModuleSchema = z
     hideSubject: true
   })
 
+const esaDisplayRangesSchema = z
+  .object({
+    last24h: booleanField(true),
+    last7d: booleanField(true),
+    last30d: booleanField(true)
+  })
+  .catch({ ...DEFAULT_ESA_DISPLAY_RANGES })
+  .transform((ranges) =>
+    ranges.last24h || ranges.last7d || ranges.last30d
+      ? ranges
+      : { last24h: true, last7d: false, last30d: false }
+  )
+  .default({ ...DEFAULT_ESA_DISPLAY_RANGES })
+
 const esaModuleSchema = z
   .object({
     enabled: booleanField(false),
     siteId: stringField(128, ''),
-    refreshIntervalMinutes: nullableIntervalField(5, 60)
+    refreshIntervalMinutes: nullableIntervalField(5, 60),
+    displayRanges: esaDisplayRangesSchema
   })
-  .catch({ enabled: false, siteId: '', refreshIntervalMinutes: null })
+  .catch({
+    enabled: false,
+    siteId: '',
+    refreshIntervalMinutes: null,
+    displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+  })
 
 const deepseekModuleSchema = z
   .object({
@@ -195,7 +216,8 @@ const modulesSchema = z
     esa: esaModuleSchema.default({
       enabled: false,
       siteId: '',
-      refreshIntervalMinutes: null
+      refreshIntervalMinutes: null,
+      displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
     }),
     deepseek: deepseekModuleSchema.default({
       enabled: false,
@@ -210,7 +232,12 @@ const modulesSchema = z
     memo: { enabled: true, anchorNewMemos: false },
     intervalReminder: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
-    esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+    esa: {
+      enabled: false,
+      siteId: '',
+      refreshIntervalMinutes: null,
+      displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+    },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
     websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
   })
@@ -232,7 +259,12 @@ const configSchema = z
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
-      esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+      esa: {
+        enabled: false,
+        siteId: '',
+        refreshIntervalMinutes: null,
+        displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+      },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
     })
@@ -253,7 +285,12 @@ const configSchema = z
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
-      esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+      esa: {
+        enabled: false,
+        siteId: '',
+        refreshIntervalMinutes: null,
+        displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+      },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
       websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
     }
@@ -264,7 +301,12 @@ export function createDefaultModules(): ModulesSettings {
     memo: { enabled: true, anchorNewMemos: false },
     intervalReminder: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
-    esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
+    esa: {
+      enabled: false,
+      siteId: '',
+      refreshIntervalMinutes: null,
+      displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+    },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
     websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
   }

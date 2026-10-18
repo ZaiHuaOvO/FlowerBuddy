@@ -82,7 +82,12 @@ export interface ModulesSettings {
     notifyNewMail: boolean
     hideSubject: boolean
   }
-  esa: { enabled: boolean; siteId: string; refreshIntervalMinutes: number | null }
+  esa: {
+    enabled: boolean
+    siteId: string
+    refreshIntervalMinutes: number | null
+    displayRanges: EsaDisplayRanges
+  }
   deepseek: { enabled: boolean; refreshIntervalMinutes: number | null }
   websiteCheck: { enabled: boolean; defaultTimeoutMs: number }
 }
@@ -122,12 +127,26 @@ export interface DeepSeekBalance {
   fetchedAt: string
 }
 
-export interface EsaTraffic {
+export type EsaTrafficRangeKey = 'last24h' | 'last7d' | 'last30d'
+
+export interface EsaDisplayRanges {
+  last24h: boolean
+  last7d: boolean
+  last30d: boolean
+}
+
+export interface EsaTrafficRange {
+  key: EsaTrafficRangeKey
+  label: string
   bytes: number
   samplingRate: number | null
   intervalSeconds: number | null
   startTime: string
   endTime: string
+}
+
+export interface EsaTrafficSummary {
+  ranges: EsaTrafficRange[]
   fetchedAt: string
 }
 
@@ -414,6 +433,7 @@ export const IPC_CHANNELS = {
   esaSaveCredentials: 'esa:save-credentials',
   esaClearCredentials: 'esa:clear-credentials',
   esaTraffic: 'esa:traffic',
+  esaSetDisplayRanges: 'esa:set-display-ranges',
   gmailSaveClient: 'gmail:save-client',
   gmailConnect: 'gmail:connect',
   gmailDisconnect: 'gmail:disconnect',
@@ -537,7 +557,8 @@ export interface SettingsApi {
   fetchDeepSeekBalance(): Promise<DeepSeekBalance>
   saveEsaCredentials(input: EsaCredentialsInput): Promise<ModuleSummary[]>
   clearEsaCredentials(): Promise<ModuleSummary[]>
-  fetchEsaTraffic(): Promise<EsaTraffic>
+  fetchEsaTraffic(): Promise<EsaTrafficSummary>
+  setEsaDisplayRanges(ranges: EsaDisplayRanges): Promise<PublicConfig>
   saveGmailClient(clientId: string, clientSecret: string): Promise<ModuleSummary[]>
   connectGmail(): Promise<{ modules: ModuleSummary[]; emailAddress: string }>
   disconnectGmail(): Promise<ModuleSummary[]>

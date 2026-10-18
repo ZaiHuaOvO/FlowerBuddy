@@ -11,14 +11,20 @@ import {
 } from '../../src/main/security/secret-ids'
 import type { LoggerLike } from '../../src/main/shared/logger'
 import { ConfigStore } from '../../src/main/storage/config-store'
-import type { EsaTraffic } from '../../src/shared/api'
+import type { EsaTrafficSummary } from '../../src/shared/api'
 
-const TRAFFIC: EsaTraffic = {
-  bytes: 1536,
-  samplingRate: 100,
-  intervalSeconds: 300,
-  startTime: '2026-10-16T16:00:00.000Z',
-  endTime: '2026-10-17T04:30:00.000Z',
+const TRAFFIC: EsaTrafficSummary = {
+  ranges: [
+    {
+      key: 'last24h',
+      label: '过去 24 小时',
+      bytes: 1536,
+      samplingRate: 100,
+      intervalSeconds: 300,
+      startTime: '2026-10-16T16:00:00.000Z',
+      endTime: '2026-10-17T04:30:00.000Z'
+    }
+  ],
   fetchedAt: '2026-10-17T04:30:00.000Z'
 }
 
@@ -82,7 +88,7 @@ describe('ESA module', () => {
     expect(configured.getStatus()).toBe('ready')
   })
 
-  it('formats today traffic with sampling caveat', async () => {
+  it('formats the configured traffic ranges', async () => {
     const configStore = createConfigStore()
     configStore.setEsaSiteId('site-1')
     const module = new EsaModule({
@@ -96,9 +102,29 @@ describe('ESA module', () => {
 
     const result = await module.runAction('esa:traffic')
     expect(result.state).toBe('success')
+    expect(result.message).toContain('过去 24 小时')
     expect(result.message).toContain('1.50 KB')
-    expect(result.message).toContain('采样率 100%')
-    expect(result.message).toContain('不等同于精确账单')
+  })
+
+  it('passes the configured display ranges to the query', async () => {
+    const configStore = createConfigStore()
+    configStore.setEsaSiteId('site-1')
+    configStore.setEsaDisplayRanges({ last24h: true, last7d: false, last30d: true })
+    let received: string[] = []
+    const module = new EsaModule({
+      secretStore: secretReader({
+        [SECRET_ESA_ACCESS_KEY_ID]: 'id',
+        [SECRET_ESA_ACCESS_KEY_SECRET]: 'secret'
+      }),
+      configStore,
+      fetchTraffic: async (input) => {
+        received = input.ranges
+        return TRAFFIC
+      }
+    })
+
+    await module.runAction('esa:traffic')
+    expect(received).toEqual(['last24h', 'last30d'])
   })
 
   it('refuses to query without credentials or SiteId', async () => {

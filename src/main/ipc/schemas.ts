@@ -192,6 +192,15 @@ const esaCredentialsInputSchema = z
   })
   .strict()
 
+const esaDisplayRangesSchema = z
+  .object({
+    last24h: z.boolean(),
+    last7d: z.boolean(),
+    last30d: z.boolean()
+  })
+  .strict()
+  .refine((ranges) => ranges.last24h || ranges.last7d || ranges.last30d, '至少选择一项流量范围')
+
 const refreshIntervalInputSchema = z
   .object({
     moduleId: z.enum(['deepseek', 'esa']),
@@ -219,6 +228,7 @@ export {
   bubbleHeightInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
+  esaDisplayRangesSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
