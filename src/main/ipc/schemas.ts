@@ -97,6 +97,10 @@ const memoCardResizeInputSchema = z
   .object({ id: z.string().uuid(), edge: z.enum(['nw', 'ne', 'sw', 'se']) })
   .strict()
 
+const memoCardFitHeightInputSchema = z
+  .object({ id: z.string().uuid(), height: z.number().min(0).max(2000) })
+  .strict()
+
 const idInputSchema = z.object({ id: z.string().uuid() }).strict()
 
 const idEnabledInputSchema = z.object({ id: z.string().uuid(), enabled: z.boolean() }).strict()
@@ -178,6 +182,7 @@ export {
   memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
   memoCardResizeInputSchema,
+  memoCardFitHeightInputSchema,
   memoDiscardImagesSchema,
   memoImageBytesSchema,
   memoInputSchema,

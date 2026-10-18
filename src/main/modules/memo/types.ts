@@ -32,13 +32,6 @@ export const MEMO_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 export const MEMO_IMAGE_MAX_DIMENSION = 4096
 export const MEMO_COUNT_MAX = 500
 
-export const MEMO_CARD_DEFAULT_WIDTH = 280
-export const MEMO_CARD_DEFAULT_HEIGHT = 200
-export const MEMO_CARD_MIN_WIDTH = 180
-export const MEMO_CARD_MIN_HEIGHT = 120
-export const MEMO_CARD_MAX_WIDTH = 720
-export const MEMO_CARD_MAX_HEIGHT = 560
-
 export function createEmptyMemoData(): MemoData {
   return { schemaVersion: 1, memos: [] }
 }

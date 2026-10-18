@@ -3,15 +3,16 @@ import type { MemoCardEdge, MemoCardState } from '../../shared/api'
 import { IPC_CHANNELS } from '../../shared/api'
 import type { MemoService } from '../modules/memo/memo-service'
 import {
-  MEMO_CARD_DEFAULT_HEIGHT,
+  MEMO_CARD_BODY_PADDING,
   MEMO_CARD_DEFAULT_WIDTH,
+  MEMO_CARD_HEADER_HEIGHT,
+  MEMO_CARD_LINE_HEIGHT,
   MEMO_CARD_MAX_HEIGHT,
   MEMO_CARD_MAX_WIDTH,
   MEMO_CARD_MIN_HEIGHT,
-  MEMO_CARD_MIN_WIDTH,
-  type MemoBounds,
-  type StoredMemo
-} from '../modules/memo/types'
+  MEMO_CARD_MIN_WIDTH
+} from '../../shared/memo-layout'
+import type { MemoBounds, StoredMemo } from '../modules/memo/types'
 import { AppError } from '../shared/errors'
 import type { LoggerLike } from '../shared/logger'
 import type { Rect } from './geometry'
@@ -163,6 +164,32 @@ export class MemoCardWindowManager {
     this.persistBounds(id, bounds)
   }
 
+  fitHeight(id: string, height: number): void {
+    const card = this.cards.get(id)
+    if (!card || card.window.isDestroyed()) {
+      return
+    }
+    const bounds = card.window.getBounds()
+    const nextHeight = Math.round(
+      Math.max(
+        MEMO_CARD_MIN_HEIGHT,
+        Math.min(Number.isFinite(height) ? height : 0, MEMO_CARD_MAX_HEIGHT)
+      )
+    )
+    if (Math.abs(bounds.height - nextHeight) < 1) {
+      return
+    }
+    const area = screen.getDisplayMatching(bounds).workArea
+    const next = {
+      x: Math.max(area.x + 8, Math.min(bounds.x, area.x + area.width - bounds.width - 8)),
+      y: Math.max(area.y + 8, Math.min(bounds.y, area.y + area.height - nextHeight - 8)),
+      width: bounds.width,
+      height: nextHeight
+    }
+    card.window.setBounds(next)
+    this.options.service.updateBounds(id, next)
+  }
+
   ensureVisible(): void {
     for (const [id, card] of this.cards) {
       if (card.window.isDestroyed()) {
@@ -269,7 +296,7 @@ export class MemoCardWindowManager {
   private initialBounds(memo: StoredMemo): { bounds: Rect; persist: boolean } {
     const area = screen.getPrimaryDisplay().workArea
     const width = memo.bounds?.width ?? MEMO_CARD_DEFAULT_WIDTH
-    const height = memo.bounds?.height ?? MEMO_CARD_DEFAULT_HEIGHT
+    const height = estimateMemoCardHeight(memo)
 
     if (memo.bounds) {
       const stored = {
@@ -340,4 +367,29 @@ function toCardState(memo: StoredMemo): MemoCardState {
     images: memo.images,
     reminderAt: memo.reminderAt
   }
+}
+
+/** Rough first-paint height; the renderer reports the exact content height. */
+function estimateMemoCardHeight(memo: StoredMemo): number {
+  const contentWidth = MEMO_CARD_DEFAULT_WIDTH - 2 - MEMO_CARD_BODY_PADDING * 2
+  const charsPerLine = Math.max(6, Math.floor(contentWidth / 13))
+  let lines = 0
+  if (memo.text.trim().length > 0) {
+    for (const rawLine of memo.text.split(/\r?\n/)) {
+      let units = 0
+      for (const char of rawLine) {
+        units += /[⺀-鿿＀-￯]/.test(char) ? 1 : 0.55
+      }
+      lines += Math.max(1, Math.ceil(units / charsPerLine))
+    }
+  }
+  let height =
+    MEMO_CARD_HEADER_HEIGHT + MEMO_CARD_BODY_PADDING * 2 + MEMO_CARD_LINE_HEIGHT * (lines + 1) + 2
+  for (const image of memo.images) {
+    if (image.width > 0) {
+      const displayedWidth = Math.min(image.width, contentWidth)
+      height += Math.round((image.height * displayedWidth) / image.width) + 8
+    }
+  }
+  return Math.max(MEMO_CARD_MIN_HEIGHT, Math.min(height, MEMO_CARD_MAX_HEIGHT))
 }

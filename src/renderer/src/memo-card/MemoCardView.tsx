@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MemoCardEdge, MemoCardState } from '../../../shared/api'
 import { memoImageUrl } from '../../../shared/api'
+import {
+  MEMO_CARD_BODY_PADDING,
+  MEMO_CARD_HEADER_HEIGHT,
+  MEMO_CARD_LINE_HEIGHT
+} from '../../../shared/memo-layout'
 import { formatReminderDateTime } from '../../../shared/memo-reminder'
 import '../styles/memo-card.css'
 
@@ -47,6 +52,8 @@ export default function MemoCardView() {
   const dragFrame = useRef<number | null>(null)
   const resizeFrame = useRef<number | null>(null)
   const resizeEdge = useRef<MemoCardEdge | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
+  const fitSent = useRef(false)
 
   useEffect(() => {
     if (!api || !memoId) {
@@ -79,6 +86,36 @@ export default function MemoCardView() {
       }
     }
   }, [api, memoId])
+
+  useEffect(() => {
+    if (!api || !state || fitSent.current) {
+      return
+    }
+    fitSent.current = true
+    let cancelled = false
+    const measure = (): void => {
+      const content = contentRef.current
+      if (cancelled || !content) {
+        return
+      }
+      const height = Math.ceil(
+        MEMO_CARD_HEADER_HEIGHT +
+          MEMO_CARD_BODY_PADDING * 2 +
+          content.getBoundingClientRect().height +
+          MEMO_CARD_LINE_HEIGHT +
+          2
+      )
+      void api.fitHeight(memoId, height).catch(() => {})
+    }
+    void document.fonts.ready.then(() => {
+      if (!cancelled) {
+        requestAnimationFrame(measure)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [api, memoId, state])
 
   function scheduleDrag(): void {
     if (dragFrame.current !== null) {
@@ -206,19 +243,23 @@ export default function MemoCardView() {
       </div>
 
       <div className="memo-card-body">
-        {state.text ? <div className="memo-card-text">{state.text}</div> : null}
-        {state.images.map((image) => (
-          <img
-            key={image.id}
-            className="memo-card-image"
-            src={memoImageUrl(image.id)}
-            alt="备忘录图片"
-            draggable={false}
-          />
-        ))}
-        {!state.text && state.images.length === 0 ? (
-          <p className="memo-card-empty">（空备忘录）</p>
-        ) : null}
+        <div className="memo-card-content" ref={contentRef}>
+          {state.text ? <div className="memo-card-text">{state.text}</div> : null}
+          {state.images.map((image) => (
+            <img
+              key={image.id}
+              className="memo-card-image"
+              src={memoImageUrl(image.id)}
+              alt="备忘录图片"
+              width={image.width}
+              height={image.height}
+              draggable={false}
+            />
+          ))}
+          {!state.text && state.images.length === 0 ? (
+            <p className="memo-card-empty">（空备忘录）</p>
+          ) : null}
+        </div>
       </div>
 
       {RESIZE_EDGES.map((edge) => (

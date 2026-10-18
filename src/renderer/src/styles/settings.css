@@ -552,8 +552,20 @@
 }
 
 .memo-anchor-switch {
-  align-self: flex-start;
+  align-self: center;
+}
+
+.memo-editor-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   margin-top: var(--space-1);
+}
+
+.memo-form-actions {
+  margin-left: auto;
 }
 
 .memo-attachment {
@@ -607,30 +619,151 @@
   border-color: var(--color-danger);
 }
 
-.memo-picker-hidden {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 0;
-  height: 0;
+.memo-picker-trigger {
+  flex: 0 0 auto;
+}
+
+.memo-picker-popover {
+  position: fixed;
+  z-index: 40;
+  width: 300px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.memo-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.memo-picker-title {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.memo-picker-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xl);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 
-.memo-reminder-preview,
-.memo-reminder-error {
-  margin: 0;
+.memo-picker-nav:hover {
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+}
+
+.memo-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+.memo-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.memo-calendar-day {
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--color-text);
   font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 
-.memo-reminder-preview {
-  color: var(--color-primary);
+.memo-calendar-day:hover {
+  background: var(--color-surface-soft);
 }
 
-.memo-reminder-error {
-  color: var(--color-danger);
+.memo-calendar-day.is-today {
+  border-color: var(--color-border-strong);
+}
+
+.memo-calendar-day.is-selected {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.memo-time-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.memo-time-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.memo-time-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.memo-time-input {
+  width: 52px;
+  min-height: 32px;
+  padding: 0 6px;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.memo-time-input::-webkit-inner-spin-button,
+.memo-time-input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.memo-picker-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.memo-picker-footer-main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .memo-list {

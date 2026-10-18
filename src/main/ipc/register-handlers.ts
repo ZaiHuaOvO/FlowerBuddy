@@ -29,6 +29,7 @@ import {
   memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
   memoCardResizeInputSchema,
+  memoCardFitHeightInputSchema,
   memoDiscardImagesSchema,
   memoImageBytesSchema,
   memoInputSchema,
@@ -150,6 +151,9 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.memoCardEndResize, idInputSchema, (input) =>
     controller.memoCardEndResize(input.id)
+  )
+  register(IPC_CHANNELS.memoCardFitHeight, memoCardFitHeightInputSchema, (input) =>
+    controller.memoCardFitHeight(input.id, input.height)
   )
 
   register(IPC_CHANNELS.websitesList, null, () => controller.listWebsiteChecks())

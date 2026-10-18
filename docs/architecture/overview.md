@@ -292,13 +292,13 @@ interface ModuleDefinition {
   - 按 `app.bubbleDurationMs` 自动隐藏；
   - 有前台动作或桌宠不可见时，后台通知不抢占气泡。
 - Gmail 新邮件由 `AppController.handleGmailNewMessages()` 处理：可发 Windows 通知，并通过 `showBackground()` 显示气泡。
-- 气泡由 `OverlayWindowManager` 维护为一个栈：新气泡追加到末尾（界面从上到下按出现顺序），更新相同 `requestId` 只替换内容；普通气泡按 `app.bubbleDurationMs` 单独自动隐藏，`persistent` 气泡（备忘录提醒）不自动隐藏，需点击“知道了”或关闭按钮。窗口高度由 renderer 测量后通过 `bubble:set-height` 上报，主进程据此向上扩展并重新定位；超过上限时列表内部滚动。
+- 气泡由 `OverlayWindowManager` 维护为一个栈：新气泡追加到末尾（界面从上到下按出现顺序），更新相同 `requestId` 只替换内容；普通气泡按 `app.bubbleDurationMs` 单独自动隐藏，`persistent` 气泡（备忘录提醒）不自动隐藏，需点击“知道了喵”。窗口高度由 renderer 测量后通过 `bubble:set-height` 上报，主进程据此向上扩展并重新定位；只有最靠近桌宠的气泡带尖角，超过上限时列表内部滚动。
 
 ### 6.5 备忘录、提醒与桌面卡片
 
 - `MemoService`（`modules/memo/memo-service.ts`）负责 CRUD、排序与完成状态：有提醒的未完成项按提醒时间升序，其次无提醒项按创建时间倒序，最后是完成项按完成时间倒序；完成会取消锚点，已完成项可再次取消完成，删除会同时删除其图片文件。设置页在完成/取消完成时只就地更新数据、不立即重排，离开并重新进入备忘录页时才按服务端顺序刷新。
 - `MemoModule.start()` 为最早到期的提醒安排一次 `setTimeout`，另有 30 秒安全轮询；触发后通过 `ModuleContext.notify(..., { persistent: true })` 请求常驻桌宠气泡，并写入 `remindedAt` 防止重复提醒。修改提醒时间会清除 `remindedAt`；系统恢复时 `handleResume()` 会立即补查。
-- `MemoCardWindowManager`（`windows/memo-card-window-manager.ts`）为每条 `anchored && !completed` 的备忘录维护一个 `memo-card` 窗口。新卡片默认从主显示器右上角开始，按“先向下、满列后向左”的网格寻找不重叠的位置并持久化；已有位置在未被其他卡片占用时保留。窗口使用自定义拖动与四角缩放 IPC（主进程读取系统光标位置），结束时把位置/尺寸写回 `MemoService`；模块停用、删除、完成或取消锚点时关闭对应窗口，显示器变化时重新限制到可见区域。
+- `MemoCardWindowManager`（`windows/memo-card-window-manager.ts`）为每条 `anchored && !completed` 的备忘录维护一个 `memo-card` 窗口。新卡片默认从主显示器右上角开始，按“先向下、满列后向左”的网格寻找不重叠的位置并持久化；已有位置在未被其他卡片占用时保留。卡片高度在窗口创建时由 renderer 按正文内容测量并通过 `memo-card:fit-height` 回写，约为正文高度加一行空行。窗口使用自定义拖动与四角缩放 IPC（主进程读取系统光标位置），结束时把位置/尺寸写回 `MemoService`；模块停用、删除、完成或取消锚点时关闭对应窗口，显示器变化时重新限制到可见区域。
 - 全局快捷键由 `shortcuts/global-shortcuts.ts` 注册，默认 `Alt+A`，保存在 `config.app.memoShortcut`；界面入口是备忘录页标题旁的齿轮设置弹窗，不出现在常规页；新建弹窗中的“创建后锚定到桌面”开关会把偏好写入 `modules.memo.anchorNewMemos`，创建后立即锚定。冲突时保留原快捷键并返回 `INVALID_INPUT`。触发后打开设置；渲染进程通过 `settings:ui-ready` 握手，主进程再发送 `settings:open-memo-composer` 切换到备忘录页并弹出新建弹窗。
 
 ## 7. 数据、凭据与日志

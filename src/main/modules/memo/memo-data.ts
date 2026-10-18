@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { MemoImageInfo } from '../../../shared/api'
 import {
-  createEmptyMemoData,
   MEMO_CARD_MAX_HEIGHT,
   MEMO_CARD_MAX_WIDTH,
   MEMO_CARD_MIN_HEIGHT,
-  MEMO_CARD_MIN_WIDTH,
+  MEMO_CARD_MIN_WIDTH
+} from '../../../shared/memo-layout'
+import {
+  createEmptyMemoData,
   MEMO_COUNT_MAX,
   MEMO_IMAGE_MAX_DIMENSION,
   MEMO_IMAGES_MAX,

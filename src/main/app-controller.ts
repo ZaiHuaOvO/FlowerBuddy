@@ -297,6 +297,10 @@ export class AppController {
     this.memoCards.endResize(id)
   }
 
+  memoCardFitHeight(id: string, height: number): void {
+    this.memoCards.fitHeight(id, height)
+  }
+
   listWebsiteChecks(): WebsiteCheckConfig[] {
     return this.options.websiteService.list()
   }

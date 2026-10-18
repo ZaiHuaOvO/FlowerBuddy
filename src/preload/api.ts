@@ -166,6 +166,9 @@ function createMemoCardApi(ipc: IpcBridge): MemoCardApi {
     },
     unanchor: async (id: string) => {
       await ipc.invoke(IPC_CHANNELS.memosSetAnchored, { id, anchored: false })
+    },
+    fitHeight: async (id: string, height: number) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardFitHeight, { id, height })
     }
   }
 }

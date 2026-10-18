@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { BubbleItem, BubbleStackPayload, BubbleState } from '../../../shared/api'
+import type {
+  BubbleItem,
+  BubbleStackPayload,
+  BubbleState,
+  MenuPlacement
+} from '../../../shared/api'
 import { BUBBLE_MAX_HEIGHT } from '../../../shared/bubble-layout'
 import '../styles/bubble.css'
 
@@ -17,6 +22,7 @@ function fire(operation: Promise<unknown> | undefined): void {
 export default function BubbleView() {
   const api = window.bubbleApi
   const [bubbles, setBubbles] = useState<BubbleItem[]>([])
+  const [placement, setPlacement] = useState<MenuPlacement>('above')
   const listRef = useRef<HTMLDivElement | null>(null)
   const frame = useRef<number | null>(null)
 
@@ -24,7 +30,10 @@ export default function BubbleView() {
     if (!api) {
       return
     }
-    return api.onUpdate((payload: BubbleStackPayload) => setBubbles(payload.bubbles))
+    return api.onUpdate((payload: BubbleStackPayload) => {
+      setBubbles(payload.bubbles)
+      setPlacement(payload.placement)
+    })
   }, [api])
 
   useEffect(() => {
@@ -68,39 +77,50 @@ export default function BubbleView() {
   return (
     <div className="bubble-root">
       <div className="bubble-list" ref={listRef} style={{ maxHeight: `${BUBBLE_MAX_HEIGHT}px` }}>
-        {bubbles.map((bubble) => (
-          <div
-            key={bubble.id}
-            className={`bubble bubble-${bubble.state}`}
-            role="status"
-            data-state={bubble.state}
-          >
-            {bubble.state === 'loading' ? (
-              <span className="spinner" aria-hidden="true" />
-            ) : (
-              <span className={`bubble-icon bubble-icon-${bubble.state}`} aria-hidden="true">
-                {STATE_SYMBOL[bubble.state]}
+        {bubbles.map((bubble, index) => {
+          const hasTail =
+            (placement === 'above' && index === bubbles.length - 1) ||
+            (placement === 'below' && index === 0)
+          const tailClass = hasTail
+            ? placement === 'above'
+              ? ' bubble-tail-down'
+              : ' bubble-tail-up'
+            : ''
+          return (
+            <div
+              key={bubble.id}
+              className={`bubble bubble-${bubble.state}${tailClass}`}
+              role="status"
+              data-state={bubble.state}
+            >
+              {bubble.state === 'loading' ? (
+                <span className="spinner" aria-hidden="true" />
+              ) : (
+                <span className={`bubble-icon bubble-icon-${bubble.state}`} aria-hidden="true">
+                  {STATE_SYMBOL[bubble.state]}
+                </span>
+              )}
+              <p className="bubble-text">{bubble.message}</p>
+              <span className="bubble-actions">
+                {bubble.persistent ? (
+                  <button type="button" className="bubble-ack" onClick={() => dismiss(bubble.id)}>
+                    知道了喵
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="bubble-close"
+                    aria-label="关闭气泡"
+                    data-action="bubble:dismiss"
+                    onClick={() => dismiss(bubble.id)}
+                  >
+                    ×
+                  </button>
+                )}
               </span>
-            )}
-            <p className="bubble-text">{bubble.message}</p>
-            <span className="bubble-actions">
-              {bubble.persistent ? (
-                <button type="button" className="bubble-ack" onClick={() => dismiss(bubble.id)}>
-                  知道了
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="bubble-close"
-                aria-label="关闭气泡"
-                data-action="bubble:dismiss"
-                onClick={() => dismiss(bubble.id)}
-              >
-                ×
-              </button>
-            </span>
-          </div>
-        ))}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

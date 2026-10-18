@@ -328,6 +328,7 @@ export interface BubbleItem {
 
 export interface BubbleStackPayload {
   bubbles: BubbleItem[]
+  placement: MenuPlacement
 }
 
 export const IPC_CHANNELS = {
@@ -392,6 +393,7 @@ export const IPC_CHANNELS = {
   memoCardBeginResize: 'memo-card:begin-resize',
   memoCardResizeMove: 'memo-card:resize-move',
   memoCardEndResize: 'memo-card:end-resize',
+  memoCardFitHeight: 'memo-card:fit-height',
   menuRunAction: 'menu:run-action',
   menuOpenSettings: 'menu:open-settings',
   menuHidePet: 'menu:hide-pet',
@@ -442,6 +444,7 @@ export interface MemoCardApi {
   endResize(id: string): Promise<void>
   complete(id: string): Promise<void>
   unanchor(id: string): Promise<void>
+  fitHeight(id: string, height: number): Promise<void>
 }
 
 export interface SettingsApi {

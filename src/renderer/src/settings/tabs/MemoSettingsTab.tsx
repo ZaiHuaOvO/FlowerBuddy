@@ -7,6 +7,8 @@ import { EmptyState } from '../../components/EmptyState'
 import { IconButton } from '../../components/IconButton'
 import { InfoTip } from '../../components/InfoTip'
 import { Tag } from '../../components/Tag'
+import { useTooltip } from '../../components/Tooltip'
+import { MemoReminderPicker } from '../components/MemoReminderPicker'
 import { ShortcutInput } from '../components/ShortcutInput'
 import type { useMemoSettings } from '../hooks/useMemoSettings'
 
@@ -64,29 +66,6 @@ function TrashIcon() {
   )
 }
 
-function CalendarIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
-      <rect
-        x="2.3"
-        y="3.4"
-        width="11.4"
-        height="10.3"
-        rx="1.6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.2"
-      />
-      <path
-        d="M2.3 6.4h11.4M5.4 2.2v2.4M10.6 2.2v2.4"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
 function GearIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
@@ -101,13 +80,6 @@ function GearIcon() {
       <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   )
-}
-
-function toLocalInputValue(date: Date): string {
-  const pad = (value: number): string => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) {
@@ -136,7 +108,10 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
   } = model
   const [settingsOpen, setSettingsOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const pickerRef = useRef<HTMLInputElement | null>(null)
+  const reminderTip =
+    draft.reminderError ||
+    (draft.reminderAt ? `提醒时间：${formatMemoDateTime(draft.reminderAt)}` : '')
+  const reminderTooltip = useTooltip<HTMLInputElement>(reminderTip, 'right')
 
   useEffect(() => {
     if (editorOpen) {
@@ -163,24 +138,6 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
     if (files.length > 0) {
       event.preventDefault()
       void addPastedImages(files)
-    }
-  }
-
-  function openPicker(): void {
-    const picker = pickerRef.current
-    if (!picker) {
-      return
-    }
-    if (draft.reminderAt) {
-      const date = new Date(draft.reminderAt)
-      if (!Number.isNaN(date.getTime())) {
-        picker.value = toLocalInputValue(date)
-      }
-    }
-    if (typeof picker.showPicker === 'function') {
-      picker.showPicker()
-    } else {
-      picker.click()
     }
   }
 
@@ -283,56 +240,41 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
 
               <div className="memo-reminder-field">
                 <input
+                  ref={reminderTooltip.triggerRef}
+                  {...reminderTooltip.handlers}
                   className={`fl-input memo-reminder-input${draft.reminderError ? ' is-invalid' : ''}`}
                   value={draft.reminderText}
                   placeholder="提醒时间，例如：下周五 3 点 / 2026-10-20 15:30"
                   onChange={(event) => updateReminderText(event.target.value)}
                 />
-                <Button variant="secondary" aria-label="选择提醒时间" onClick={openPicker}>
-                  <CalendarIcon />
-                  选择时间
-                </Button>
-                <input
-                  ref={pickerRef}
-                  className="memo-picker-hidden"
-                  type="datetime-local"
-                  step="1"
-                  tabIndex={-1}
-                  aria-hidden="true"
-                  onChange={(event) => setReminderFromPicker(event.target.value)}
+                {reminderTooltip.layer}
+                <MemoReminderPicker
+                  value={draft.reminderAt}
+                  onSelect={setReminderFromPicker}
+                  onClear={() => updateReminderText('')}
                 />
               </div>
-              {draft.reminderError ? (
-                <p className="memo-reminder-error">{draft.reminderError}</p>
-              ) : draft.reminderAt ? (
-                <p className="memo-reminder-preview">
-                  提醒时间：{formatMemoDateTime(draft.reminderAt)}
-                </p>
-              ) : (
-                <p className="hint">
-                  不填写则不提醒；支持“明天上午9点”“下周五 3 点”“10-20 15:30”等表达。
-                </p>
-              )}
 
-              {!editingId ? (
-                <label className="fl-switch memo-anchor-switch">
-                  <input
-                    type="checkbox"
-                    checked={draft.anchor}
-                    onChange={(event) => toggleAnchorNew(event.target.checked)}
-                  />
-                  <span className="fl-switch-track" aria-hidden="true" />
-                  <span className="fl-switch-label">创建后锚定到桌面</span>
-                </label>
-              ) : null}
-
-              <div className="form-actions">
-                <Button variant="primary" type="submit" disabled={busy}>
-                  {editingId ? '保存修改' : '添加备忘录'}
-                </Button>
-                <Button variant="ghost" onClick={cancelEdit} disabled={busy}>
-                  取消
-                </Button>
+              <div className="memo-editor-footer">
+                {!editingId ? (
+                  <label className="fl-switch memo-anchor-switch">
+                    <input
+                      type="checkbox"
+                      checked={draft.anchor}
+                      onChange={(event) => toggleAnchorNew(event.target.checked)}
+                    />
+                    <span className="fl-switch-track" aria-hidden="true" />
+                    <span className="fl-switch-label">创建后锚定到桌面</span>
+                  </label>
+                ) : null}
+                <div className="form-actions memo-form-actions">
+                  <Button variant="primary" type="submit" disabled={busy}>
+                    {editingId ? '保存修改' : '添加备忘录'}
+                  </Button>
+                  <Button variant="ghost" onClick={cancelEdit} disabled={busy}>
+                    取消
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
@@ -417,11 +359,7 @@ function MemoRow({
             <Tag tone="muted">无提醒</Tag>
           )}
           {memo.images.length > 0 ? <Tag tone="muted">{memo.images.length} 张图片</Tag> : null}
-          {memo.completed ? (
-            <Tag tone="success">已完成</Tag>
-          ) : memo.anchored ? (
-            <Tag tone="success">已锚定</Tag>
-          ) : null}
+          {memo.completed ? <Tag tone="success">已完成</Tag> : null}
         </span>
         {memo.completed && memo.completedAt ? (
           <span className="memo-card-completed">完成于 {formatMemoDateTime(memo.completedAt)}</span>

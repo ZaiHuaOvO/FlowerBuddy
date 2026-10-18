@@ -60,23 +60,24 @@ export function useTooltip<T extends HTMLElement>(text: string, align: TooltipAl
     onBlur: () => setOpen(false)
   }
 
-  const layer = open
-    ? createPortal(
-        <div
-          ref={layerRef}
-          className="fl-tooltip"
-          role="tooltip"
-          style={
-            position
-              ? { top: position.top, left: position.left }
-              : { top: 0, left: 0, visibility: 'hidden' }
-          }
-        >
-          {text}
-        </div>,
-        document.body
-      )
-    : null
+  const layer =
+    open && text
+      ? createPortal(
+          <div
+            ref={layerRef}
+            className="fl-tooltip"
+            role="tooltip"
+            style={
+              position
+                ? { top: position.top, left: position.left }
+                : { top: 0, left: 0, visibility: 'hidden' }
+            }
+          >
+            {text}
+          </div>,
+          document.body
+        )
+      : null
 
   return { triggerRef, handlers, layer }
 }

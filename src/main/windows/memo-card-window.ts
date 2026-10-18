@@ -6,7 +6,7 @@ import {
   MEMO_CARD_MAX_WIDTH,
   MEMO_CARD_MIN_HEIGHT,
   MEMO_CARD_MIN_WIDTH
-} from '../modules/memo/types'
+} from '../../shared/memo-layout'
 
 export function createMemoCardWindow(options: {
   preloadPath: string
