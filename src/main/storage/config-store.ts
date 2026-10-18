@@ -133,6 +133,15 @@ export class ConfigStore {
           modules: { ...modules, memo: { ...modules.memo, enabled } }
         }
         break
+      case 'interval-reminder':
+        this.current = {
+          ...this.current,
+          modules: {
+            ...modules,
+            intervalReminder: { ...modules.intervalReminder, enabled }
+          }
+        }
+        break
       case 'gmail':
         this.current = {
           ...this.current,
@@ -175,6 +184,8 @@ export class ConfigStore {
     switch (moduleId) {
       case 'memo':
         return modules.memo.enabled
+      case 'interval-reminder':
+        return modules.intervalReminder.enabled
       case 'gmail':
         return modules.gmail.enabled
       case 'esa':

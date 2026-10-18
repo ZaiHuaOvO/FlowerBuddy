@@ -69,12 +69,13 @@ export interface PetSettingsPatch {
   scale?: number
 }
 
-export type ModuleId = 'memo' | 'gmail' | 'esa' | 'deepseek' | 'website-check'
+export type ModuleId = 'memo' | 'interval-reminder' | 'gmail' | 'esa' | 'deepseek' | 'website-check'
 
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
 
 export interface ModulesSettings {
   memo: { enabled: boolean; anchorNewMemos: boolean }
+  intervalReminder: { enabled: boolean }
   gmail: {
     enabled: boolean
     pollIntervalMinutes: number
@@ -214,6 +215,47 @@ export interface MemoCardState {
   reminderAt: string | null
 }
 
+export interface ReminderRange {
+  /** Local `HH:mm`. */
+  start: string
+  /** Local `HH:mm`; may be earlier than start for an overnight range. */
+  end: string
+}
+
+export interface IntervalReminderInput {
+  name: string
+  text: string
+  enabled?: boolean
+  intervalMinutes: number
+  ranges: ReminderRange[]
+  randomEnabled: boolean
+  randomJitterMinutes: number
+}
+
+export interface IntervalReminderPatch {
+  name?: string
+  text?: string
+  enabled?: boolean
+  intervalMinutes?: number
+  ranges?: ReminderRange[]
+  randomEnabled?: boolean
+  randomJitterMinutes?: number
+}
+
+export interface IntervalReminderSummary {
+  id: string
+  name: string
+  text: string
+  enabled: boolean
+  intervalMinutes: number
+  ranges: ReminderRange[]
+  randomEnabled: boolean
+  randomJitterMinutes: number
+  lastFiredAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export type WebsiteCheckErrorKind =
   'none' | 'http-error' | 'timeout' | 'network' | 'tls' | 'invalid-url' | 'cancelled'
 
@@ -351,6 +393,11 @@ export const IPC_CHANNELS = {
   memosAddImage: 'memos:add-image',
   memosDiscardImages: 'memos:discard-images',
   memosSetAnchorNew: 'memos:set-anchor-new',
+  intervalRemindersList: 'interval-reminders:list',
+  intervalRemindersCreate: 'interval-reminders:create',
+  intervalRemindersUpdate: 'interval-reminders:update',
+  intervalRemindersDelete: 'interval-reminders:delete',
+  intervalRemindersSetEnabled: 'interval-reminders:set-enabled',
   memosChanged: 'memos:changed',
   settingsOpenMemoComposer: 'settings:open-memo-composer',
   settingsUiReady: 'settings:ui-ready',
@@ -467,6 +514,14 @@ export interface SettingsApi {
   addMemoImage(data: ArrayBuffer): Promise<MemoImageInfo>
   discardMemoImages(ids: string[]): Promise<void>
   setMemoAnchorNew(enabled: boolean): Promise<PublicConfig>
+  listIntervalReminders(): Promise<IntervalReminderSummary[]>
+  createIntervalReminder(input: IntervalReminderInput): Promise<IntervalReminderSummary[]>
+  updateIntervalReminder(
+    id: string,
+    patch: IntervalReminderPatch
+  ): Promise<IntervalReminderSummary[]>
+  deleteIntervalReminder(id: string): Promise<IntervalReminderSummary[]>
+  setIntervalReminderEnabled(id: string, enabled: boolean): Promise<IntervalReminderSummary[]>
   onMemosChanged(callback: () => void): () => void
   onOpenMemoComposer(callback: () => void): () => void
   settingsUiReady(): Promise<void>

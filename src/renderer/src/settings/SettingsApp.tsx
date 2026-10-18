@@ -4,6 +4,7 @@ import type {
   AppInfo,
   AppSettingsPatch,
   GmailStateView,
+  IntervalReminderSummary,
   MemoSummary,
   ModuleId,
   ModuleSummary,
@@ -14,6 +15,7 @@ import type {
   WebsiteCheckConfig
 } from '../../../shared/api'
 import { MemoSettingsTab } from './tabs/MemoSettingsTab'
+import { IntervalReminderSettingsTab } from './tabs/IntervalReminderSettingsTab'
 import { DeepSeekSettingsTab } from './tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from './tabs/EsaSettingsTab'
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab'
@@ -21,6 +23,7 @@ import { GmailSettingsTab } from './tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from './tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from './tabs/WebsitesSettingsTab'
 import { useMemoSettings } from './hooks/useMemoSettings'
+import { useIntervalReminderSettings } from './hooks/useIntervalReminderSettings'
 import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
 import { useGmailSettings } from './hooks/useGmailSettings'
@@ -40,6 +43,7 @@ export default function SettingsApp() {
   const [security, setSecurity] = useState<SecurityStatus | null>(null)
   const [startupNotice, setStartupNotice] = useState<string | null>(null)
   const [memos, setMemos] = useState<MemoSummary[]>([])
+  const [intervalReminders, setIntervalReminders] = useState<IntervalReminderSummary[]>([])
   const [websites, setWebsites] = useState<WebsiteCheckConfig[]>([])
   const [gmailState, setGmailState] = useState<GmailStateView | null>(null)
   const [error, setError] = useState('')
@@ -130,6 +134,19 @@ export default function SettingsApp() {
       })
 
     void api
+      .listIntervalReminders()
+      .then((next) => {
+        if (active) {
+          setIntervalReminders(next)
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(toMessage(cause))
+        }
+      })
+
+    void api
       .listWebsiteChecks()
       .then((next) => {
         if (active) {
@@ -179,6 +196,8 @@ export default function SettingsApp() {
       startupNotice={startupNotice}
       memos={memos}
       setMemos={setMemos}
+      intervalReminders={intervalReminders}
+      setIntervalReminders={setIntervalReminders}
       websites={websites}
       setWebsites={setWebsites}
       gmailState={gmailState}
@@ -200,6 +219,8 @@ interface ContentProps {
   startupNotice: string | null
   memos: MemoSummary[]
   setMemos: Dispatch<SetStateAction<MemoSummary[]>>
+  intervalReminders: IntervalReminderSummary[]
+  setIntervalReminders: (reminders: IntervalReminderSummary[]) => void
   websites: WebsiteCheckConfig[]
   setWebsites: (websites: WebsiteCheckConfig[]) => void
   gmailState: GmailStateView | null
@@ -219,6 +240,8 @@ function SettingsContent({
   startupNotice,
   memos,
   setMemos,
+  intervalReminders,
+  setIntervalReminders,
   websites,
   setWebsites,
   gmailState,
@@ -359,6 +382,13 @@ function SettingsContent({
     anchorNewMemos: config.modules.memo.anchorNewMemos,
     onSetAnchorNew: (enabled) => void saveMemoAnchorNew(enabled)
   })
+  const intervalReminderSettings = useIntervalReminderSettings({
+    api,
+    reminders: intervalReminders,
+    setReminders: setIntervalReminders,
+    flash,
+    setError
+  })
   const websiteSettings = useWebsiteSettings({
     api,
     websites,
@@ -491,6 +521,9 @@ function SettingsContent({
               memoShortcut={config.app.memoShortcut}
               onSaveShortcut={(accelerator) => void saveApp({ memoShortcut: accelerator })}
             />
+          ) : null}
+          {activeTab === 'reminder' ? (
+            <IntervalReminderSettingsTab model={intervalReminderSettings} />
           ) : null}
           {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
           {activeTab === 'gmail' ? (

@@ -1,10 +1,11 @@
 import { z } from 'zod'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 7
+export const CURRENT_CONFIG_SCHEMA_VERSION = 8
 
 export const MODULE_ID_VALUES = [
   'memo',
+  'interval-reminder',
   'gmail',
   'esa',
   'deepseek',
@@ -12,7 +13,7 @@ export const MODULE_ID_VALUES = [
 ] as const satisfies readonly ModuleId[]
 
 const moduleIdSchema = z.enum(MODULE_ID_VALUES)
-const defaultModuleOrder: ModuleId[] = ['memo', 'website-check']
+const defaultModuleOrder: ModuleId[] = ['memo', 'interval-reminder']
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -72,6 +73,8 @@ function isModuleEnabledIn(modules: ModulesSettings, moduleId: ModuleId): boolea
   switch (moduleId) {
     case 'memo':
       return modules.memo.enabled
+    case 'interval-reminder':
+      return modules.intervalReminder.enabled
     case 'gmail':
       return modules.gmail.enabled
     case 'esa':
@@ -139,6 +142,10 @@ const memoModuleSchema = z
   .object({ enabled: booleanField(true), anchorNewMemos: booleanField(false) })
   .catch({ enabled: true, anchorNewMemos: false })
 
+const intervalReminderModuleSchema = z
+  .object({ enabled: booleanField(true) })
+  .catch({ enabled: true })
+
 const gmailModuleSchema = z
   .object({
     enabled: booleanField(false),
@@ -170,14 +177,15 @@ const deepseekModuleSchema = z
 
 const websiteCheckModuleSchema = z
   .object({
-    enabled: booleanField(true),
+    enabled: booleanField(false),
     defaultTimeoutMs: integerField(3000, 30000, 8000)
   })
-  .catch({ enabled: true, defaultTimeoutMs: 8000 })
+  .catch({ enabled: false, defaultTimeoutMs: 8000 })
 
 const modulesSchema = z
   .object({
     memo: memoModuleSchema.default({ enabled: true, anchorNewMemos: false }),
+    intervalReminder: intervalReminderModuleSchema.default({ enabled: true }),
     gmail: gmailModuleSchema.default({
       enabled: false,
       pollIntervalMinutes: 3,
@@ -194,16 +202,17 @@ const modulesSchema = z
       refreshIntervalMinutes: null
     }),
     websiteCheck: websiteCheckModuleSchema.default({
-      enabled: true,
+      enabled: false,
       defaultTimeoutMs: 8000
     })
   })
   .catch({
     memo: { enabled: true, anchorNewMemos: false },
+    intervalReminder: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
-    websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
+    websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
   })
 
 const configSchema = z
@@ -221,10 +230,11 @@ const configSchema = z
     pet: petSchema.default({ assetId: 'default', scale: 1, position: null }),
     modules: modulesSchema.default({
       memo: { enabled: true, anchorNewMemos: false },
+      intervalReminder: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
-      websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
+      websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
     })
   })
   .catch({
@@ -241,20 +251,22 @@ const configSchema = z
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
       memo: { enabled: true, anchorNewMemos: false },
+      intervalReminder: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
-      websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
+      websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
     }
   })
 
 export function createDefaultModules(): ModulesSettings {
   return {
     memo: { enabled: true, anchorNewMemos: false },
+    intervalReminder: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
-    websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
+    websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
   }
 }
 
@@ -334,6 +346,30 @@ function migrateMemoModule(raw: unknown, fromVersion: number): unknown {
   return next
 }
 
+/** v8 introduces the reminder module and the new initial module selection. */
+function applyInitialModuleDefaults(raw: unknown, fromVersion: number): unknown {
+  if (fromVersion >= 8 || !isPlainObject(raw)) {
+    return raw
+  }
+  const next: Record<string, unknown> = { ...raw }
+  const modules = isPlainObject(raw.modules) ? { ...raw.modules } : {}
+  const setEnabled = (key: string, enabled: boolean): void => {
+    const existing = isPlainObject(modules[key]) ? modules[key] : {}
+    modules[key] = { ...existing, enabled }
+  }
+  setEnabled('memo', true)
+  modules.intervalReminder = { enabled: true }
+  setEnabled('gmail', false)
+  setEnabled('esa', false)
+  setEnabled('deepseek', false)
+  setEnabled('websiteCheck', false)
+  const app = isPlainObject(raw.app) ? { ...raw.app } : {}
+  app.moduleOrder = ['memo', 'interval-reminder']
+  next.modules = modules
+  next.app = app
+  return next
+}
+
 export function migrateConfig(raw: unknown): ConfigMigrationResult {
   const fromVersion = readSchemaVersion(raw)
   if (fromVersion > CURRENT_CONFIG_SCHEMA_VERSION) {
@@ -346,7 +382,9 @@ export function migrateConfig(raw: unknown): ConfigMigrationResult {
   }
 
   return {
-    config: parseConfig(migrateMemoModule(raw, fromVersion)),
+    config: parseConfig(
+      applyInitialModuleDefaults(migrateMemoModule(raw, fromVersion), fromVersion)
+    ),
     fromVersion,
     migrated: fromVersion < CURRENT_CONFIG_SCHEMA_VERSION,
     futureVersion: false

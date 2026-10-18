@@ -18,6 +18,9 @@ import {
   type GmailPollSummary,
   type GmailSettingsPatch,
   type GmailStateView,
+  type IntervalReminderInput,
+  type IntervalReminderPatch,
+  type IntervalReminderSummary,
   type MenuActionSummary,
   type MenuApi,
   type MenuPresentation,
@@ -214,6 +217,24 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     },
     setMemoAnchorNew: async (enabled: boolean) =>
       (await ipc.invoke(IPC_CHANNELS.memosSetAnchorNew, { enabled })) as PublicConfig,
+    listIntervalReminders: async () =>
+      (await ipc.invoke(IPC_CHANNELS.intervalRemindersList)) as IntervalReminderSummary[],
+    createIntervalReminder: async (input: IntervalReminderInput) =>
+      (await ipc.invoke(IPC_CHANNELS.intervalRemindersCreate, input)) as IntervalReminderSummary[],
+    updateIntervalReminder: async (id: string, patch: IntervalReminderPatch) =>
+      (await ipc.invoke(IPC_CHANNELS.intervalRemindersUpdate, {
+        id,
+        patch
+      })) as IntervalReminderSummary[],
+    deleteIntervalReminder: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.intervalRemindersDelete, {
+        id
+      })) as IntervalReminderSummary[],
+    setIntervalReminderEnabled: async (id: string, enabled: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.intervalRemindersSetEnabled, {
+        id,
+        enabled
+      })) as IntervalReminderSummary[],
     onMemosChanged: (callback) => ipc.on(IPC_CHANNELS.memosChanged, () => callback()),
     onOpenMemoComposer: (callback) =>
       ipc.on(IPC_CHANNELS.settingsOpenMemoComposer, () => callback()),

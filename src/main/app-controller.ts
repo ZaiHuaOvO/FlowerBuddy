@@ -8,6 +8,9 @@ import type {
   GmailPollSummary,
   GmailSettingsPatch,
   GmailStateView,
+  IntervalReminderInput,
+  IntervalReminderPatch,
+  IntervalReminderSummary,
   MemoCardEdge,
   MemoCardState,
   MemoImageInfo,
@@ -33,6 +36,7 @@ import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import type { EsaModule } from './modules/esa/esa-module'
 import type { GmailModule } from './modules/gmail/gmail-module'
 import type { GmailMessageSummary } from './modules/gmail/types'
+import type { IntervalReminderService } from './modules/interval-reminder/interval-reminder-service'
 import type { MemoService } from './modules/memo/memo-service'
 import type { ModuleManager } from './modules/module-manager'
 import {
@@ -60,6 +64,7 @@ export interface AppControllerOptions {
   secretStore: SecretStore
   memoService: MemoService
   memoImageStore: MemoImageStore
+  intervalReminderService: IntervalReminderService
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
@@ -239,6 +244,26 @@ export class AppController {
 
   setMemoAnchorNew(enabled: boolean): PublicConfig {
     return this.options.configStore.setMemoAnchorNew(enabled)
+  }
+
+  listIntervalReminders(): IntervalReminderSummary[] {
+    return this.options.intervalReminderService.list()
+  }
+
+  createIntervalReminder(input: IntervalReminderInput): IntervalReminderSummary[] {
+    return this.options.intervalReminderService.create(input)
+  }
+
+  updateIntervalReminder(id: string, patch: IntervalReminderPatch): IntervalReminderSummary[] {
+    return this.options.intervalReminderService.update(id, patch)
+  }
+
+  deleteIntervalReminder(id: string): IntervalReminderSummary[] {
+    return this.options.intervalReminderService.remove(id)
+  }
+
+  setIntervalReminderEnabled(id: string, enabled: boolean): IntervalReminderSummary[] {
+    return this.options.intervalReminderService.setEnabled(id, enabled)
   }
 
   addMemoImage(data: ArrayBuffer | Uint8Array): MemoImageInfo {
@@ -618,6 +643,7 @@ export class AppController {
   flush(): void {
     this.options.configStore.flush()
     this.options.memoService.flush()
+    this.options.intervalReminderService.flush()
     this.options.websiteService.flush()
     this.options.gmailModule.flush()
   }

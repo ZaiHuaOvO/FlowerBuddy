@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import type {
   AppSettingsPatch,
+  IntervalReminderInput,
+  IntervalReminderPatch,
   MemoInput,
   MemoPatch,
   ModuleId,
@@ -11,7 +13,14 @@ import type {
 import { isHttpUrl } from '../modules/website-check/website-types'
 import { AppError } from '../shared/errors'
 
-export const moduleIdSchema = z.enum(['memo', 'gmail', 'esa', 'deepseek', 'website-check'])
+export const moduleIdSchema = z.enum([
+  'memo',
+  'interval-reminder',
+  'gmail',
+  'esa',
+  'deepseek',
+  'website-check'
+])
 
 export const appSettingsPatchSchema = z
   .object({
@@ -20,7 +29,7 @@ export const appSettingsPatchSchema = z
     bubbleDurationMs: z.number().int().min(1000).max(30000).optional(),
     launchAtLogin: z.boolean().optional(),
     memoShortcut: z.string().trim().max(64).optional(),
-    moduleOrder: z.array(moduleIdSchema).max(5).optional(),
+    moduleOrder: z.array(moduleIdSchema).max(6).optional(),
     showPetOnStartup: z.boolean().optional()
   })
   .strict()
@@ -88,6 +97,41 @@ const memoAnchorNewInputSchema = z.object({ enabled: z.boolean() }).strict()
 
 const bubbleDismissInputSchema = z.object({ id: z.string().uuid() }).strict()
 const bubbleHeightInputSchema = z.object({ height: z.number().min(0).max(2000) }).strict()
+
+const reminderTimeSchema = z.string().regex(/^([01]?\d|2[0-3]):([0-5]\d)$/, '时间格式应为 HH:mm')
+
+const reminderRangeSchema = z
+  .object({ start: reminderTimeSchema, end: reminderTimeSchema })
+  .strict()
+  .refine((range) => range.start !== range.end, '开始和结束时间不能相同')
+
+const intervalReminderInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(40),
+    text: z.string().trim().min(1).max(500),
+    enabled: z.boolean().optional(),
+    intervalMinutes: z.number().int().min(1).max(1440),
+    ranges: z.array(reminderRangeSchema).max(6),
+    randomEnabled: z.boolean(),
+    randomJitterMinutes: z.number().int().min(0).max(120)
+  })
+  .strict()
+
+const intervalReminderPatchSchema = z
+  .object({
+    name: z.string().trim().min(1).max(40).optional(),
+    text: z.string().trim().min(1).max(500).optional(),
+    enabled: z.boolean().optional(),
+    intervalMinutes: z.number().int().min(1).max(1440).optional(),
+    ranges: z.array(reminderRangeSchema).max(6).optional(),
+    randomEnabled: z.boolean().optional(),
+    randomJitterMinutes: z.number().int().min(0).max(120).optional()
+  })
+  .strict()
+
+const intervalReminderUpdateInputSchema = z
+  .object({ id: z.string().uuid(), patch: intervalReminderPatchSchema })
+  .strict()
 
 const memoDiscardImagesSchema = z.object({ ids: z.array(z.string().uuid()).max(20) }).strict()
 
@@ -179,6 +223,8 @@ export {
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
+  intervalReminderInputSchema,
+  intervalReminderUpdateInputSchema,
   memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
   memoCardResizeInputSchema,
@@ -199,6 +245,8 @@ export type MenuAction = z.infer<typeof menuActionSchema>
 export type IdInput = z.infer<typeof idInputSchema>
 export type IdEnabledInput = z.infer<typeof idEnabledInputSchema>
 export type MemoUpdateInput = { id: string; patch: MemoPatch }
+export type IntervalReminderUpdateInput = { id: string; patch: IntervalReminderPatch }
+export type IntervalReminderCreateInput = IntervalReminderInput
 export type WebsiteUpdateInput = { id: string; patch: WebsiteCheckPatch }
 
 export function parseMemoInput(raw: unknown): MemoInput {

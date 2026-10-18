@@ -6,6 +6,8 @@ import { IPC_CHANNELS } from '../../shared/api'
 import type {
   AppSettingsPatch,
   GmailSettingsPatch,
+  IntervalReminderInput,
+  IntervalReminderPatch,
   IpcResult,
   MemoInput,
   MemoPatch,
@@ -26,6 +28,8 @@ import {
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
+  intervalReminderInputSchema,
+  intervalReminderUpdateInputSchema,
   memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
   memoCardResizeInputSchema,
@@ -127,6 +131,20 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
 
   register(IPC_CHANNELS.memosSetAnchorNew, memoAnchorNewInputSchema, (input) =>
     controller.setMemoAnchorNew(input.enabled)
+  )
+
+  register(IPC_CHANNELS.intervalRemindersList, null, () => controller.listIntervalReminders())
+  register(IPC_CHANNELS.intervalRemindersCreate, intervalReminderInputSchema, (input) =>
+    controller.createIntervalReminder(input as IntervalReminderInput)
+  )
+  register(IPC_CHANNELS.intervalRemindersUpdate, intervalReminderUpdateInputSchema, (input) =>
+    controller.updateIntervalReminder(input.id, input.patch as IntervalReminderPatch)
+  )
+  register(IPC_CHANNELS.intervalRemindersDelete, idInputSchema, (input) =>
+    controller.deleteIntervalReminder(input.id)
+  )
+  register(IPC_CHANNELS.intervalRemindersSetEnabled, idEnabledInputSchema, (input) =>
+    controller.setIntervalReminderEnabled(input.id, input.enabled)
   )
 
   register(IPC_CHANNELS.settingsUiReady, null, () => controller.acknowledgeSettingsUiReady())

@@ -11,6 +11,7 @@
 - `config.json`：普通设置、模块开关、桌面位置、非敏感配置（如 ESA SiteId、轮询间隔）。
 - `secrets.enc.json`：使用 Electron `safeStorage`（Windows DPAPI）加密后的 API Key、AccessKey、OAuth 客户端与 refresh token。
 - `data/memos.json`：备忘录文本、提醒时间、完成状态、锚点与卡片位置。
+- `data/interval-reminders.json`：定时提醒的名称、间隔、生效时段、随机值和气泡文本。
 - `memo-images/`：从剪贴板粘贴的备忘图片（统一转存为 PNG，仅保存在本机）。
 - `data/website-checks.json`：网站检测配置与最近结果。
 - `data/gmail-state.json`：已连接的邮箱、historyId、已通知消息 ID 等最小同步状态。
@@ -47,4 +48,4 @@ DeepSeek、阿里云与 Google 的数据处理受各自服务条款与隐私政�
 
 - 备忘录文本、提醒时间、桌面卡片位置与粘贴图片只保存在本机 `userData` 目录。
 - 粘贴图片不会上传到任何外部服务；删除备忘录时会同时删除其对应图片文件。
-- 备忘录提醒仅由本机定时器触发，通过桌宠气泡展示。
+- 备忘录与定时提醒仅由本机定时器触发，通过桌宠气泡展示；不会访问任何外部服务。

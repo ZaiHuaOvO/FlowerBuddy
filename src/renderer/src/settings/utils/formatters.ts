@@ -1,4 +1,4 @@
-import type { ModuleStatus, WebsiteCheckResult } from '../../../../shared/api'
+import type { ModuleStatus, ReminderRange, WebsiteCheckResult } from '../../../../shared/api'
 import type { TagTone } from '../../components/tag-tone'
 
 export function toMessage(error: unknown): string {
@@ -55,6 +55,13 @@ export function memoExcerpt(text: string): string {
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
   return lines.slice(1).join(' ').slice(0, 80)
+}
+
+export function formatReminderRanges(ranges: ReminderRange[]): string {
+  if (ranges.length === 0) {
+    return '全天生效'
+  }
+  return ranges.map((range) => `${range.start}–${range.end}`).join('、')
 }
 
 export function websiteTone(result: WebsiteCheckResult | null): TagTone {

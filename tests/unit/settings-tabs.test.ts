@@ -15,26 +15,29 @@ import type { useEsaSettings } from '../../src/renderer/src/settings/hooks/useEs
 import type { useGmailSettings } from '../../src/renderer/src/settings/hooks/useGmailSettings'
 import type { useWebsiteSettings } from '../../src/renderer/src/settings/hooks/useWebsiteSettings'
 import { createMemoDraft } from '../../src/renderer/src/settings/hooks/useMemoSettings'
-import { createWebsiteForm } from '../../src/renderer/src/settings/utils/forms'
+import type { useIntervalReminderSettings } from '../../src/renderer/src/settings/hooks/useIntervalReminderSettings'
+import { IntervalReminderSettingsTab } from '../../src/renderer/src/settings/tabs/IntervalReminderSettingsTab'
+import { createReminderForm, createWebsiteForm } from '../../src/renderer/src/settings/utils/forms'
 
 const noop = (): void => {}
 const asyncNoop = async (): Promise<void> => {}
 
 function makeConfig(): PublicConfig {
   return {
-    schemaVersion: 6,
+    schemaVersion: 8,
     app: {
       alwaysOnTop: true,
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
       memoShortcut: 'Alt+A',
-      moduleOrder: ['memo', 'website-check'],
+      moduleOrder: ['memo', 'interval-reminder'],
       showPetOnStartup: true
     },
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
       memo: { enabled: true, anchorNewMemos: false },
+      intervalReminder: { enabled: true },
       gmail: {
         enabled: false,
         pollIntervalMinutes: 3,
@@ -43,7 +46,7 @@ function makeConfig(): PublicConfig {
       },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
-      websiteCheck: { enabled: true, defaultTimeoutMs: 8000 }
+      websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
     }
   }
 }
@@ -63,6 +66,7 @@ function moduleSummary(id: ModuleSummary['id'], name: string): ModuleSummary {
 
 const modules = [
   moduleSummary('memo', '备忘录'),
+  moduleSummary('interval-reminder', '定时提醒'),
   moduleSummary('gmail', 'Gmail'),
   moduleSummary('deepseek', 'DeepSeek'),
   moduleSummary('esa', 'ESA')
@@ -91,6 +95,27 @@ const memoModel = {
   toggleAnchor: asyncNoop,
   remove: asyncNoop
 } as unknown as ReturnType<typeof useMemoSettings>
+
+const reminderModel = {
+  reminders: [],
+  form: createReminderForm(),
+  setForm: noop,
+  editingId: null,
+  dialogOpen: false,
+  confirmDeleteId: null,
+  setConfirmDeleteId: noop,
+  busy: false,
+  openNew: noop,
+  openEdit: noop,
+  closeDialog: noop,
+  changeUnit: noop,
+  addRange: noop,
+  updateRange: noop,
+  removeRange: noop,
+  submit: asyncNoop,
+  toggle: asyncNoop,
+  remove: asyncNoop
+} as unknown as ReturnType<typeof useIntervalReminderSettings>
 
 const websiteModel = {
   websites: [],
@@ -188,6 +213,9 @@ describe('settings tabs render', () => {
         })
       )
     ).toContain('<h2>备忘录</h2>')
+    expect(render(createElement(IntervalReminderSettingsTab, { model: reminderModel }))).toContain(
+      '<h2>定时提醒</h2>'
+    )
     expect(render(createElement(WebsitesSettingsTab, { model: websiteModel }))).toContain(
       '<h2>网站检测</h2>'
     )

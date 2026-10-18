@@ -1,6 +1,7 @@
 import type { ModuleId } from '../../../../shared/api'
 
-export type SettingsTab = 'general' | 'modules' | 'memo' | 'websites' | 'gmail' | 'deepseek' | 'esa'
+export type SettingsTab =
+  'general' | 'modules' | 'memo' | 'reminder' | 'websites' | 'gmail' | 'deepseek' | 'esa'
 
 export const CORE_TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: '常规' },
@@ -9,6 +10,7 @@ export const CORE_TABS: Array<{ id: SettingsTab; label: string }> = [
 
 export const MODULE_TAB_BY_ID: Record<ModuleId, SettingsTab> = {
   memo: 'memo',
+  'interval-reminder': 'reminder',
   gmail: 'gmail',
   deepseek: 'deepseek',
   esa: 'esa',

@@ -48,7 +48,7 @@ src/
       registry.ts                # 静态模块注册表
       module-manager.ts          # enabled && configured 生命周期
       types.ts                   # ModuleDefinition / ModuleContext
-      memo/ gmail/ esa/ deepseek/ website-check/
+      memo/ interval-reminder/ gmail/ esa/ deepseek/ website-check/
     protocol/pet-asset-protocol.ts
     protocol/memo-image-protocol.ts
     shortcuts/global-shortcuts.ts
@@ -102,7 +102,7 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 
 1. 设置 AppUserModelID、浅色主题，移除应用菜单。
 2. 拒绝所有权限请求。
-3. 在 `app.getPath('userData')` 下创建并加载：`Logger`、`ConfigStore`、`SecretStore`、`JsonStore`（备忘录/网站）、`Gmail` 状态存储与 `MemoImageStore`；旧的 `data/dates.json` 会在此时删除。
+3. 在 `app.getPath('userData')` 下创建并加载：`Logger`、`ConfigStore`、`SecretStore`、`JsonStore`（备忘录/定时提醒/网站）、`Gmail` 状态存储与 `MemoImageStore`；旧的 `data/dates.json` 会在此时删除，定时提醒在首次加载时写入默认“喝水”提醒。
 4. 创建 `TaskScheduler`、各业务 service/module、`ModuleManager` 和 `AppController`。
 5. 注册 Gmail 新邮件回调、桌宠与备忘录图片协议处理器、IPC handlers。
 6. 监听 `powerMonitor` 的 `resume`，调用 `ModuleManager.handleResume()` 重新计时。
@@ -127,7 +127,7 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 | `pet`       | `windows/pet-window.ts`       | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
 | `menu`      | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
 | `bubble`    | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
-| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 常规、功能管理，以及按启用顺序动态出现的备忘录、网站、Gmail、DeepSeek、ESA 页面                                                   |
+| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 常规、功能管理，以及按启用顺序动态出现的备忘录、定时提醒、网站、Gmail、DeepSeek、ESA 页面                                         |
 | `memo-card` | `windows/memo-card-window.ts` | 每条锚定备忘录一个窗口             | 透明无边框、始终置顶、可聚焦；标题栏拖动、四角自定义缩放、完成与取消锚点；内容由 `memo-card:state-changed` 同步                   |
 
 加载规则（`windows/load-view.ts`）：
@@ -210,7 +210,7 @@ renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程
 
 ### 5.4 通道定义
 
-所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`memos:`、`memo-card:`、`websites:`、`deepseek:`、`esa:`、`gmail:`、`menu:`、`pet:`、`bubble:`。
+所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`memos:`、`memo-card:`、`interval-reminders:`、`websites:`、`deepseek:`、`esa:`、`gmail:`、`menu:`、`pet:`、`bubble:`。
 
 新增 IPC 的最小改动面：
 
@@ -228,6 +228,7 @@ renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程
 `src/main/modules/registry.ts` 返回固定模块数组，不读取文件系统、不执行动态插件代码：
 
 - `MemoModule`（含提醒定时器，通过 `ModuleContext.notify` 请求桌宠气泡提示）
+- `IntervalReminderModule`（按间隔检查定时提醒，通过 `ModuleContext.notify` 请求常驻气泡）
 - `GmailModule`
 - `EsaModule`
 - `DeepSeekModule`
@@ -274,12 +275,13 @@ interface ModuleDefinition {
 
 当前任务来源：
 
-| 模块     | 任务                 | 间隔                           | 备注                                 |
-| -------- | -------------------- | ------------------------------ | ------------------------------------ |
-| Gmail    | `gmail:poll`         | 1–15 分钟，默认 3              | 只在已配置时启动；授权失效时停止轮询 |
-| DeepSeek | `deepseek:refresh`   | 5–60 分钟或关闭                | 配置了刷新间隔才注册                 |
-| ESA      | `esa:refresh`        | 5–60 分钟或关闭                | 配置了刷新间隔才注册                 |
-| 网站检测 | `website-check:<id>` | 每个启用且设置了间隔的网站一条 | 配置变化后重建任务                   |
+| 模块     | 任务                      | 间隔                           | 备注                                 |
+| -------- | ------------------------- | ------------------------------ | ------------------------------------ |
+| Gmail    | `gmail:poll`              | 1–15 分钟，默认 3              | 只在已配置时启动；授权失效时停止轮询 |
+| DeepSeek | `deepseek:refresh`        | 5–60 分钟或关闭                | 配置了刷新间隔才注册                 |
+| ESA      | `esa:refresh`             | 5–60 分钟或关闭                | 配置了刷新间隔才注册                 |
+| 网站检测 | `website-check:<id>`      | 每个启用且设置了间隔的网站一条 | 配置变化后重建任务                   |
+| 定时提醒 | 无（模块内部 30 秒 tick） | 每个提醒按配置间隔 ± 随机值    | 仅在生效时间段内触发                 |
 
 ### 6.4 快捷菜单动作与气泡
 
@@ -301,20 +303,28 @@ interface ModuleDefinition {
 - `MemoCardWindowManager`（`windows/memo-card-window-manager.ts`）为每条 `anchored && !completed` 的备忘录维护一个 `memo-card` 窗口。新卡片默认从主显示器右上角开始，按“先向下、满列后向左”的网格寻找不重叠的位置并持久化；已有位置在未被其他卡片占用时保留。卡片高度在窗口创建时由 renderer 按正文内容测量并通过 `memo-card:fit-height` 回写，约为正文高度加一行空行。窗口使用自定义拖动与四角缩放 IPC（主进程读取系统光标位置），结束时把位置/尺寸写回 `MemoService`；模块停用、删除、完成或取消锚点时关闭对应窗口，显示器变化时重新限制到可见区域。
 - 全局快捷键由 `shortcuts/global-shortcuts.ts` 注册，默认 `Alt+A`，保存在 `config.app.memoShortcut`；界面入口是备忘录页标题旁的齿轮设置弹窗，不出现在常规页；新建弹窗中的“创建后锚定到桌面”开关会把偏好写入 `modules.memo.anchorNewMemos`，创建后立即锚定。冲突时保留原快捷键并返回 `INVALID_INPUT`。触发后打开设置；渲染进程通过 `settings:ui-ready` 握手，主进程再发送 `settings:open-memo-composer` 切换到备忘录页并弹出新建弹窗。
 
+### 6.6 定时提醒
+
+- `IntervalReminderService`（`modules/interval-reminder/`）保存多个提醒；首次启动（`seeded=false`）写入默认关闭的“喝水”提醒，之后即使用户删除全部提醒也不会重复写入。
+- 提醒配置包括名字、气泡文本、开关、间隔（分钟）、生效时段数组和 `±N` 分钟随机值。间隔 30 分钟、随机值 5 分钟时，实际间隔在 25–35 分钟之间随机。
+- `IntervalReminderModule` 每 30 秒检查一次：为每个启用提醒计算下次时间；到期且处于生效时段时通过 `ModuleContext.notify(text, { persistent: true })` 显示常驻气泡并记录 `lastFiredAt`；到期但不在时段内时顺延到下一个时段开始。系统恢复时立即补查。
+- 生效时段为本地 `HH:mm`，支持跨午夜范围；时段为空表示全天生效。提醒不经过 `TaskScheduler`，避免分钟级间隔被调度器的指数退避/重叠策略影响。
+
 ## 7. 数据、凭据与日志
 
 所有可变数据写入 `app.getPath('userData')`，不写入安装目录：
 
-| 文件/目录                  | 内容                                                                                                               | 写入者                   | 安全处理                                                                                                                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `config.json`              | 应用设置、桌宠配置、模块开关、启用模块顺序（`app.moduleOrder`）、全局快捷键、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`            | `schemaVersion` 当前为 7；v5 的 `dates` 模块会在迁移时映射为 `memo`，备忘录的“创建后锚定”偏好保存在 `modules.memo.anchorNewMemos`；Zod 修复非法值并归一化模块顺序；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
-| `secrets.enc.json`         | 加密后的 API Key、AccessKey、OAuth Client/Refresh Token                                                            | `SecretStore`            | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                                                                                                                                                       |
-| `data/memos.json`          | 备忘录文本、提醒、完成状态、锚点与卡片位置                                                                         | `JsonStore<MemoData>`    | `sanitizeMemoData` 修复非法输入；最多 500 条；原子写入                                                                                                                                                                         |
-| `data/website-checks.json` | 网站检测配置与最近结果                                                                                             | `JsonStore<WebsiteData>` | `sanitizeWebsiteData`；结果只保留展示字段                                                                                                                                                                                      |
-| `data/gmail-state.json`    | 邮箱地址、`historyId`、已通知消息 ID、授权失效标记                                                                 | `JsonStore<GmailState>`  | 不保存正文；消息 ID 有上限                                                                                                                                                                                                     |
-| `pets/<uuid>.png`          | 用户导入的桌宠图片                                                                                                 | `storage/pet-assets.ts`  | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                                                                                                                                                   |
-| `memo-images/<uuid>.png`   | 备忘录粘贴的图片                                                                                                   | `storage/memo-images.ts` | 仅 PNG，≤10 MB，尺寸 ≤4096；随机 UUID；删除备忘录时清理；启动时清理未引用文件                                                                                                                                                  |
-| `logs/app.log`             | JSON Lines 脱敏日志                                                                                                | `Logger`                 | 密钥/token/邮件主题等脱敏；2 MB 轮转；保留 7 天                                                                                                                                                                                |
+| 文件/目录                      | 内容                                                                                                               | 写入者                            | 安全处理                                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `config.json`                  | 应用设置、桌宠配置、模块开关、启用模块顺序（`app.moduleOrder`）、全局快捷键、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`                     | `schemaVersion` 当前为 8；v5 的 `dates` 模块会在迁移时映射为 `memo`，v8 迁移会把模块选择重置为“备忘录 + 定时提醒”，其余模块停用；备忘录的“创建后锚定”偏好保存在 `modules.memo.anchorNewMemos`；Zod 修复非法值并归一化模块顺序；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
+| `secrets.enc.json`             | 加密后的 API Key、AccessKey、OAuth Client/Refresh Token                                                            | `SecretStore`                     | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                                                                                                                                                                                                                   |
+| `data/memos.json`              | 备忘录文本、提醒、完成状态、锚点与卡片位置                                                                         | `JsonStore<MemoData>`             | `sanitizeMemoData` 修复非法输入；最多 500 条；原子写入                                                                                                                                                                                                                                     |
+| `data/interval-reminders.json` | 定时提醒的名称、文本、开关、间隔、生效时段、随机值与上次触发时间                                                   | `JsonStore<IntervalReminderData>` | `sanitizeIntervalReminderData` 修复非法输入；最多 100 条；首次创建时写入默认“喝水”提醒；原子写入                                                                                                                                                                                           |
+| `data/website-checks.json`     | 网站检测配置与最近结果                                                                                             | `JsonStore<WebsiteData>`          | `sanitizeWebsiteData`；结果只保留展示字段                                                                                                                                                                                                                                                  |
+| `data/gmail-state.json`        | 邮箱地址、`historyId`、已通知消息 ID、授权失效标记                                                                 | `JsonStore<GmailState>`           | 不保存正文；消息 ID 有上限                                                                                                                                                                                                                                                                 |
+| `pets/<uuid>.png`              | 用户导入的桌宠图片                                                                                                 | `storage/pet-assets.ts`           | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                                                                                                                                                                                                               |
+| `memo-images/<uuid>.png`       | 备忘录粘贴的图片                                                                                                   | `storage/memo-images.ts`          | 仅 PNG，≤10 MB，尺寸 ≤4096；随机 UUID；删除备忘录时清理；启动时清理未引用文件                                                                                                                                                                                                              |
+| `logs/app.log`                 | JSON Lines 脱敏日志                                                                                                | `Logger`                          | 密钥/token/邮件主题等脱敏；2 MB 轮转；保留 7 天                                                                                                                                                                                                                                            |
 
 凭据 ID（`src/main/security/secret-ids.ts`）：
 

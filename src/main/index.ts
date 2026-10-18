@@ -9,6 +9,12 @@ import { EsaModule } from './modules/esa/esa-module'
 import { GmailModule } from './modules/gmail/gmail-module'
 import { GmailService } from './modules/gmail/gmail-service'
 import { createEmptyGmailState, sanitizeGmailState, type GmailState } from './modules/gmail/types'
+import { IntervalReminderService } from './modules/interval-reminder/interval-reminder-service'
+import { sanitizeIntervalReminderData } from './modules/interval-reminder/reminder-data'
+import {
+  createEmptyIntervalReminderData,
+  type IntervalReminderData
+} from './modules/interval-reminder/types'
 import { sanitizeMemoData } from './modules/memo/memo-data'
 import { MemoService } from './modules/memo/memo-service'
 import { createEmptyMemoData, type MemoData } from './modules/memo/types'
@@ -112,9 +118,21 @@ async function bootstrap(): Promise<void> {
   })
   websiteStore.load()
 
+  const intervalReminderStore = new JsonStore<IntervalReminderData>(
+    join(dataDirectory, 'interval-reminders.json'),
+    {
+      label: 'interval-reminders',
+      defaults: createEmptyIntervalReminderData,
+      sanitize: sanitizeIntervalReminderData,
+      logger
+    }
+  )
+  intervalReminderStore.load()
+
   const memoImageStore = new MemoImageStore(join(userDataPath, 'memo-images'))
   const memoService = new MemoService(memoStore, memoImageStore)
   memoImageStore.cleanupOrphans(memoService.referencedImageIds())
+  const intervalReminderService = new IntervalReminderService(intervalReminderStore)
   const websiteService = new WebsiteService(websiteStore)
   const deepSeekModule = new DeepSeekModule({ secretStore, configStore })
   const esaModule = new EsaModule({ secretStore, configStore })
@@ -140,6 +158,7 @@ async function bootstrap(): Promise<void> {
   const moduleManager = new ModuleManager({
     modules: createModuleRegistry({
       memoService,
+      intervalReminderService,
       websiteService,
       deepSeekModule,
       esaModule,
@@ -158,6 +177,7 @@ async function bootstrap(): Promise<void> {
     secretStore,
     memoService,
     memoImageStore,
+    intervalReminderService,
     websiteService,
     deepSeekModule,
     esaModule,

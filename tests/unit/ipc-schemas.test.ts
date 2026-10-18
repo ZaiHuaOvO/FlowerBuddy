@@ -12,6 +12,8 @@ import {
   memoInputSchema,
   memoPatchSchema,
   moduleIdSchema,
+  intervalReminderInputSchema,
+  intervalReminderUpdateInputSchema,
   parseAppSettingsPatch,
   parseInput,
   parseModuleId,
@@ -91,6 +93,7 @@ describe('IPC input schemas', () => {
 
   it('exports enum schemas used by the handlers', () => {
     expect(moduleIdSchema.options).toContain('deepseek')
+    expect(moduleIdSchema.options).toContain('interval-reminder')
     expect(petSettingsPatchSchema.parse({ scale: 0.5 })).toEqual({ scale: 0.5 })
   })
 
@@ -133,6 +136,66 @@ describe('IPC input schemas', () => {
       })
     ).toThrow(AppError)
     expect(parseInput(memoImageBytesSchema, { data: new ArrayBuffer(2) })).toBeTruthy()
+  })
+
+  it('validates interval reminder inputs', () => {
+    const input = parseInput(intervalReminderInputSchema, {
+      name: '喝水',
+      text: '该喝水啦！',
+      enabled: true,
+      intervalMinutes: 30,
+      ranges: [{ start: '09:00', end: '12:00' }],
+      randomEnabled: true,
+      randomJitterMinutes: 5
+    })
+    expect(input).toMatchObject({ name: '喝水', intervalMinutes: 30 })
+    expect(
+      parseInput(intervalReminderUpdateInputSchema, {
+        id: '9f1c1c34-7d0c-4a18-9a94-7d1c5d2a3b11',
+        patch: { intervalMinutes: 60, ranges: [] }
+      })
+    ).toMatchObject({ patch: { intervalMinutes: 60 } })
+
+    expect(() =>
+      parseInput(intervalReminderInputSchema, {
+        name: 'x',
+        text: 'y',
+        intervalMinutes: 0,
+        ranges: [],
+        randomEnabled: false,
+        randomJitterMinutes: 0
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(intervalReminderInputSchema, {
+        name: 'x',
+        text: 'y',
+        intervalMinutes: 30,
+        ranges: [{ start: '09:00', end: '09:00' }],
+        randomEnabled: false,
+        randomJitterMinutes: 0
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(intervalReminderInputSchema, {
+        name: 'x',
+        text: 'y',
+        intervalMinutes: 30,
+        ranges: [{ start: '25:00', end: '26:00' }],
+        randomEnabled: false,
+        randomJitterMinutes: 0
+      })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(intervalReminderInputSchema, {
+        name: 'x',
+        text: 'y',
+        intervalMinutes: 30,
+        ranges: [],
+        randomEnabled: true,
+        randomJitterMinutes: 121
+      })
+    ).toThrow(AppError)
   })
 
   it('validates website inputs', () => {
