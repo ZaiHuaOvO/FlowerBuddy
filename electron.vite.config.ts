@@ -44,7 +44,15 @@ function contentSecurityPolicy(): Plugin {
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        // ws (used by the Aliyun ESA SDK) optionally requires these native
+        // helpers; keep them external so bundling does not fail when the
+        // optional packages are not installed.
+        external: ['bufferutil', 'utf-8-validate']
+      }
+    }
   },
   preload: {
     plugins: [externalizeDepsPlugin()]

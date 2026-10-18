@@ -379,6 +379,7 @@ flowchart LR
 事实要点：
 
 - `electron.vite.config.ts` 对 main/preload 使用 `externalizeDepsPlugin()`；renderer 使用 React 插件和 CSP 注入插件。
+- main 构建额外把 `bufferutil` / `utf-8-validate` 标记为 Rollup external：阿里云 ESA SDK 的 `ws` 依赖会可选加载这两个原生模块，未安装时 `ws` 自动回退到纯 JS；直接打包会在解析阶段失败。
 - 开发 CSP 允许 React Refresh 内联脚本和本地 HMR WebSocket；生产 CSP 为 `default-src 'none'`、`script-src 'self'`。
 - `electron-builder.yml`：`asar: true`，打包 `out/**/*`、`package.json`、`assets/default-pet/**/*`，输出到 `release/`；Windows x64 生成 NSIS 和 portable。
 - `extraResources` 带入第三方许可证和托盘图标。

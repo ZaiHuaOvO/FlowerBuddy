@@ -105,6 +105,21 @@ export class EsaModule implements ModuleDefinition {
       throw new AppError('NOT_CONFIGURED', '请先在设置中填写 ESA SiteId')
     }
 
-    return this.fetchTraffic({ accessKeyId, accessKeySecret, siteId })
+    try {
+      return await this.fetchTraffic({ accessKeyId, accessKeySecret, siteId })
+    } catch (error) {
+      if (this.context && error instanceof AppError) {
+        const cause = error.cause as
+          | { code?: unknown; statusCode?: unknown; requestId?: unknown; message?: unknown }
+          | undefined
+        this.context.logger.warn('esa query failed', {
+          code: typeof cause?.code === 'string' ? cause.code : null,
+          statusCode: typeof cause?.statusCode === 'number' ? cause.statusCode : null,
+          requestId: typeof cause?.requestId === 'string' ? cause.requestId : null,
+          message: typeof cause?.message === 'string' ? cause.message.slice(0, 200) : null
+        })
+      }
+      throw error
+    }
   }
 }
