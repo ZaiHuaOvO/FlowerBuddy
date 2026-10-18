@@ -95,3 +95,48 @@
 - GitHub Actions 首次托管运行结果需在推送后由平台确认。
 
 以上限制与实际完成项已同步到 `docs/OPEN_ITEMS.md`。
+
+---
+
+## 2026-10-18 发布前优化轮次（自动化验收）
+
+> 代码版本：`bcb623d`（`fix: harden app security and long-running behavior`）
+> 环境：macOS Darwin 27.0.0（arm64）、Node.js v22.22.2、npm 11.7.0
+> 范围：自动化检查与单元测试；Windows 实机、安装包、托盘、DPI 与视觉基线仍未执行。
+
+### 1. 执行结果
+
+| 检查                   | 结果                                                           |
+| ---------------------- | -------------------------------------------------------------- |
+| `npm ci`               | 通过，按锁文件安装 497 个包                                    |
+| `npm run typecheck`    | 通过                                                           |
+| `npm run lint`         | 通过                                                           |
+| `npm run format:check` | 通过                                                           |
+| `npm test`             | 33 个测试文件、235 个测试全部通过                              |
+| `npm run build`        | 通过；主进程 bundle 193.47 kB，设置页 bundle 57.33 kB          |
+| `npm run licenses`     | 通过，472 个包均有许可证字段；清单中已无 Gmail/Google API 依赖 |
+| `npm audit --omit=dev` | 0 个生产依赖漏洞                                               |
+| `npm ls --depth=0`     | 顶层依赖不含 `googleapis` / `google-auth-library`              |
+
+### 2. 本轮新增验证
+
+- `app-schemes.test.ts`：两个自定义 scheme 在一次 `registerSchemesAsPrivileged()` 调用中注册，权限声明完整且无重复。
+- `navigation-guards.test.ts`：生产环境只允许本地 renderer 页面，开发环境只允许 Vite dev server 根页面；外部 HTTPS、`file:`、`javascript:`、`data:`、自定义协议导航均被拒绝，`window.open` 一律拒绝。
+- `interval-reminder-module.test.ts` + `module-action-runner.test.ts`：同一提醒重复触发复用 `interval-reminder:<id>` 气泡 ID，不再堆积相同常驻气泡。
+- `memo-service.test.ts`：同时锚定上限为 20 张，第 21 张被拒绝；旧数据超过 20 张时加载后仅保留 20 张锚定。
+- `config-store.test.ts`：schema v9 迁移会删除 Gmail 模块及模块顺序中的残留 ID，同时保留其他模块的用户排序。
+- Gmail 相关源码、IPC、设置页、测试、Google 依赖和当前文档已无残留；历史记录文件保持原样。
+
+### 3. GitHub Actions
+
+- `bcb623d` 已触发 CI：<https://github.com/ZaiHuaOvO/FlowerBuddy/actions/runs/39138927630>。记录时状态为排队，最终结论以该页面为准。
+
+### 4. 未覆盖的 Windows 实机项
+
+以下项目仍需在 Windows 环境按 `docs/testing/manual-test-plan.md` 执行，不得用本记录替代：
+
+- Setup 安装、Portable 启动、ZIP 内容与卸载/数据保留。
+- 托盘单击/双击、开机启动、系统通知与快捷键的真实系统行为。
+- 多显示器、100%/125%/150%/200% 缩放、任务栏边缘与长文本视觉检查。
+- 默认桌宠、导入形象、备忘录图片和桌面卡片图片在打包版中的实际加载。
+- `docs/screenshots/` 视觉基线更新与对应版本/commit 标注。

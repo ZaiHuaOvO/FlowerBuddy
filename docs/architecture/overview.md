@@ -103,10 +103,10 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 启动入口为 `src/main/index.ts` 的 `bootstrap()`：
 
 1. 设置 AppUserModelID、浅色主题，移除应用菜单。
-2. 拒绝所有权限请求。
+2. 拒绝所有权限请求，并监听 `web-contents-created` 为每个应用窗口安装导航与新窗口防护。
 3. 在 `app.getPath('userData')` 下创建并加载：`Logger`、`ConfigStore`、`SecretStore`、`JsonStore`（备忘录/定时提醒/网站）与 `MemoImageStore`；旧的 `data/dates.json` 和 `data/gmail-state.json` 会在此时删除，旧 Gmail 凭据也会从 `secrets.enc.json` 清理，定时提醒在首次加载时写入默认“喝水”提醒。
 4. 创建 `TaskScheduler`、各业务 service/module、`ModuleManager` 和 `AppController`。
-5. 注册桌宠与备忘录图片协议处理器、IPC handlers。
+5. 注册桌宠与备忘录图片协议处理器、IPC handlers；两个自定义 scheme 已在 `app.ready` 前通过 `registerAppSchemes()` 一次性声明。
 6. 监听 `powerMonitor` 的 `resume`，调用 `ModuleManager.handleResume()` 重新计时。
 7. `AppController.start()`：应用开机启动设置、创建桌宠窗口、托盘、启动模块、注册全局快捷键、同步桌面备忘卡片，并监听显示器变化。
 

@@ -44,6 +44,8 @@ portable:
   unpackDirName: 花伴
 
 extraResources:
+  - from: LICENSE
+    to: LICENSE
   - from: licenses/THIRD_PARTY_LICENSES.md
     to: licenses/THIRD_PARTY_LICENSES.md
   - from: assets/tray-icon.png

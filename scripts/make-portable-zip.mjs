@@ -20,12 +20,14 @@ const portableName = `${productName}-Portable-${version}-x64.exe`
 const portablePath = join(releaseDir, portableName)
 const readmePath = join(root, 'docs', 'README-使用说明.txt')
 const licensesPath = join(root, 'licenses', 'THIRD_PARTY_LICENSES.md')
+const licensePath = join(root, 'LICENSE')
 const outputPath = join(releaseDir, `${productName}-${version}-x64.zip`)
 
 for (const [label, filePath] of [
   ['portable executable', portablePath],
   ['usage readme', readmePath],
-  ['third-party licenses', licensesPath]
+  ['third-party licenses', licensesPath],
+  ['project license', licensePath]
 ]) {
   if (!existsSync(filePath)) {
     console.error(`Missing ${label}: ${filePath}`)
@@ -38,6 +40,7 @@ try {
   copyFileSync(portablePath, join(staging, portableName))
   copyFileSync(readmePath, join(staging, 'README-使用说明.txt'))
   copyFileSync(licensesPath, join(staging, 'THIRD_PARTY_LICENSES.md'))
+  copyFileSync(licensePath, join(staging, 'LICENSE.txt'))
 
   const destination = outputPath.replace(/'/g, "''")
   const source = join(staging, '*').replace(/'/g, "''")

@@ -61,6 +61,7 @@
 - `AppController` 是协调者：它对 renderer 暴露用例方法，组合模块、窗口、托盘、存储和安全组件；不要把某个模块的网络细节写进协调器。
 - 窗口创建集中在 `src/main/windows/`：
   - 所有窗口必须使用 `createSecureWebPreferences()`。
+  - 导航与 `window.open` 防护由 `security/navigation-guards.ts` 统一安装，新增窗口或页面不得绕过允许列表。
   - 几何计算放在 `geometry.ts`，保持纯函数，便于单元测试。
   - 窗口类负责创建、定位、显示/隐藏和清理，不发起外部 API 请求。
 - 托盘、overlay、动作执行器各自独立；新增全局 UI 能力时优先在这些职责类中扩展，而不是继续膨胀 `AppController`。
@@ -184,7 +185,6 @@
 
 以下事项尚未实现，不要写成已完成；如需实施，先登记/更新 [OPEN_ITEMS.md](../OPEN_ITEMS.md)：
 
-- 为窗口增加 `setWindowOpenHandler` / `will-navigate` 拦截，并补充验证；当前源码中未找到对应实现。
 - 增加 IPC handler 与窗口生命周期的集成测试；当前以单元测试为主。
 - 对托盘单击/双击、系统通知点击、原生文件对话框等进行自动化或可重复的手动验收。
 - 增加可访问性专项检查（键盘全流程、对比度、读屏标签）。

@@ -191,7 +191,7 @@ npm run dist:win
 
 - `花伴-Setup-<version>-x64.exe`：NSIS 安装程序，默认按当前用户安装，可选择安装目录。
 - `花伴-Portable-<version>-x64.exe`：便携版，双击运行。
-- `花伴-<version>-x64.zip`：便携版 + 使用说明 + 第三方许可证清单。
+- `花伴-<version>-x64.zip`：便携版 + 使用说明 + 项目许可 + 第三方许可证清单。
 
 用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。隐私与删除方式见 [PRIVACY.md](PRIVACY.md)。
 
