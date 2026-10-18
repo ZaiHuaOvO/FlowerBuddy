@@ -313,6 +313,11 @@
   letter-spacing: 0.04em;
 }
 
+.module-title-row h2 {
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
 .row {
   display: flex;
   align-items: center;

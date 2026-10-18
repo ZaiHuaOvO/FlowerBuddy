@@ -4,8 +4,6 @@ import {
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   esaDisplayRangesSchema,
-  gmailClientInputSchema,
-  gmailSettingsPatchSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   memoCardResizeInputSchema,
@@ -36,8 +34,8 @@ describe('IPC input schemas', () => {
       bubbleDurationMs: 8000
     })
     expect(parseAppSettingsPatch({})).toEqual({})
-    expect(parseAppSettingsPatch({ moduleOrder: ['memo', 'gmail'] })).toEqual({
-      moduleOrder: ['memo', 'gmail']
+    expect(parseAppSettingsPatch({ moduleOrder: ['memo', 'esa'] })).toEqual({
+      moduleOrder: ['memo', 'esa']
     })
     expect(parseAppSettingsPatch({ bubbleDurationMs: 1000 })).toEqual({ bubbleDurationMs: 1000 })
     expect(parsePetSettingsPatch({ scale: 1.5 })).toEqual({ scale: 1.5 })
@@ -53,7 +51,7 @@ describe('IPC input schemas', () => {
   })
 
   it('accepts only known module ids', () => {
-    expect(parseModuleId('gmail')).toBe('gmail')
+    expect(parseModuleId('esa')).toBe('esa')
     expect(parseModuleId('website-check')).toBe('website-check')
     expect(() => parseModuleId('unknown')).toThrow(AppError)
     expect(() => parseModuleId(42)).toThrow(AppError)
@@ -288,9 +286,9 @@ describe('IPC input schemas', () => {
       minutes: 15
     })
 
-    expect(() =>
-      parseInput(refreshIntervalInputSchema, { moduleId: 'gmail', minutes: 15 })
-    ).toThrow(AppError)
+    expect(() => parseInput(refreshIntervalInputSchema, { moduleId: 'memo', minutes: 15 })).toThrow(
+      AppError
+    )
     expect(() => parseInput(refreshIntervalInputSchema, { moduleId: 'esa', minutes: 1 })).toThrow(
       AppError
     )
@@ -308,34 +306,5 @@ describe('IPC input schemas', () => {
       memoShortcut: 'Alt+Shift+M'
     })
     expect(parseAppSettingsPatch({ memoShortcut: '' })).toEqual({ memoShortcut: '' })
-  })
-
-  it('validates Gmail client and notification settings', () => {
-    expect(
-      parseInput(gmailClientInputSchema, {
-        clientId: 'client-id',
-        clientSecret: 'client-secret'
-      })
-    ).toEqual({ clientId: 'client-id', clientSecret: 'client-secret' })
-    expect(() => parseInput(gmailClientInputSchema, { clientId: '', clientSecret: 'x' })).toThrow(
-      AppError
-    )
-    expect(() => parseInput(gmailClientInputSchema, { clientId: 'x' })).toThrow(AppError)
-
-    expect(
-      parseInput(gmailSettingsPatchSchema, {
-        pollIntervalMinutes: 5,
-        notifyNewMail: false,
-        hideSubject: true
-      })
-    ).toEqual({
-      pollIntervalMinutes: 5,
-      notifyNewMail: false,
-      hideSubject: true
-    })
-    expect(() => parseInput(gmailSettingsPatchSchema, { pollIntervalMinutes: 0 })).toThrow(AppError)
-    expect(() => parseInput(gmailSettingsPatchSchema, { pollIntervalMinutes: 16 })).toThrow(
-      AppError
-    )
   })
 })

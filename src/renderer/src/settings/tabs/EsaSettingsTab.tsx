@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { EsaDisplayRanges, ModuleId, PublicConfig } from '../../../../shared/api'
 import { ESA_TRAFFIC_RANGES } from '../../../../shared/esa'
 import { Button } from '../../components/Button'
@@ -32,6 +33,21 @@ export function EsaSettingsTab({ config, model, onToggleModule, onSaveDisplayRan
     refresh,
     saveRefreshInterval
   } = model
+  const [reconfiguring, setReconfiguring] = useState(false)
+  const configured = summary?.configured === true
+  const showSetup = !configured || reconfiguring
+
+  async function handleSave(): Promise<void> {
+    if (await saveCredentials()) {
+      setReconfiguring(false)
+    }
+  }
+
+  async function handleClear(): Promise<void> {
+    if (await clearCredentials()) {
+      setReconfiguring(false)
+    }
+  }
 
   return (
     <section className="panel">
@@ -51,39 +67,45 @@ export function EsaSettingsTab({ config, model, onToggleModule, onSaveDisplayRan
           <span>{summary?.enabled ? '已启用' : '已停用'}</span>
         </label>
       </div>
-      <p className="hint">
-        请使用只授予 ESA 只读权限（例如 esa:DescribeSiteTimeSeriesData）的 RAM
-        子账号，不要使用阿里云主账号 AccessKey。清除配置会同时移除 AccessKey 与 SiteId。
-      </p>
+      {showSetup ? (
+        <p className="hint">
+          请使用只授予 ESA 只读权限（例如 esa:DescribeSiteTimeSeriesData）的 RAM
+          子账号，不要使用阿里云主账号 AccessKey。清除配置会同时移除 AccessKey 与 SiteId。
+        </p>
+      ) : null}
       <div className="form-grid">
-        <Field label="AccessKey ID" hint="仅保存在本机加密存储">
-          <input
-            className="fl-input"
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            value={keyIdDraft}
-            onChange={(event) => setKeyIdDraft(event.target.value)}
-          />
-        </Field>
-        <Field label="AccessKey Secret" hint="保存后无法读取">
-          <input
-            className="fl-input"
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            value={keySecretDraft}
-            onChange={(event) => setKeySecretDraft(event.target.value)}
-          />
-        </Field>
-        <Field label="SiteId" hint="可在 ESA 控制台或 ListSites 接口获取">
-          <input
-            className="fl-input"
-            value={siteIdDraft}
-            maxLength={128}
-            onChange={(event) => setSiteIdDraft(event.target.value)}
-          />
-        </Field>
+        {showSetup ? (
+          <>
+            <Field label="AccessKey ID" hint="仅保存在本机加密存储">
+              <input
+                className="fl-input"
+                type="password"
+                autoComplete="new-password"
+                spellCheck={false}
+                value={keyIdDraft}
+                onChange={(event) => setKeyIdDraft(event.target.value)}
+              />
+            </Field>
+            <Field label="AccessKey Secret" hint="保存后无法读取">
+              <input
+                className="fl-input"
+                type="password"
+                autoComplete="new-password"
+                spellCheck={false}
+                value={keySecretDraft}
+                onChange={(event) => setKeySecretDraft(event.target.value)}
+              />
+            </Field>
+            <Field label="SiteId" hint="可在 ESA 控制台或 ListSites 接口获取">
+              <input
+                className="fl-input"
+                value={siteIdDraft}
+                maxLength={128}
+                onChange={(event) => setSiteIdDraft(event.target.value)}
+              />
+            </Field>
+          </>
+        ) : null}
         <Field label="自动刷新" hint="默认仅手动刷新">
           <select
             className="fl-select"
@@ -101,9 +123,11 @@ export function EsaSettingsTab({ config, model, onToggleModule, onSaveDisplayRan
           </select>
         </Field>
         <div className="form-actions">
-          <Button variant="primary" disabled={busy} onClick={() => void saveCredentials()}>
-            {busy ? '处理中…' : '保存并查询流量'}
-          </Button>
+          {showSetup ? (
+            <Button variant="primary" disabled={busy} onClick={() => void handleSave()}>
+              {busy ? '处理中…' : '保存并查询流量'}
+            </Button>
+          ) : null}
           <Button
             variant="secondary"
             disabled={busy || !summary?.configured}
@@ -114,10 +138,19 @@ export function EsaSettingsTab({ config, model, onToggleModule, onSaveDisplayRan
           <Button
             variant="danger"
             disabled={!summary?.configured}
-            onClick={() => void clearCredentials()}
+            onClick={() => void handleClear()}
           >
             清除配置
           </Button>
+          {configured ? (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setReconfiguring((value) => !value)}
+            >
+              {reconfiguring ? '取消' : '重新配置'}
+            </Button>
+          ) : null}
         </div>
       </div>
       <div className="esa-display-ranges">

@@ -16,9 +16,6 @@ import {
   type EsaCredentialsInput,
   type EsaDisplayRanges,
   type EsaTrafficSummary,
-  type GmailPollSummary,
-  type GmailSettingsPatch,
-  type GmailStateView,
   type IntervalReminderInput,
   type IntervalReminderPatch,
   type IntervalReminderSummary,
@@ -277,22 +274,6 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     fetchEsaTraffic: async () => (await ipc.invoke(IPC_CHANNELS.esaTraffic)) as EsaTrafficSummary,
     setEsaDisplayRanges: async (ranges: EsaDisplayRanges) =>
       (await ipc.invoke(IPC_CHANNELS.esaSetDisplayRanges, ranges)) as PublicConfig,
-    saveGmailClient: async (clientId: string, clientSecret: string) =>
-      (await ipc.invoke(IPC_CHANNELS.gmailSaveClient, {
-        clientId,
-        clientSecret
-      })) as ModuleSummary[],
-    connectGmail: async () =>
-      (await ipc.invoke(IPC_CHANNELS.gmailConnect)) as {
-        modules: ModuleSummary[]
-        emailAddress: string
-      },
-    disconnectGmail: async () =>
-      (await ipc.invoke(IPC_CHANNELS.gmailDisconnect)) as ModuleSummary[],
-    getGmailState: async () => (await ipc.invoke(IPC_CHANNELS.gmailState)) as GmailStateView,
-    checkGmailNow: async () => (await ipc.invoke(IPC_CHANNELS.gmailCheck)) as GmailPollSummary,
-    updateGmailSettings: async (patch: GmailSettingsPatch) =>
-      (await ipc.invoke(IPC_CHANNELS.gmailSettings, patch)) as PublicConfig,
     setModuleRefreshInterval: async (moduleId: RefreshableModuleId, minutes: number | null) =>
       (await ipc.invoke(IPC_CHANNELS.moduleRefreshInterval, {
         moduleId,

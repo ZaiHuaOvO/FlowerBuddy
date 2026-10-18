@@ -1,6 +1,5 @@
 import type { DeepSeekModule } from './deepseek/deepseek-module'
 import type { EsaModule } from './esa/esa-module'
-import type { GmailModule } from './gmail/gmail-module'
 import { IntervalReminderModule } from './interval-reminder/interval-reminder-module'
 import type { IntervalReminderService } from './interval-reminder/interval-reminder-service'
 import { MemoModule } from './memo/memo-module'
@@ -15,7 +14,6 @@ export interface ModuleRegistryDependencies {
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
-  gmailModule: GmailModule
 }
 
 /**
@@ -26,7 +24,6 @@ export function createModuleRegistry(dependencies: ModuleRegistryDependencies): 
   return [
     new MemoModule(dependencies.memoService),
     new IntervalReminderModule(dependencies.intervalReminderService),
-    dependencies.gmailModule,
     dependencies.esaModule,
     dependencies.deepSeekModule,
     new WebsiteCheckModule(dependencies.websiteService)

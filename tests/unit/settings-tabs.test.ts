@@ -6,13 +6,11 @@ import { MemoSettingsTab } from '../../src/renderer/src/settings/tabs/MemoSettin
 import { DeepSeekSettingsTab } from '../../src/renderer/src/settings/tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from '../../src/renderer/src/settings/tabs/EsaSettingsTab'
 import { GeneralSettingsTab } from '../../src/renderer/src/settings/tabs/GeneralSettingsTab'
-import { GmailSettingsTab } from '../../src/renderer/src/settings/tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from '../../src/renderer/src/settings/tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from '../../src/renderer/src/settings/tabs/WebsitesSettingsTab'
 import type { useMemoSettings } from '../../src/renderer/src/settings/hooks/useMemoSettings'
 import type { useDeepSeekSettings } from '../../src/renderer/src/settings/hooks/useDeepSeekSettings'
 import type { useEsaSettings } from '../../src/renderer/src/settings/hooks/useEsaSettings'
-import type { useGmailSettings } from '../../src/renderer/src/settings/hooks/useGmailSettings'
 import type { useWebsiteSettings } from '../../src/renderer/src/settings/hooks/useWebsiteSettings'
 import { createMemoDraft } from '../../src/renderer/src/settings/hooks/useMemoSettings'
 import type { useIntervalReminderSettings } from '../../src/renderer/src/settings/hooks/useIntervalReminderSettings'
@@ -24,7 +22,7 @@ const asyncNoop = async (): Promise<void> => {}
 
 function makeConfig(): PublicConfig {
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     app: {
       alwaysOnTop: true,
       bounceAnimation: true,
@@ -38,12 +36,6 @@ function makeConfig(): PublicConfig {
     modules: {
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
-      gmail: {
-        enabled: false,
-        pollIntervalMinutes: 3,
-        notifyNewMail: true,
-        hideSubject: true
-      },
       esa: {
         enabled: false,
         siteId: '',
@@ -72,7 +64,6 @@ function moduleSummary(id: ModuleSummary['id'], name: string): ModuleSummary {
 const modules = [
   moduleSummary('memo', '备忘录'),
   moduleSummary('interval-reminder', '定时提醒'),
-  moduleSummary('gmail', 'Gmail'),
   moduleSummary('deepseek', 'DeepSeek'),
   moduleSummary('esa', 'ESA')
 ]
@@ -139,22 +130,6 @@ const websiteModel = {
   checkOne: asyncNoop,
   checkAll: asyncNoop
 } as unknown as ReturnType<typeof useWebsiteSettings>
-
-const gmailModel = {
-  gmailState: null,
-  summary: modules[1],
-  clientIdDraft: '',
-  setClientIdDraft: noop,
-  clientSecretDraft: '',
-  setClientSecretDraft: noop,
-  busy: 'idle',
-  checkResult: '',
-  saveClient: asyncNoop,
-  connect: asyncNoop,
-  disconnect: asyncNoop,
-  checkNow: asyncNoop,
-  updateSettings: asyncNoop
-} as unknown as ReturnType<typeof useGmailSettings>
 
 const deepSeekModel = {
   summary: modules[2],
@@ -225,9 +200,6 @@ describe('settings tabs render', () => {
       '<h2>网站检测</h2>'
     )
     expect(
-      render(createElement(GmailSettingsTab, { config, model: gmailModel, onToggleModule: noop }))
-    ).toContain('Gmail 新邮件')
-    expect(
       render(
         createElement(DeepSeekSettingsTab, { config, model: deepSeekModel, onToggleModule: noop })
       )
@@ -242,5 +214,45 @@ describe('settings tabs render', () => {
         })
       )
     ).toContain('ESA 流量')
+  })
+
+  it('collapses credential forms when a module is configured', () => {
+    const config = makeConfig()
+    const render = (element: ReactElement): string => renderToStaticMarkup(element)
+    const configured = (id: ModuleSummary['id'], name: string): ModuleSummary => ({
+      ...moduleSummary(id, name),
+      enabled: true,
+      configured: true,
+      status: 'ready',
+      statusLabel: '已就绪'
+    })
+
+    const esa = render(
+      createElement(EsaSettingsTab, {
+        config: {
+          ...config,
+          modules: { ...config.modules, esa: { ...config.modules.esa, siteId: 'site-1' } }
+        },
+        model: { ...esaModel, summary: configured('esa', 'ESA') },
+        onToggleModule: noop,
+        onSaveDisplayRanges: noop
+      })
+    )
+    expect(esa).not.toContain('AccessKey ID')
+    expect(esa).not.toContain('AccessKey Secret')
+    expect(esa).not.toContain('SiteId')
+    expect(esa).toContain('刷新流量')
+    expect(esa).toContain('重新配置')
+
+    const deepseek = render(
+      createElement(DeepSeekSettingsTab, {
+        config,
+        model: { ...deepSeekModel, summary: configured('deepseek', 'DeepSeek') },
+        onToggleModule: noop
+      })
+    )
+    expect(deepseek).not.toContain('API Key')
+    expect(deepseek).toContain('刷新余额')
+    expect(deepseek).toContain('重新配置')
   })
 })

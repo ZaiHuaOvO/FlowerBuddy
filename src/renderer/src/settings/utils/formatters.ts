@@ -136,11 +136,3 @@ export function formatTrafficRange(startTime: string, endTime: string): string {
   })
   return `${date} ${startClock} 至 ${endClock}`
 }
-
-export function maskEmail(email: string): string {
-  const at = email.indexOf('@')
-  if (at <= 0) {
-    return email
-  }
-  return `${email.slice(0, 1)}***${email.slice(at)}`
-}

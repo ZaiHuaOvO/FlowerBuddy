@@ -15,9 +15,9 @@
 | 生产构建       | `build` / `electron-vite build`            | main/preload/renderer 到 `out/`            | 构建可完成、资源路径可解析         | 安装包行为                        |
 | 打包           | `dist:win` / `dist:win:dir`                | NSIS + portable + ZIP                      | Windows 产物可生成                 | 干净环境安装、签名、SmartScreen   |
 | CI             | `.github/workflows/ci.yml`                 | Windows 上的检查与可选打包                 | 托管环境可重复检查                 | 真实账户、物理显示器、人工交互    |
-| 手动功能验收   | [manual-test-plan.md](manual-test-plan.md) | 安装、托盘、拖动、通知、休眠等             | 真实桌面行为                       | 全球可用性、跨平台                |
+| 手动功能验收   | [manual-test-plan.md](manual-test-plan.md) | 安装、托盘、拖动、休眠等                   | 真实桌面行为                       | 全球可用性、跨平台                |
 | 视觉回归       | 固定 fixture + 截图对比（人工或脚本）      | 12 个界面基线                              | 关键界面像素稳定性                 | 未覆盖的 DPI/主题/长文本          |
-| 外部凭据 smoke | 用户自己的 Gmail/DeepSeek/ESA              | 真实账户联调                               | 真实认证与数据映射                 | 所有边界和异常                    |
+| 外部凭据 smoke | 用户自己的 DeepSeek/ESA                    | 真实账户联调                               | 真实认证与数据映射                 | 所有边界和异常                    |
 
 ## 2. 如何运行
 
@@ -48,7 +48,7 @@ npm run dist:win
 
 ## 3. 当前自动化覆盖范围
 
-`tests/unit/` 现有 34 个测试文件，按实际文件名归类：
+`tests/unit/` 现有 31 个测试文件，按实际文件名归类：
 
 | 区域       | 测试文件                                                                                                              | 主要覆盖                                                                 |
 | ---------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -56,7 +56,6 @@ npm run dist:win
 | 网站检测   | `website-check.test.ts`、`website-service.test.ts`、`website-module.test.ts`                                          | HTTP 状态、超时、DNS/TLS 分类、URL 清洗、定时任务重建                    |
 | DeepSeek   | `deepseek-service.test.ts`、`deepseek-module.test.ts`                                                                 | 响应结构、多币种、错误码、余额格式化                                     |
 | ESA        | `esa-service.test.ts`、`esa-module.test.ts`                                                                           | 本地自然日转 UTC、Traffic 聚合、采样率、错误映射                         |
-| Gmail      | `gmail-headers.test.ts`、`gmail-service.test.ts`、`gmail-module.test.ts`                                              | 基线、增量、去重、historyId 失效、授权失效、轮询停止                     |
 | 调度       | `task-scheduler.test.ts`                                                                                              | 间隔、重叠跳过、退避、停止、恢复重新计时                                 |
 | 模块管理   | `module-manager.test.ts`、`module-action-runner.test.ts`                                                              | enabled/configured 生命周期、动作校验、请求失效、超时                    |
 | 配置与存储 | `config-store.test.ts`、`pet-assets.test.ts`、`memo-images.test.ts`、`assets.test.ts`                                 | 迁移/损坏修复、原子写入、PNG 校验、图片目录清理                          |
@@ -83,12 +82,11 @@ CI 不能替代真实账户、真实显示器、原生对话框、系统托盘�
 - 显式导入 `describe` / `it` / `expect` / `vi`。
 - 外部依赖通过注入替换：
   - 网络：`fetchImpl`；
-  - Gmail：`clientFactory`；
   - ESA：`clientFactory`；
   - 时间：`now`；
   - 加密：`SafeStorageBackend`；
   - 文件系统：使用临时目录或在测试中构造输入。
-- 不访问真实网络，不使用真实 API Key、AccessKey 或 OAuth token。
+- 不访问真实网络，不使用真实 API Key 或 AccessKey。
 - 新增测试后运行 `npm test`；涉及 renderer 类型时运行 `npm run typecheck`。
 - 若新增导入 `.tsx` 的测试，需要同时维护两套 tsconfig：
   - `tsconfig.json` 的 `exclude`；
@@ -116,14 +114,6 @@ CI 不能替代真实账户、真实显示器、原生对话框、系统托盘�
 
 以下测试只能在用户自己的环境执行；不得把真实凭据写入仓库、文档、截图、测试夹具或聊天记录。
 
-### Gmail
-
-- Google Cloud 项目已启用 Gmail API。
-- 已配置 OAuth consent screen；未发布应用需把测试账号加入测试用户。
-- 已创建“桌面应用”类型的 OAuth 客户端。
-- 在应用“设置 → Gmail”中填写 Client ID / Client Secret，并在系统浏览器完成授权。
-- 只验证 `gmail.readonly` 范围内的元数据读取。
-
 ### DeepSeek
 
 - 用户自己的 DeepSeek API Key。
@@ -141,10 +131,9 @@ CI 不能替代真实账户、真实显示器、原生对话框、系统托盘�
 - 桌宠真实拖动、点击与拖动区分、多显示器物理移动。
 - 原生文件选择对话框中的 PNG 导入。
 - Windows 安装/卸载向导、开始菜单/桌面快捷方式、SmartScreen。
-- 系统通知的实际显示与点击。
 - 真实休眠/唤醒后的调度恢复。
 - 不同 Windows DPI、主题、减少动态效果设置下的视觉表现。
-- 真实 Gmail/DeepSeek/ESA 账户数据。
+- 真实 DeepSeek/ESA 账户数据。
 
 这些项目必须在 [manual-test-plan.md](manual-test-plan.md) 中人工确认，或明确标记为待测/已知限制。
 

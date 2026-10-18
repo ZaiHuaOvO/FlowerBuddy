@@ -171,7 +171,7 @@ describe('task scheduler', () => {
 
     scheduler.start({ id: 'a', owner: 'dates', intervalMs: 100, run: async () => {} })
     scheduler.start({ id: 'b', owner: 'dates', intervalMs: 100, run: async () => {} })
-    scheduler.start({ id: 'c', owner: 'gmail', intervalMs: 100, run: async () => {} })
+    scheduler.start({ id: 'c', owner: 'esa', intervalMs: 100, run: async () => {} })
 
     scheduler.stopByOwner('dates')
     expect(scheduler.getTaskIds()).toEqual(['c'])

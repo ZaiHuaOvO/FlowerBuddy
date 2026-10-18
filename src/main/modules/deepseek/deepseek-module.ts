@@ -28,7 +28,8 @@ export function formatBalanceResult(balance: DeepSeekBalance): ModuleActionResul
     info.currency === 'CNY' ? `¥${info.totalBalance}` : `${info.currency} ${info.totalBalance}`
   return {
     state: 'success',
-    message: `大鲸鱼还有 ${amount} 的米饭可以吃喵`
+    message: `大鲸鱼还有 ${amount} 的米饭可以吃喵`,
+    emphasis: [amount]
   }
 }
 

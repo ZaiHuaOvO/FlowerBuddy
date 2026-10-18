@@ -329,9 +329,15 @@ export function formatTrafficResult(traffic: EsaTrafficSummary): ModuleActionRes
   if (traffic.ranges.length === 0) {
     return { state: 'empty', message: '暂无可展示的 ESA 流量数据' }
   }
-  const lines = traffic.ranges.map((range) => `${range.label}：${formatBytes(range.bytes)}`)
+  const values: string[] = []
+  const lines = traffic.ranges.map((range) => {
+    const value = formatBytes(range.bytes)
+    values.push(value)
+    return `${range.label}：${value}`
+  })
   return {
     state: 'success',
-    message: `ESA 流量\n${lines.join('\n')}`
+    message: `ESA 流量\n${lines.join('\n')}`,
+    emphasis: values
   }
 }

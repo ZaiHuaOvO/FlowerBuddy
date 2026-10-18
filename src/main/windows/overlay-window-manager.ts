@@ -228,7 +228,8 @@ export class OverlayWindowManager {
       id,
       state: payload.state,
       message: payload.message,
-      persistent: payload.persistent === true
+      persistent: payload.persistent === true,
+      ...(payload.emphasis && payload.emphasis.length > 0 ? { emphasis: payload.emphasis } : {})
     }
     const index = this.bubbles.findIndex((bubble) => bubble.id === id)
     if (index >= 0) {

@@ -19,7 +19,7 @@
 .bubble {
   position: relative;
   width: 100%;
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -41,36 +41,9 @@
   word-break: break-word;
 }
 
-.bubble-icon {
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-soft);
-  font-size: var(--font-size-xs);
+.bubble-highlight {
+  color: var(--color-primary);
   font-weight: var(--font-weight-bold);
-  line-height: 1;
-}
-
-.bubble-icon-idle {
-  color: var(--color-text-muted);
-}
-
-.bubble-icon-success {
-  color: var(--color-success);
-  background: var(--color-success-bg);
-}
-
-.bubble-icon-empty {
-  color: var(--color-info);
-  background: var(--color-info-bg);
-}
-
-.bubble-icon-error {
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
 }
 
 .bubble-actions {

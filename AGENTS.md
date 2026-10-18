@@ -65,7 +65,7 @@
 - **IPC 安全**：每个 handler 必须经过 sender 校验与 Zod 输入校验；新增通道要同时更新 `IPC_CHANNELS`、preload API、类型定义和 handler。不要向 renderer 返回原始错误、请求头、令牌或堆栈。
 - **模块边界**：模块只依赖共享类型、存储、安全、调度等下层；窗口、IPC、托盘和 `AppController` 负责编排，不要把外部 API 调用塞进窗口类。
 - **错误处理**：主进程内部抛 `AppError`，对外只返回 `PublicError`（code、message、retryable）。
-- **日志**：使用 `Logger`，不要把密钥、OAuth token、邮件正文/主题、完整认证 URL 写入日志；日志元数据会脱敏，但不要依赖脱敏兜底。
+- **日志**：使用 `Logger`，不要把密钥、token、完整认证 URL 或个人数据写入日志；日志元数据会脱敏，但不要依赖脱敏兜底。
 - **配置与迁移**：普通配置写入 `ConfigStore`，文档数据写入 `JsonStore`；修改 schema 时提升 `CURRENT_CONFIG_SCHEMA_VERSION` 并保证旧文件可修复或迁移。敏感值只能进入 `SecretStore`。
 - **异步生命周期**：定时任务统一注册到 `TaskScheduler`；停止时清理 timer、AbortController 和订阅；取消/超时必须有明确路径。
 - **公共组件**：UI 复用 `src/renderer/src/components/` 与 `styles/components.css`；不得在业务组件中另建一套硬编码设计值。
@@ -85,7 +85,7 @@
 - 单元测试位于 `tests/unit/`，使用 Vitest 的 Node 环境；优先使用依赖注入、fake timers 和模拟响应，不使用真实凭据。
 - 必须如实报告运行了哪些检查、结果如何、哪些未运行及原因。没有真实运行记录时，不得声称测试通过。
 - 依赖系统鼠标位置或真实输入时序的自动化/半自动化测试（悬停、拖拽、菜单移出延时关闭、原生窗口定位等）必须在用户未操作鼠标的前提下执行。若观察到光标位置、移动轨迹、焦点或关停时序与脚本预期不符，立即判定该次结果不可信、拒绝将其报告为通过，说明可疑原因并重新测试。
-- 真实 Gmail / DeepSeek / 阿里云凭据测试需要外部条件，按 [`docs/testing/manual-test-plan.md`](docs/testing/manual-test-plan.md) 的前置条件执行，不得把密钥写入仓库或报告。
+- 真实 DeepSeek / 阿里云凭据测试需要外部条件，按 [`docs/testing/manual-test-plan.md`](docs/testing/manual-test-plan.md) 的前置条件执行，不得把密钥写入仓库或报告。
 
 ## 7. 规则与文档同步机制
 
@@ -107,7 +107,7 @@
 - 一个提交聚焦一个可解释的改动主题；代码与相关文档应放在同一逻辑提交中。
 - 完成独立更新后按现有规范提交并推送；推送后验证本地与远程状态。
 - 未经用户明确同意，不得执行 `git push --force`、`git reset --hard`、删除远程分支或重写已推送历史。
-- 不得把真实 API Key、AccessKey Secret、OAuth token、邮箱内容、个人配置或 `.env` 提交到仓库。
+- 不得把真实 API Key、AccessKey Secret、token、个人配置或 `.env` 提交到仓库。
 
 ## 9. 明确禁止
 

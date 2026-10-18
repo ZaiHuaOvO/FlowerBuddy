@@ -1,14 +1,11 @@
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { app, Menu, nativeTheme, powerMonitor, session, shell } from 'electron'
+import { app, Menu, nativeTheme, powerMonitor, session } from 'electron'
 import { AppController } from './app-controller'
 import { registerIpcHandlers } from './ipc/register-handlers'
 import { createSenderValidator } from './ipc/validate-sender'
 import { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import { EsaModule } from './modules/esa/esa-module'
-import { GmailModule } from './modules/gmail/gmail-module'
-import { GmailService } from './modules/gmail/gmail-service'
-import { createEmptyGmailState, sanitizeGmailState, type GmailState } from './modules/gmail/types'
 import { IntervalReminderService } from './modules/interval-reminder/interval-reminder-service'
 import { sanitizeIntervalReminderData } from './modules/interval-reminder/reminder-data'
 import {
@@ -37,6 +34,7 @@ import { JsonStore } from './storage/json-store'
 import { MemoImageStore } from './storage/memo-images'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
+const LEGACY_GMAIL_SECRET_IDS = ['gmail.clientId', 'gmail.clientSecret', 'gmail.refreshToken']
 
 // The product is now called 花伴. Keep the original userData directory so
 // existing settings, credentials, pets and logs survive the rename. An explicit
@@ -87,6 +85,9 @@ async function bootstrap(): Promise<void> {
     logger
   )
   secretStore.load()
+  void secretStore.deleteMany(LEGACY_GMAIL_SECRET_IDS).catch(() => {
+    logger.warn('legacy gmail secrets could not be removed')
+  })
 
   const scheduler = new TaskScheduler({ logger })
   const dataDirectory = join(userDataPath, 'data')
@@ -99,6 +100,16 @@ async function bootstrap(): Promise<void> {
       logger.info('legacy dates data removed')
     } catch {
       logger.warn('legacy dates data could not be removed')
+    }
+  }
+
+  const legacyGmailStatePath = join(dataDirectory, 'gmail-state.json')
+  if (existsSync(legacyGmailStatePath)) {
+    try {
+      rmSync(legacyGmailStatePath, { force: true })
+      logger.info('legacy gmail data removed')
+    } catch {
+      logger.warn('legacy gmail data could not be removed')
     }
   }
 
@@ -137,32 +148,13 @@ async function bootstrap(): Promise<void> {
   const deepSeekModule = new DeepSeekModule({ secretStore, configStore })
   const esaModule = new EsaModule({ secretStore, configStore })
 
-  const gmailStateStore = new JsonStore<GmailState>(join(dataDirectory, 'gmail-state.json'), {
-    label: 'gmail-state',
-    defaults: createEmptyGmailState,
-    sanitize: sanitizeGmailState,
-    logger
-  })
-  gmailStateStore.load()
-  const gmailService = new GmailService({
-    secretStore,
-    stateStore: gmailStateStore,
-    logger,
-    openExternal: (url) => shell.openExternal(url)
-  })
-  const gmailModule = new GmailModule({
-    service: gmailService,
-    pollIntervalMinutes: () => configStore.get().modules.gmail.pollIntervalMinutes
-  })
-
   const moduleManager = new ModuleManager({
     modules: createModuleRegistry({
       memoService,
       intervalReminderService,
       websiteService,
       deepSeekModule,
-      esaModule,
-      gmailModule
+      esaModule
     }),
     configStore,
     scheduler,
@@ -181,7 +173,6 @@ async function bootstrap(): Promise<void> {
     websiteService,
     deepSeekModule,
     esaModule,
-    gmailModule,
     logger,
     devServerUrl,
     rendererIndexPath,
@@ -192,9 +183,6 @@ async function bootstrap(): Promise<void> {
     petsDirectory: join(userDataPath, 'pets')
   })
   controller = appController
-  gmailModule.setNewMailHandler((messages) => {
-    appController.handleGmailNewMessages(messages)
-  })
 
   void secretStore.isAvailable().then((available) => {
     logger.info('secret storage availability checked', { available })

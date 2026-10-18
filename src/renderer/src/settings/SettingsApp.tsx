@@ -4,7 +4,6 @@ import type {
   AppInfo,
   AppSettingsPatch,
   EsaDisplayRanges,
-  GmailStateView,
   IntervalReminderSummary,
   MemoSummary,
   ModuleId,
@@ -20,14 +19,12 @@ import { IntervalReminderSettingsTab } from './tabs/IntervalReminderSettingsTab'
 import { DeepSeekSettingsTab } from './tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from './tabs/EsaSettingsTab'
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab'
-import { GmailSettingsTab } from './tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from './tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from './tabs/WebsitesSettingsTab'
 import { useMemoSettings } from './hooks/useMemoSettings'
 import { useIntervalReminderSettings } from './hooks/useIntervalReminderSettings'
 import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
-import { useGmailSettings } from './hooks/useGmailSettings'
 import { useWebsiteSettings } from './hooks/useWebsiteSettings'
 import { CORE_TABS, MODULE_TAB_BY_ID } from './utils/constants'
 import type { SettingsTab } from './utils/constants'
@@ -46,7 +43,6 @@ export default function SettingsApp() {
   const [memos, setMemos] = useState<MemoSummary[]>([])
   const [intervalReminders, setIntervalReminders] = useState<IntervalReminderSummary[]>([])
   const [websites, setWebsites] = useState<WebsiteCheckConfig[]>([])
-  const [gmailState, setGmailState] = useState<GmailStateView | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -108,15 +104,6 @@ export default function SettingsApp() {
       .then((next) => {
         if (active) {
           setStartupNotice(next)
-        }
-      })
-      .catch(() => {})
-
-    void api
-      .getGmailState()
-      .then((next) => {
-        if (active) {
-          setGmailState(next)
         }
       })
       .catch(() => {})
@@ -201,8 +188,6 @@ export default function SettingsApp() {
       setIntervalReminders={setIntervalReminders}
       websites={websites}
       setWebsites={setWebsites}
-      gmailState={gmailState}
-      setGmailState={setGmailState}
       error={error}
       setError={setError}
     />
@@ -224,8 +209,6 @@ interface ContentProps {
   setIntervalReminders: (reminders: IntervalReminderSummary[]) => void
   websites: WebsiteCheckConfig[]
   setWebsites: (websites: WebsiteCheckConfig[]) => void
-  gmailState: GmailStateView | null
-  setGmailState: (state: GmailStateView | null) => void
   error: string
   setError: (message: string) => void
 }
@@ -245,8 +228,6 @@ function SettingsContent({
   setIntervalReminders,
   websites,
   setWebsites,
-  gmailState,
-  setGmailState,
   error,
   setError
 }: ContentProps) {
@@ -397,16 +378,6 @@ function SettingsContent({
     flash,
     setError
   })
-  const gmail = useGmailSettings({
-    api,
-    setConfig,
-    modules,
-    setModules,
-    gmailState,
-    setGmailState,
-    flash,
-    setError
-  })
   const deepSeek = useDeepSeekSettings({
     api,
     modules,
@@ -542,13 +513,6 @@ function SettingsContent({
             <IntervalReminderSettingsTab model={intervalReminderSettings} />
           ) : null}
           {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
-          {activeTab === 'gmail' ? (
-            <GmailSettingsTab
-              config={config}
-              model={gmail}
-              onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-            />
-          ) : null}
           {activeTab === 'deepseek' ? (
             <DeepSeekSettingsTab
               config={config}

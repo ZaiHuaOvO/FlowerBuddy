@@ -75,15 +75,15 @@ function createEnvironment() {
   configStore.load()
   const scheduler = new TaskScheduler({ logger: silentLogger })
   const memo = createTestModule({ id: 'memo', configured: true, schedule: true })
-  const gmail = createTestModule({ id: 'gmail', configured: false })
+  const esa = createTestModule({ id: 'esa', configured: false })
   const manager = new ModuleManager({
-    modules: [memo.module, gmail.module],
+    modules: [memo.module, esa.module],
     configStore,
     scheduler,
     logger: silentLogger,
     notify: () => {}
   })
-  return { directory, configStore, scheduler, manager, memo, gmail }
+  return { directory, configStore, scheduler, manager, memo, esa }
 }
 
 afterEach(() => {
@@ -94,12 +94,12 @@ afterEach(() => {
 
 describe('module manager', () => {
   it('starts only enabled and configured modules', () => {
-    const { manager, scheduler, memo, gmail } = createEnvironment()
+    const { manager, scheduler, memo, esa } = createEnvironment()
 
     manager.start()
 
     expect(memo.getStartCalls()).toBe(1)
-    expect(gmail.getStartCalls()).toBe(0)
+    expect(esa.getStartCalls()).toBe(0)
     expect(scheduler.getTaskIds()).toEqual(['memo:tick'])
 
     const summaries = manager.list()
@@ -109,7 +109,7 @@ describe('module manager', () => {
       status: 'ready',
       statusLabel: '已就绪'
     })
-    expect(summaries.find((module) => module.id === 'gmail')).toMatchObject({
+    expect(summaries.find((module) => module.id === 'esa')).toMatchObject({
       enabled: false,
       configured: false,
       status: 'not-configured',
@@ -146,12 +146,12 @@ describe('module manager', () => {
   })
 
   it('does not start an enabled but unconfigured module', () => {
-    const { manager, gmail } = createEnvironment()
+    const { manager, esa } = createEnvironment()
     manager.start()
 
-    manager.setEnabled('gmail', true)
+    manager.setEnabled('esa', true)
 
-    expect(gmail.getStartCalls()).toBe(0)
+    expect(esa.getStartCalls()).toBe(0)
     manager.stop()
   })
 
@@ -178,13 +178,13 @@ describe('module manager', () => {
       configured: true,
       actionIds: ['memo:upcoming']
     })
-    const gmail = createTestModule({
-      id: 'gmail',
+    const esa = createTestModule({
+      id: 'esa',
       configured: false,
-      actionIds: ['gmail:check']
+      actionIds: ['esa:traffic']
     })
     const manager = new ModuleManager({
-      modules: [memo.module, gmail.module],
+      modules: [memo.module, esa.module],
       configStore,
       scheduler,
       logger: silentLogger,

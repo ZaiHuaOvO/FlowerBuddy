@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ModuleId, PublicConfig } from '../../../../shared/api'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
@@ -26,6 +27,21 @@ export function DeepSeekSettingsTab({ config, model, onToggleModule }: Props) {
     refresh,
     saveRefreshInterval
   } = model
+  const [reconfiguring, setReconfiguring] = useState(false)
+  const configured = summary?.configured === true
+  const showSetup = !configured || reconfiguring
+
+  async function handleSave(): Promise<void> {
+    if (await saveKey()) {
+      setReconfiguring(false)
+    }
+  }
+
+  async function handleClear(): Promise<void> {
+    if (await clearKey()) {
+      setReconfiguring(false)
+    }
+  }
 
   return (
     <section className="panel">
@@ -45,22 +61,26 @@ export function DeepSeekSettingsTab({ config, model, onToggleModule }: Props) {
           <span>{summary?.enabled ? '已启用' : '已停用'}</span>
         </label>
       </div>
-      <p className="hint">
-        API Key 仅由主进程使用 Windows safeStorage
-        加密保存，界面不会回显明文，也不会写入日志或普通配置文件。
-      </p>
+      {showSetup ? (
+        <p className="hint">
+          API Key 仅由主进程使用 Windows safeStorage
+          加密保存，界面不会回显明文，也不会写入日志或普通配置文件。
+        </p>
+      ) : null}
       <div className="form-grid">
-        <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
-          <input
-            className="fl-input"
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            value={keyDraft}
-            placeholder="sk-..."
-            onChange={(event) => setKeyDraft(event.target.value)}
-          />
-        </Field>
+        {showSetup ? (
+          <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
+            <input
+              className="fl-input"
+              type="password"
+              autoComplete="new-password"
+              spellCheck={false}
+              value={keyDraft}
+              placeholder="sk-..."
+              onChange={(event) => setKeyDraft(event.target.value)}
+            />
+          </Field>
+        ) : null}
         <Field label="自动刷新" hint="默认仅手动刷新">
           <select
             className="fl-select"
@@ -78,9 +98,11 @@ export function DeepSeekSettingsTab({ config, model, onToggleModule }: Props) {
           </select>
         </Field>
         <div className="form-actions">
-          <Button variant="primary" disabled={busy} onClick={() => void saveKey()}>
-            {busy ? '处理中…' : '保存并查询余额'}
-          </Button>
+          {showSetup ? (
+            <Button variant="primary" disabled={busy} onClick={() => void handleSave()}>
+              {busy ? '处理中…' : '保存并查询余额'}
+            </Button>
+          ) : null}
           <Button
             variant="secondary"
             disabled={busy || !summary?.configured}
@@ -88,9 +110,22 @@ export function DeepSeekSettingsTab({ config, model, onToggleModule }: Props) {
           >
             刷新余额
           </Button>
-          <Button variant="danger" disabled={!summary?.configured} onClick={() => void clearKey()}>
+          <Button
+            variant="danger"
+            disabled={!summary?.configured}
+            onClick={() => void handleClear()}
+          >
             清除 Key
           </Button>
+          {configured ? (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setReconfiguring((value) => !value)}
+            >
+              {reconfiguring ? '取消' : '重新配置'}
+            </Button>
+          ) : null}
         </div>
       </div>
       <div className="fl-alert fl-alert-info panel-alert" role="note">

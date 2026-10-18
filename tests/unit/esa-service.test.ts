@@ -216,5 +216,6 @@ describe('ESA traffic service', () => {
     expect(result.state).toBe('success')
     expect(result.message).toContain('过去 24 小时：1.50 KB')
     expect(result.message).toContain('过去 7 天：2.00 KB')
+    expect(result.emphasis).toEqual(['1.50 KB', '2.00 KB'])
   })
 })

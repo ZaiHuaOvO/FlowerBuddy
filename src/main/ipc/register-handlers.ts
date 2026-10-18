@@ -5,7 +5,6 @@ import type { z } from 'zod'
 import { IPC_CHANNELS } from '../../shared/api'
 import type {
   AppSettingsPatch,
-  GmailSettingsPatch,
   IntervalReminderInput,
   IntervalReminderPatch,
   IpcResult,
@@ -25,8 +24,6 @@ import {
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   esaDisplayRangesSchema,
-  gmailClientInputSchema,
-  gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
   intervalReminderInputSchema,
@@ -204,17 +201,6 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   register(IPC_CHANNELS.esaTraffic, null, () => controller.fetchEsaTraffic())
   register(IPC_CHANNELS.esaSetDisplayRanges, esaDisplayRangesSchema, (input) =>
     controller.setEsaDisplayRanges(input)
-  )
-
-  register(IPC_CHANNELS.gmailSaveClient, gmailClientInputSchema, (input) =>
-    controller.saveGmailClient(input.clientId, input.clientSecret)
-  )
-  register(IPC_CHANNELS.gmailConnect, null, () => controller.connectGmail())
-  register(IPC_CHANNELS.gmailDisconnect, null, () => controller.disconnectGmail())
-  register(IPC_CHANNELS.gmailState, null, () => controller.getGmailState())
-  register(IPC_CHANNELS.gmailCheck, null, () => controller.checkGmailNow())
-  register(IPC_CHANNELS.gmailSettings, gmailSettingsPatchSchema, (input) =>
-    controller.updateGmailSettings(input as GmailSettingsPatch)
   )
 
   register(IPC_CHANNELS.moduleRefreshInterval, refreshIntervalInputSchema, (input) =>

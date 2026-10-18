@@ -36,13 +36,13 @@ export function useEsaSettings({
     }
   }, [initialSiteId])
 
-  async function saveCredentials(): Promise<void> {
+  async function saveCredentials(): Promise<boolean> {
     if (!api) {
-      return
+      return false
     }
     if (!keyIdDraft.trim() || !keySecretDraft.trim() || !siteIdDraft.trim()) {
       setError('请填写 AccessKey ID、AccessKey Secret 和 SiteId')
-      return
+      return false
     }
     setError('')
     setBusy(true)
@@ -58,24 +58,28 @@ export function useEsaSettings({
       setKeySecretDraft('')
       flash('ESA 凭据已加密保存')
       setTraffic(await api.fetchEsaTraffic())
+      return true
     } catch (cause) {
       setError(toMessage(cause))
+      return false
     } finally {
       setBusy(false)
     }
   }
 
-  async function clearCredentials(): Promise<void> {
+  async function clearCredentials(): Promise<boolean> {
     if (!api) {
-      return
+      return false
     }
     setError('')
     try {
       setModules(await api.clearEsaCredentials())
       setTraffic(null)
       flash('已清除 ESA 凭据')
+      return true
     } catch (cause) {
       setError(toMessage(cause))
+      return false
     }
   }
 

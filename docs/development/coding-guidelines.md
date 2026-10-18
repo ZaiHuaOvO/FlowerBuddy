@@ -44,7 +44,7 @@
 ## 3. 类型与模块边界（已存在）
 
 - 主进程、preload、renderer 共享的公共类型和 IPC 通道名放在 `src/shared/api.ts`；该文件不得包含凭据。
-- 模块私有类型放在对应目录的 `types.ts`（如 `modules/gmail/types.ts`）。
+- 模块私有类型放在对应目录的 `types.ts`（如 `modules/memo/types.ts`）。
 - 主进程内部错误使用 `AppError`（`src/main/shared/errors.ts`），其 `code` 来自 `src/shared/api.ts` 的 `AppErrorCode`。
 - 对 renderer 只暴露 `PublicError`：`{ code, message, retryable }`。
 - 依赖方向：
@@ -111,7 +111,7 @@
 - 可重试错误设置 `retryable: true`（如超时、限流、网络错误、5xx）。
 - 日志使用 `LoggerLike` / `Logger`：
   - 记录模块启动/停止、动作开始、失败分类、耗时等可诊断信息；
-  - 不记录密钥、OAuth token、完整认证 URL、邮件正文或主题；
+  - 不记录密钥、token、完整认证 URL 或个人数据；
   - 元数据会脱敏，但不要依赖脱敏作为唯一保护。
 - 不要用 `console.log` 记录业务数据；启动失败等无法使用 Logger 的场景除外。
 

@@ -76,7 +76,12 @@ export class ModuleActionRunner {
         return
       }
       this.clearSafetyTimer()
-      await this.showBubble({ state: result.state, message: result.message, requestId })
+      await this.showBubble({
+        state: result.state,
+        message: result.message,
+        requestId,
+        ...(result.emphasis ? { emphasis: result.emphasis } : {})
+      })
     } catch (error) {
       if (this.currentRequestId !== requestId) {
         return

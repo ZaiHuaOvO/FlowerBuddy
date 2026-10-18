@@ -5,7 +5,6 @@ import {
   formatMemoDateTime,
   formatTime,
   formatTrafficRange,
-  maskEmail,
   memoExcerpt,
   memoTitle,
   tagTone,
@@ -64,12 +63,10 @@ describe('settings formatters', () => {
     ).toBe('HTTP 500 · 30ms')
   })
 
-  it('formats byte sizes and masks email addresses', () => {
+  it('formats byte sizes', () => {
     expect(formatBytes(0)).toBe('0 B')
     expect(formatBytes(1536)).toBe('1.50 KB')
     expect(formatBytes(10 * 1024 * 1024)).toBe('10.0 MB')
-    expect(maskEmail('alice@example.com')).toBe('a***@example.com')
-    expect(maskEmail('invalid')).toBe('invalid')
   })
 
   it('formats balance amounts and times defensively', () => {

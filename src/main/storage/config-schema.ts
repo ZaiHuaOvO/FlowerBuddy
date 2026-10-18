@@ -2,18 +2,16 @@ import { z } from 'zod'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 import { DEFAULT_ESA_DISPLAY_RANGES } from '../../shared/esa'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 8
+export const CURRENT_CONFIG_SCHEMA_VERSION = 9
 
 export const MODULE_ID_VALUES = [
   'memo',
   'interval-reminder',
-  'gmail',
   'esa',
   'deepseek',
   'website-check'
 ] as const satisfies readonly ModuleId[]
 
-const moduleIdSchema = z.enum(MODULE_ID_VALUES)
 const defaultModuleOrder: ModuleId[] = ['memo', 'interval-reminder']
 
 function clampNumber(value: number, min: number, max: number): number {
@@ -65,9 +63,15 @@ function nullableIntervalField(min: number, max: number) {
 
 function moduleOrderField() {
   return z
-    .array(moduleIdSchema)
+    .array(z.unknown())
     .catch([])
-    .transform((ids) => [...new Set(ids)])
+    .transform((ids) => {
+      const valid = ids.filter(
+        (id): id is ModuleId =>
+          typeof id === 'string' && (MODULE_ID_VALUES as readonly string[]).includes(id)
+      )
+      return [...new Set(valid)]
+    })
 }
 
 function isModuleEnabledIn(modules: ModulesSettings, moduleId: ModuleId): boolean {
@@ -76,8 +80,6 @@ function isModuleEnabledIn(modules: ModulesSettings, moduleId: ModuleId): boolea
       return modules.memo.enabled
     case 'interval-reminder':
       return modules.intervalReminder.enabled
-    case 'gmail':
-      return modules.gmail.enabled
     case 'esa':
       return modules.esa.enabled
     case 'deepseek':
@@ -147,20 +149,6 @@ const intervalReminderModuleSchema = z
   .object({ enabled: booleanField(true) })
   .catch({ enabled: true })
 
-const gmailModuleSchema = z
-  .object({
-    enabled: booleanField(false),
-    pollIntervalMinutes: integerField(1, 15, 3),
-    notifyNewMail: booleanField(true),
-    hideSubject: booleanField(true)
-  })
-  .catch({
-    enabled: false,
-    pollIntervalMinutes: 3,
-    notifyNewMail: true,
-    hideSubject: true
-  })
-
 const esaDisplayRangesSchema = z
   .object({
     last24h: booleanField(true),
@@ -207,12 +195,6 @@ const modulesSchema = z
   .object({
     memo: memoModuleSchema.default({ enabled: true, anchorNewMemos: false }),
     intervalReminder: intervalReminderModuleSchema.default({ enabled: true }),
-    gmail: gmailModuleSchema.default({
-      enabled: false,
-      pollIntervalMinutes: 3,
-      notifyNewMail: true,
-      hideSubject: true
-    }),
     esa: esaModuleSchema.default({
       enabled: false,
       siteId: '',
@@ -231,7 +213,6 @@ const modulesSchema = z
   .catch({
     memo: { enabled: true, anchorNewMemos: false },
     intervalReminder: { enabled: true },
-    gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: {
       enabled: false,
       siteId: '',
@@ -258,7 +239,6 @@ const configSchema = z
     modules: modulesSchema.default({
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
-      gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: {
         enabled: false,
         siteId: '',
@@ -284,7 +264,6 @@ const configSchema = z
     modules: {
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
-      gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: {
         enabled: false,
         siteId: '',
@@ -300,7 +279,6 @@ export function createDefaultModules(): ModulesSettings {
   return {
     memo: { enabled: true, anchorNewMemos: false },
     intervalReminder: { enabled: true },
-    gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: {
       enabled: false,
       siteId: '',
@@ -401,13 +379,29 @@ function applyInitialModuleDefaults(raw: unknown, fromVersion: number): unknown 
   }
   setEnabled('memo', true)
   modules.intervalReminder = { enabled: true }
-  setEnabled('gmail', false)
   setEnabled('esa', false)
   setEnabled('deepseek', false)
   setEnabled('websiteCheck', false)
   const app = isPlainObject(raw.app) ? { ...raw.app } : {}
   app.moduleOrder = ['memo', 'interval-reminder']
   next.modules = modules
+  next.app = app
+  return next
+}
+
+/** v9 removes the Gmail module and any stale id from the saved order. */
+function removeGmailModule(raw: unknown, fromVersion: number): unknown {
+  if (fromVersion >= 9 || !isPlainObject(raw)) {
+    return raw
+  }
+  const next: Record<string, unknown> = { ...raw }
+  const modules = isPlainObject(raw.modules) ? { ...raw.modules } : {}
+  delete modules.gmail
+  next.modules = modules
+  const app = isPlainObject(raw.app) ? { ...raw.app } : {}
+  if (Array.isArray(app.moduleOrder)) {
+    app.moduleOrder = app.moduleOrder.filter((id) => id !== 'gmail')
+  }
   next.app = app
   return next
 }
@@ -425,7 +419,10 @@ export function migrateConfig(raw: unknown): ConfigMigrationResult {
 
   return {
     config: parseConfig(
-      applyInitialModuleDefaults(migrateMemoModule(raw, fromVersion), fromVersion)
+      removeGmailModule(
+        applyInitialModuleDefaults(migrateMemoModule(raw, fromVersion), fromVersion),
+        fromVersion
+      )
     ),
     fromVersion,
     migrated: fromVersion < CURRENT_CONFIG_SCHEMA_VERSION,

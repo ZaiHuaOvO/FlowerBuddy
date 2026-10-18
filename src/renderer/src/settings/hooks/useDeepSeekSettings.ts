@@ -24,13 +24,13 @@ export function useDeepSeekSettings({
   const [busy, setBusy] = useState(false)
   const [balance, setBalance] = useState<DeepSeekBalance | null>(null)
 
-  async function saveKey(): Promise<void> {
+  async function saveKey(): Promise<boolean> {
     if (!api) {
-      return
+      return false
     }
     if (!keyDraft.trim()) {
       setError('请输入 DeepSeek API Key')
-      return
+      return false
     }
     setError('')
     setBusy(true)
@@ -39,24 +39,28 @@ export function useDeepSeekSettings({
       setKeyDraft('')
       flash('DeepSeek Key 已加密保存')
       setBalance(await api.fetchDeepSeekBalance())
+      return true
     } catch (cause) {
       setError(toMessage(cause))
+      return false
     } finally {
       setBusy(false)
     }
   }
 
-  async function clearKey(): Promise<void> {
+  async function clearKey(): Promise<boolean> {
     if (!api) {
-      return
+      return false
     }
     setError('')
     try {
       setModules(await api.clearDeepSeekKey())
       setBalance(null)
       flash('已清除 DeepSeek Key')
+      return true
     } catch (cause) {
       setError(toMessage(cause))
+      return false
     }
   }
 

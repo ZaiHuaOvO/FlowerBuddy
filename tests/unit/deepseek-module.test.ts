@@ -75,6 +75,7 @@ describe('DeepSeek module', () => {
     const result = await module.runAction('deepseek:balance')
     expect(result.state).toBe('success')
     expect(result.message).toBe('大鲸鱼还有 ¥110.00 的米饭可以吃喵')
+    expect(result.emphasis).toEqual(['¥110.00'])
     expect(result.message).not.toContain('赠送')
     expect(result.message).not.toContain('今日花费')
   })

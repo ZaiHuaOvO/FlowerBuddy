@@ -105,7 +105,7 @@ describe('secret store', () => {
     const store = new SecretStore(filePath, backend)
     store.load()
 
-    await expect(store.set('gmail.refreshToken', 'refresh-token-value')).rejects.toMatchObject({
+    await expect(store.set('esa.accessKeyId', 'access-key-id-value')).rejects.toMatchObject({
       code: 'SECRET_STORAGE_UNAVAILABLE'
     })
     expect(existsSync(filePath)).toBe(false)

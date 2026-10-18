@@ -139,9 +139,12 @@ describe('website service', () => {
     const { summary, configs } = await service.checkAllEnabled()
 
     expect(summary.state).toBe('error')
-    expect(summary.message).toContain('2 个网站')
-    expect(summary.message).toContain('1 个正常')
-    expect(summary.message).toContain('异常站点')
+    expect(summary.message).toMatch(/正常站点：正常，\d+ms/)
+    expect(summary.message).toMatch(/异常站点：异常，HTTP 404(?:，\d+ms)?/)
+    expect(summary.message.split('\n')).toHaveLength(2)
+    expect(summary.emphasis).toHaveLength(2)
+    expect(summary.emphasis?.[0]).toMatch(/^正常，\d+ms$/)
+    expect(summary.emphasis?.[1]).toMatch(/^异常，HTTP 404(?:，\d+ms)?$/)
     expect(configs.every((check) => check.lastResult !== null)).toBe(true)
   })
 

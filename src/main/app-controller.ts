@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Notification, screen } from 'electron'
+import { app, BrowserWindow, screen } from 'electron'
 import type {
   AppInfo,
   AppSettingsPatch,
@@ -6,9 +6,6 @@ import type {
   EsaCredentialsInput,
   EsaDisplayRanges,
   EsaTrafficSummary,
-  GmailPollSummary,
-  GmailSettingsPatch,
-  GmailStateView,
   IntervalReminderInput,
   IntervalReminderPatch,
   IntervalReminderSummary,
@@ -35,8 +32,6 @@ import { IPC_CHANNELS } from '../shared/api'
 import { ModuleActionRunner } from './actions/module-action-runner'
 import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import type { EsaModule } from './modules/esa/esa-module'
-import type { GmailModule } from './modules/gmail/gmail-module'
-import type { GmailMessageSummary } from './modules/gmail/types'
 import type { IntervalReminderService } from './modules/interval-reminder/interval-reminder-service'
 import type { MemoService } from './modules/memo/memo-service'
 import type { ModuleManager } from './modules/module-manager'
@@ -69,7 +64,6 @@ export interface AppControllerOptions {
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
-  gmailModule: GmailModule
   logger: LoggerLike
   devServerUrl: string | undefined
   rendererIndexPath: string
@@ -402,71 +396,6 @@ export class AppController {
     return config
   }
 
-  async saveGmailClient(clientId: string, clientSecret: string): Promise<ModuleSummary[]> {
-    await this.options.gmailModule.saveClientCredentials(clientId, clientSecret)
-    return this.options.moduleManager.refresh()
-  }
-
-  async connectGmail(): Promise<{
-    modules: ModuleSummary[]
-    emailAddress: string
-  }> {
-    const { emailAddress } = await this.options.gmailModule.connect()
-    const modules = this.options.moduleManager.refresh()
-    return { modules, emailAddress }
-  }
-
-  async disconnectGmail(): Promise<ModuleSummary[]> {
-    await this.options.gmailModule.disconnect()
-    return this.options.moduleManager.refresh()
-  }
-
-  getGmailState(): GmailStateView {
-    return this.options.gmailModule.getStateView()
-  }
-
-  async checkGmailNow(): Promise<GmailPollSummary> {
-    return this.options.gmailModule.checkNow()
-  }
-
-  updateGmailSettings(patch: GmailSettingsPatch): PublicConfig {
-    const config = this.options.configStore.updateGmailSettings(patch)
-    this.options.moduleManager.refresh()
-    return config
-  }
-
-  handleGmailNewMessages(messages: GmailMessageSummary[]): void {
-    const first = messages[0]
-    if (!first) {
-      return
-    }
-    const config = this.config
-    if (!config.modules.gmail.enabled) {
-      return
-    }
-
-    const hideSubject = config.modules.gmail.hideSubject
-    const body = hideSubject
-      ? messages.length === 1
-        ? '收到一封新邮件'
-        : `收到 ${messages.length} 封新邮件`
-      : messages.length === 1
-        ? `${first.from || '未知发件人'}：${first.subject || '无主题'}`
-        : `收到 ${messages.length} 封新邮件（最新：${first.from || '未知发件人'}）`
-
-    if (config.modules.gmail.notifyNewMail && Notification.isSupported()) {
-      const notification = new Notification({
-        title: '花伴 · 新邮件',
-        body
-      })
-      notification.on('click', () => this.openSettings())
-      notification.show()
-    }
-
-    void this.actions.showBackground(body)
-    this.options.logger.info('gmail new messages', { count: messages.length })
-  }
-
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {
     const modules = this.options.moduleManager.setEnabled(moduleId, enabled)
     if (moduleId === 'memo') {
@@ -650,7 +579,6 @@ export class AppController {
     this.options.memoService.flush()
     this.options.intervalReminderService.flush()
     this.options.websiteService.flush()
-    this.options.gmailModule.flush()
   }
 
   dispose(): void {

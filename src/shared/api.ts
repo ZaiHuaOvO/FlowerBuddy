@@ -69,19 +69,13 @@ export interface PetSettingsPatch {
   scale?: number
 }
 
-export type ModuleId = 'memo' | 'interval-reminder' | 'gmail' | 'esa' | 'deepseek' | 'website-check'
+export type ModuleId = 'memo' | 'interval-reminder' | 'esa' | 'deepseek' | 'website-check'
 
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
 
 export interface ModulesSettings {
   memo: { enabled: boolean; anchorNewMemos: boolean }
   intervalReminder: { enabled: boolean }
-  gmail: {
-    enabled: boolean
-    pollIntervalMinutes: number
-    notifyNewMail: boolean
-    hideSubject: boolean
-  }
   esa: {
     enabled: boolean
     siteId: string
@@ -90,26 +84,6 @@ export interface ModulesSettings {
   }
   deepseek: { enabled: boolean; refreshIntervalMinutes: number | null }
   websiteCheck: { enabled: boolean; defaultTimeoutMs: number }
-}
-
-export interface GmailSettingsPatch {
-  pollIntervalMinutes?: number
-  notifyNewMail?: boolean
-  hideSubject?: boolean
-}
-
-export interface GmailStateView {
-  /** OAuth Client ID and Secret are saved. */
-  clientConfigured: boolean
-  /** A refresh token exists; polling and checks are available. */
-  configured: boolean
-  emailAddress: string
-  authExpired: boolean
-}
-
-export interface GmailPollSummary {
-  newMessages: number
-  baselineReestablished: boolean
 }
 
 export type RefreshableModuleId = 'deepseek' | 'esa'
@@ -193,6 +167,8 @@ export interface ModuleActionDefinition {
 export interface ModuleActionResult {
   state: 'success' | 'empty' | 'error'
   message: string
+  /** Substrings rendered as emphasized key values in bubbles. */
+  emphasis?: string[]
 }
 
 export interface MemoImageInfo {
@@ -378,6 +354,8 @@ export interface BubblePayload {
   persistent?: boolean
   /** Loading bubbles stay visible until replaced by their result. */
   autoHide?: boolean
+  /** Substrings rendered as emphasized key values. */
+  emphasis?: string[]
 }
 
 export interface BubbleItem {
@@ -385,6 +363,7 @@ export interface BubbleItem {
   state: BubbleState
   message: string
   persistent: boolean
+  emphasis?: string[]
 }
 
 export interface BubbleStackPayload {
@@ -434,12 +413,6 @@ export const IPC_CHANNELS = {
   esaClearCredentials: 'esa:clear-credentials',
   esaTraffic: 'esa:traffic',
   esaSetDisplayRanges: 'esa:set-display-ranges',
-  gmailSaveClient: 'gmail:save-client',
-  gmailConnect: 'gmail:connect',
-  gmailDisconnect: 'gmail:disconnect',
-  gmailState: 'gmail:state',
-  gmailCheck: 'gmail:check',
-  gmailSettings: 'gmail:update-settings',
   moduleRefreshInterval: 'modules:set-refresh-interval',
   menuGetActions: 'menu:get-actions',
   menuOpened: 'menu:opened',
@@ -559,12 +532,6 @@ export interface SettingsApi {
   clearEsaCredentials(): Promise<ModuleSummary[]>
   fetchEsaTraffic(): Promise<EsaTrafficSummary>
   setEsaDisplayRanges(ranges: EsaDisplayRanges): Promise<PublicConfig>
-  saveGmailClient(clientId: string, clientSecret: string): Promise<ModuleSummary[]>
-  connectGmail(): Promise<{ modules: ModuleSummary[]; emailAddress: string }>
-  disconnectGmail(): Promise<ModuleSummary[]>
-  getGmailState(): Promise<GmailStateView>
-  checkGmailNow(): Promise<GmailPollSummary>
-  updateGmailSettings(patch: GmailSettingsPatch): Promise<PublicConfig>
   setModuleRefreshInterval(
     moduleId: RefreshableModuleId,
     minutes: number | null

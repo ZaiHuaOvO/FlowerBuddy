@@ -16,7 +16,7 @@
 6. 每次推送后验证本地与远程状态，并向用户汇报本次更新；不能把“执行了 push 命令”当作“推送已成功”。
 7. 不能连接 GitHub、没有认证、远程未配置或推送失败时，必须如实说明阻塞原因和当前状态；不得声称已经推送。
 8. 不得未经用户明确同意执行会重写或破坏远程历史的操作，包括 `git push --force`、`git reset --hard`、删除远程分支、强行覆盖远程提交等。
-9. 不得将用户的真实 API Key、AccessKey Secret、OAuth token、邮箱内容、私有配置、`.env` 文件或个人数据提交到仓库。
+9. 不得将用户的真实 API Key、AccessKey Secret、token、私有配置、`.env` 文件或个人数据提交到仓库。
 10. 不得为了完成推送而把 GitHub token 写入源码、命令历史、日志或文档，也不得要求用户把密码或 token 直接发到聊天中。
 
 ## 2. 仓库初始化与远程配置
@@ -45,7 +45,7 @@ git log -5 --oneline --decorate
 
 - `main`：默认稳定分支，始终尽可能保持可构建、可测试；对外发布的版本从此分支产生。
 - 小型改动：如果当前 `main` 干净、没有正在进行的其他任务，可直接在 `main` 上完成、提交和推送。
-- 中型/大型改动：新建短生命周期分支，例如 `feature/gmail-notifications`、`feature/esa-traffic`、`feature/settings-ui` 或 `fix/gmail-deduplication`；阶段完成后推送该分支并验证。经检查后再合并到 `main`，推送合并结果。
+- 中型/大型改动：新建短生命周期分支，例如 `feature/website-check`、`feature/esa-traffic`、`feature/settings-ui` 或 `fix/esa-time-range`；阶段完成后推送该分支并验证。经检查后再合并到 `main`，推送合并结果。
 - 任务尚未完成但需要阶段性备份时，可以提交并推送到对应功能分支；不要把明显不可运行的半成品合并到 `main`。
 - 不要为了每个文字修改都创建新分支；根据风险和改动规模决定。
 - 未经用户要求，不要自动创建 `develop`、`release` 等额外长期分支。
@@ -76,8 +76,8 @@ git diff --cached
 检查变更文件清单、删除/重命名、配置文件、图片、日志和生成产物。重点检查：
 
 - `.env`、`.env.*`（允许提交的 `.env.example` 必须仅包含虚构占位值）；
-- API Key、AccessKey、Bearer token、OAuth code / access token / refresh token、密码和 cookie；
-- 本地数据库、个人事件、邮件数据、真实用户配置、日志；
+- API Key、AccessKey、Bearer token、access token、密码和 cookie；
+- 本地数据库、个人事件、真实用户配置、日志；
 - `node_modules/`、临时缓存、测试输出、打包产物等是否应该被 `.gitignore` 排除；
 - `dist/`、`release/` 等目录只有在项目明确需要将发行产物提交到仓库时才纳入版本控制，默认不提交二进制发布产物。
 
@@ -115,7 +115,7 @@ git status --short
 使用简洁、可搜索、能表达真实变更的提交信息。建议采用 Conventional Commits 风格：
 
 - `feat: add website availability checks`
-- `fix: prevent duplicate Gmail notifications`
+- `fix: prevent duplicate website alerts`
 - `docs: add GitHub workflow instructions`
 - `refactor: isolate DeepSeek balance service`
 - `test: cover date recurrence rules`
@@ -194,7 +194,7 @@ git branch -vv
 
 ### 大更新
 
-例如新增 Gmail 模块、ESA 模块、配置中心、凭据加密、安装包流水线。
+例如新增 ESA 模块、网站检测模块、配置中心、凭据加密、安装包流水线。
 
 - 先将工作拆成可独立验证的子任务。
 - 每个子任务达到可描述、可检查的状态后分别提交并推送功能分支，不必等整个大功能结束才推送。
@@ -264,8 +264,8 @@ Git 状态：
 
 每次提交前至少确认：
 
-- [ ] 没有真实 `.env`、API Key、AccessKey Secret 或 OAuth token。
-- [ ] 没有邮箱正文、个人事件、真实用户配置或私人日志。
+- [ ] 没有真实 `.env`、API Key、AccessKey Secret 或 token。
+- [ ] 没有个人数据、真实用户配置或私人日志。
 - [ ] 没有把 `safeStorage` 的密钥、解密结果或 token 写入日志。
 - [ ] `.gitignore` 已覆盖本地配置、凭据文件、缓存和不应提交的发行产物。
 - [ ] `.env.example` 只包含类似 `YOUR_API_KEY_HERE` 的虚构占位符。

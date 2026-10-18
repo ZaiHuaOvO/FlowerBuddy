@@ -139,7 +139,9 @@ describe('website check module', () => {
 
     const result = await module.runAction('website-check:run-all')
     expect(result.state).toBe('success')
-    expect(result.message).toContain('1 个正常')
+    expect(result.message).toMatch(/^站点：正常，\d+ms$/)
+    expect(result.emphasis).toHaveLength(1)
+    expect(result.emphasis?.[0]).toMatch(/^正常，\d+ms$/)
 
     module.stop()
     store.flush()

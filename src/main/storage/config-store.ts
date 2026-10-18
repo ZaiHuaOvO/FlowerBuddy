@@ -10,7 +10,6 @@ import { basename, dirname } from 'node:path'
 import type {
   AppSettingsPatch,
   EsaDisplayRanges,
-  GmailSettingsPatch,
   ModuleId,
   PublicConfig,
   RefreshableModuleId
@@ -144,12 +143,6 @@ export class ConfigStore {
           }
         }
         break
-      case 'gmail':
-        this.current = {
-          ...this.current,
-          modules: { ...modules, gmail: { ...modules.gmail, enabled } }
-        }
-        break
       case 'esa':
         this.current = {
           ...this.current,
@@ -188,8 +181,6 @@ export class ConfigStore {
         return modules.memo.enabled
       case 'interval-reminder':
         return modules.intervalReminder.enabled
-      case 'gmail':
-        return modules.gmail.enabled
       case 'esa':
         return modules.esa.enabled
       case 'deepseek':
@@ -256,18 +247,6 @@ export class ConfigStore {
       modules: {
         ...this.current.modules,
         esa: { ...this.current.modules.esa, displayRanges: { ...ranges } }
-      }
-    }
-    this.scheduleSave()
-    return this.get()
-  }
-
-  updateGmailSettings(patch: GmailSettingsPatch): PublicConfig {
-    this.current = {
-      ...this.current,
-      modules: {
-        ...this.current.modules,
-        gmail: { ...this.current.modules.gmail, ...patch }
       }
     }
     this.scheduleSave()

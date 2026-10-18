@@ -30,6 +30,16 @@ function clampPolling(value: number | null): number | null {
   return Math.min(60, Math.max(1, Math.round(value)))
 }
 
+function describeWebsiteResult(result: WebsiteCheckResult): string {
+  if (result.ok) {
+    return `正常，${result.durationMs}ms`
+  }
+  const detail = result.message || '检测失败'
+  return result.errorKind === 'http-error' && result.durationMs > 0
+    ? `异常，${detail}，${result.durationMs}ms`
+    : `异常，${detail}`
+}
+
 export class WebsiteService {
   private changeListener: (() => void) | null = null
   private readonly now: () => Date
@@ -174,21 +184,20 @@ export class WebsiteService {
     this.applyResults(outcomes.map((outcome) => ({ id: outcome.id, result: outcome.result })))
 
     const failures = outcomes.filter((outcome) => !outcome.result.ok)
-    const okCount = outcomes.length - failures.length
-    let message = `从本机检测：${outcomes.length} 个网站，${okCount} 个正常`
-    if (failures.length > 0) {
-      message += `，${failures.length} 个异常\n`
-      message += failures
-        .slice(0, 3)
-        .map((failure) => `· ${failure.name}：${failure.result.message}`)
-        .join('\n')
+    const lines: string[] = []
+    const results: string[] = []
+    for (const outcome of outcomes) {
+      const result = describeWebsiteResult(outcome.result)
+      results.push(result)
+      lines.push(`${outcome.name}：${result}`)
     }
 
     return {
       configs: this.list(),
       summary: {
         state: failures.length > 0 ? 'error' : 'success',
-        message
+        message: lines.join('\n'),
+        emphasis: results
       }
     }
   }

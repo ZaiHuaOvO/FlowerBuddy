@@ -1,6 +1,6 @@
 # 花伴
 
-Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：桌宠外壳、备忘录（含提醒与桌面锚点）、定时提醒、网站检测、DeepSeek 余额、阿里云 ESA 流量、Gmail 新邮件提醒，以及 Windows 安装包/便携版/ZIP 发布产物。
+Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：桌宠外壳、备忘录（含提醒与桌面锚点）、定时提醒、网站检测、DeepSeek 余额、阿里云 ESA 流量，以及 Windows 安装包/便携版/ZIP 发布产物。
 
 ## 文档入口
 
@@ -24,7 +24,7 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 - 透明、无边框、始终置顶的桌宠窗口，按住拖动不误判为点击。
 - 单击桌宠只播放约 520ms 的“压低—回弹—收敛”弹簧反馈（可在设置中关闭），不会打开菜单；右键桌宠打开快捷菜单。
 - 快捷菜单是透明背景上悬浮的 4 个白色图标按钮：功能、设置、隐藏桌宠、退出；鼠标移入显示棕色说明，移入“功能”按钮会在上方展开白色的模块动作按钮，移出菜单后自动收起。菜单优先出现在桌宠上方，上方空间不足时翻到下方。菜单打开时再次右键不会关闭；点击设置不会收起菜单，齿轮会显示选中反馈，移到设置窗口后菜单才按“离开菜单和桌宠约 0.8 秒”的规则关闭。
-- 气泡支持 `idle` / `loading` / `success` / `empty` / `error` 五种状态，按出现顺序从上到下堆叠；普通气泡自动消失并可手动关闭，鼠标停留在桌宠或气泡上时暂停自动关闭，离开后继续计时；备忘录与定时提醒常驻显示，直到点击“知道了喵”。
+- 气泡支持 `idle` / `loading` / `success` / `empty` / `error` 五种状态，按出现顺序从上到下堆叠；普通气泡自动消失并可手动关闭，鼠标停留在桌宠或气泡上时暂停自动关闭，离开后继续计时；备忘录与定时提醒常驻显示，直到点击“知道了喵”。查询结果气泡不显示左侧状态图标，余额金额与流量数值使用棕色粗体强调。
 - 设置窗口：常规页提供开机自启、始终置顶、抚摸效果、气泡停留时长（1–10 秒）、桌宠图片与缩放；功能管理支持拖拽排序和启用/停用；左侧导航只列出已启用模块。
 - 单张 PNG 导入：校验格式与大小（≤15 MB），复制到用户数据目录，保留宽高比。
 - 桌宠位置、尺寸和设置持久化到用户数据目录的 `config.json`，采用临时文件 + rename 原子写入并带 `schemaVersion`。
@@ -38,17 +38,17 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 
 - 阶段 2 将配置 schema 升级到 `schemaVersion: 2`，新增五个模块的独立开关；旧配置自动迁移，迁移前与损坏/未来版本文件都会备份，恢复结果会在设置页提示。当前 schema 版本为 8，以 `src/main/storage/config-schema.ts` 为准。
 - 使用 Electron `safeStorage` 异步 API 的 Secret Store：密文以 Base64 写入 `secrets.enc.json`，密钥只在主进程解密；加密不可用时拒绝保存并明确提示，绝不回退明文。
-- 静态模块注册表（备忘录、Gmail、ESA、DeepSeek、网站检测）与生命周期管理；未配置的模块不会被启动。
+- 静态模块注册表（备忘录、ESA、DeepSeek、网站检测）与生命周期管理；未配置的模块不会被启动。
 - 统一任务调度器：同一任务不重叠、可取消、失败指数退避、系统睡眠恢复后从当前时间重新计时。
 - 统一错误类型与 IPC 输入 Zod 校验；渲染进程只收到安全的错误码、用户说明和是否可重试。
-- 脱敏日志写入用户数据目录的 `logs/app.log`，覆盖 Authorization、API Key、AccessKey、token、邮件正文等敏感字段，按大小轮转并保留 7 天。
+- 脱敏日志写入用户数据目录的 `logs/app.log`，覆盖 Authorization、API Key、AccessKey、token 等敏感字段，按大小轮转并保留 7 天。
 - 设置窗口新增“功能管理”页面：模块状态标签、独立开关与安全存储可用性提示。
 
 ### 阶段 3 新增
 
 - 原“特殊日期”模块已由“备忘录”模块整体替换；旧日期数据在升级启动时删除，配置文件自动迁移模块开关与排序。
 - 备忘录支持文本与本地粘贴图片、完成/删除、提醒时间（文本自然语言或日期选择器）以及桌面锚点卡片。
-- 网站检测模块：新增/编辑/删除/停用 URL，手动检测单个或全部启用网站，显示状态码、耗时和错误类型。
+- 网站检测模块：新增/编辑/删除/停用 URL，手动检测单个或全部启用网站，显示状态码、耗时和错误类型；快捷菜单“检测网站”会在气泡中逐行列出每个网站的检测结果，正常项显示耗时，异常项显示原因。
 - 网站检测区分 HTTP 错误（如 404）、超时、DNS/连接失败与 TLS 证书错误，并去除敏感 query 参数后再展示最终 URL。
 - 可选定时检测默认关闭；启用后由统一调度器按 5/10/15/30 分钟执行，停用模块会立即停止对应任务。
 - 设置窗口使用左侧导航；核心页为“常规 / 功能”，其余页面按已启用模块动态出现。
@@ -60,18 +60,12 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 - DeepSeek 支持手动刷新与 15/30/60 分钟可选自动刷新；“今日花费”明确显示为官方账号级统计未接入，不使用余额差额估算。
 - 阿里云 ESA 流量模块：使用官方 `@alicloud/esa20240910` SDK 调用 `DescribeSiteTimeSeriesData`，字段 `Traffic`、维度 `ALL`。
 - ESA 快捷气泡显示过去 24 小时、过去 7 天、过去 30 小时的滚动流量；可在 ESA 设置中勾选要显示的范围（至少一项），设置页同时展示采样率、统计区间与更新时间。
-- DeepSeek/ESA 设置分页提供密码输入、保存并测试、刷新、清除配置与自动刷新间隔；密钥保存后无法回显明文。
+- DeepSeek/ESA 设置分页提供密码输入、保存并测试、刷新、清除配置与自动刷新间隔；密钥保存后无法回显明文。配置完成后默认折叠凭据说明和输入框，可通过“重新配置”重新展开；ESA SiteId 会自动回填，密钥类字段保持空白。
 - API Key、AccessKey ID/Secret 全部经 IPC 进入主进程并用 `safeStorage` 加密写入 `secrets.enc.json`；SiteId 作为非敏感配置写入 `config.json`。
 - 模块状态与快捷菜单动作会随凭据配置联动：未配置时不出现动作，配置并启用后分别出现“查询余额”“流量概览”。
 
 ### 阶段 5 新增
 
-- Gmail 模块：Gmail API + OAuth 2.0，最小只读权限，系统浏览器 + `127.0.0.1` 随机端口回环回调，PKCE 与 state 校验。
-- 首次授权只建立同步基线，不把历史邮件当作新邮件；之后使用 History API 增量读取并按 Message ID 去重。
-- `historyId` 失效时自动重建基线，不补发历史提醒；授权失效会停止轮询并提示重新连接。
-- 只读取发件人、主题、日期与消息 ID 等元数据，不读取或存储邮件正文；通知可隐藏发件人与主题。
-- 新邮件通过 Windows 系统通知与桌宠气泡反馈；模块停用或断开账号后立即停止轮询。
-- 设置页新增 Gmail 分页：OAuth 客户端配置、连接/断开、立即检查、轮询间隔、系统通知与隐藏主题开关。
 - 新增“开机启动”与“启动时显示桌宠”设置项；打包版本会同步 Windows 登录启动项。
 
 ### 阶段 6 / 发布
@@ -126,7 +120,7 @@ npm install
 src/
   main/                  # 主进程：窗口、托盘、IPC、安全策略
     ipc/                 # IPC 注册、sender 校验与 Zod 输入校验
-    modules/             # 静态模块注册表、备忘录/定时提醒/网站/DeepSeek/ESA/Gmail
+    modules/             # 静态模块注册表、备忘录/定时提醒/网站/DeepSeek/ESA
     protocol/            # 桌宠与备忘录图片自定义协议
     scheduler/           # 统一任务调度器
     security/            # 安全窗口选项与 Secret Store
@@ -165,17 +159,6 @@ release/                 # 安装包输出（不入库）
 - DeepSeek 快捷气泡显示“大鲸鱼还有 ¥xxx 的米饭可以吃喵”；ESA 快捷气泡按设置中勾选的 24 小时/7 天/30 天范围显示流量。
 - DeepSeek/ESA 凭据只在设置中输入的瞬间经过主进程，之后以密文保存；应用不提供读取明文密钥的接口。
 - ESA 请使用只授予 `esa:DescribeSiteTimeSeriesData` 权限的 RAM 子账号，不要使用主账号 AccessKey；清除配置会同时移除 AccessKey 与 SiteId。
-- Gmail 只申请 `gmail.readonly`，仅读取邮件元数据，不读取正文；refresh token 加密保存，断开时会尽力在线撤销并删除本地 token。
-
-## Gmail 配置（发布者或高级用户）
-
-1. 在 Google Cloud Console 创建项目并启用 Gmail API。
-2. 配置 OAuth consent screen；开发阶段可添加测试用户，公开发布需要按 Google 要求完成验证。
-3. 创建 OAuth 客户端 ID，应用类型选择“桌面应用”。
-4. 在应用“设置 → Gmail”中填写 Client ID 与 Client Secret，保存后点击“连接 Gmail”，在系统浏览器中完成授权。
-5. 未发布的 OAuth 应用可能只允许测试用户登录；这是 Google 侧限制，不是应用错误。
-
-> 公开分发版本建议由发布者准备统一的 OAuth 客户端，避免要求普通用户自行创建 Google Cloud 项目。
 
 - 快捷菜单的“功能”面板只显示已实现、已配置且已启用模块的动作；没有任何可用动作时显示空状态。
 
@@ -187,13 +170,13 @@ release/                 # 安装包输出（不入库）
 - 主按钮另按线上 `.fl-button--solid` 组件实测对齐：背景 `#8b5a2b`、白色文字、34px 高、10px 圆角、500 字重。
 - 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退。
 - 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；模拟 `prefers-reduced-motion: reduce` 后弹跳动画数量为 0 且过渡降至 0.01ms；托盘图标为有效的 64×64 PNG；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
-- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[网站检测](docs/screenshots/settings-websites.png)、[Gmail](docs/screenshots/settings-gmail.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
+- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[网站检测](docs/screenshots/settings-websites.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
 
 ## 安全设计
 
-- 凭据只允许在主进程中处理；渲染进程永远不持有 API Key、AccessKey Secret 或 OAuth token。
+- 凭据只允许在主进程中处理；渲染进程永远不持有 API Key、AccessKey Secret 等凭据。
 - 敏感值使用 Electron `safeStorage` 异步 API 加密后写入 `secrets.enc.json`；加密不可用时拒绝保存，不回退明文。密钥读取没有渲染进程接口。
-- 日志统一脱敏，且不记录密钥、完整认证信息或邮件正文；日志按大小轮转并保留 7 天。
+- 日志统一脱敏，且不记录密钥、认证信息或用户个人数据；日志按大小轮转并保留 7 天。
 - 所有窗口统一使用 `src/main/security/web-preferences.ts` 中的安全选项。
 - 每个 IPC handler 先校验 `event.senderFrame.url`，再用 Zod 校验输入，只向渲染进程返回安全的错误码与说明。
 - 生产环境渲染进程只加载本地文件，并注入严格 CSP；开发环境额外允许 React Refresh 内联脚本与本地 HMR WebSocket。
@@ -214,7 +197,6 @@ npm run dist:win
 
 ## 已知限制（第一版）
 
-- 真实 Gmail OAuth 与真实账户数据尚未验证：需要发布者/用户提供 Google OAuth 客户端并在应用内完成授权。
 - 真实 DeepSeek/ESA 账户数据需在应用内输入凭据后查看；仓库不包含真实凭据。
 - DeepSeek 官方没有可用的账号级每日消费接口，因此只显示余额，不显示今日花费。
 - ESA 流量可能被官方采样且存在统计延迟；接入点目前固定为国内 `esa.cn-hangzhou.aliyuncs.com`。
