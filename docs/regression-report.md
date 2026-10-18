@@ -129,7 +129,8 @@
 
 ### 3. GitHub Actions
 
-- `bcb623d` 已触发 CI：<https://github.com/ZaiHuaOvO/FlowerBuddy/actions/runs/39138927630>。记录时状态为排队，最终结论以该页面为准。
+- `bcb623d` CI 已通过：<https://github.com/ZaiHuaOvO/FlowerBuddy/actions/runs/39138927630>（Checks 全部成功）。
+- 后续 `90026e3` 仅新增验收记录与发布许可文件，推送后同样触发 CI；以该提交对应的 Actions 页面为准。
 
 ### 4. 未覆盖的 Windows 实机项
 
