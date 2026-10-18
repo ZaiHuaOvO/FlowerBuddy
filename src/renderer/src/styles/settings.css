@@ -524,11 +524,17 @@
   margin: 0;
 }
 
+.memo-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .memo-editor {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin: var(--space-3) 0 var(--space-4);
+  margin: 0;
 }
 
 .memo-textarea {
@@ -625,6 +631,61 @@
   display: flex;
   flex-direction: column;
   margin-top: var(--space-2);
+}
+
+.memo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(47, 33, 23, 0.32);
+}
+
+.memo-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(560px, 100%);
+  max-height: 100%;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.memo-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.memo-modal-header h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.memo-settings-modal {
+  width: min(420px, 100%);
+}
+
+.memo-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.memo-setting-label {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
 }
 
 .memo-card {

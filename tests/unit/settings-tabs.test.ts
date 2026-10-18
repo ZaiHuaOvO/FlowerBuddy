@@ -75,6 +75,7 @@ const memoModel = {
   editingId: null,
   confirmDeleteId: null,
   setConfirmDeleteId: noop,
+  editorOpen: false,
   busy: false,
   startNew: noop,
   startEdit: noop,
@@ -177,7 +178,13 @@ describe('settings tabs render', () => {
       )
     ).toContain('<h2>功能管理</h2>')
     expect(
-      render(createElement(MemoSettingsTab, { model: memoModel, composeSignal: 0 }))
+      render(
+        createElement(MemoSettingsTab, {
+          model: memoModel,
+          memoShortcut: 'Alt+A',
+          onSaveShortcut: noop
+        })
+      )
     ).toContain('<h2>备忘录</h2>')
     expect(render(createElement(WebsitesSettingsTab, { model: websiteModel }))).toContain(
       '<h2>网站检测</h2>'

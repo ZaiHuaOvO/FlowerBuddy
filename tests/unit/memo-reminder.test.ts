@@ -30,9 +30,28 @@ describe('memo reminder parsing', () => {
   it('parses weekdays with Chinese numerals', () => {
     expectTime('下周一下午三点', new Date(2026, 9, 19, 15, 0, 0))
     expectTime('下周一 15:30', new Date(2026, 9, 19, 15, 30, 0))
+    expectTime('下周五 3 点', new Date(2026, 9, 23, 3, 0, 0))
+    expectTime('下周五3点', new Date(2026, 9, 23, 3, 0, 0))
+    expectTime('下个星期五 15:30', new Date(2026, 9, 23, 15, 30, 0))
+    expectTime('下周五晚上八点', new Date(2026, 9, 23, 20, 0, 0))
+    expectTime('下周五三点半', new Date(2026, 9, 23, 3, 30, 0))
     expectTime('周三', new Date(2026, 9, 21, 9, 0, 0))
     // "周一" said on Sunday refers to the upcoming Monday.
     expectTime('周一', new Date(2026, 9, 19, 9, 0, 0))
+  })
+
+  it('parses numeric month/day separators with and without a space', () => {
+    expectTime('10 / 20 3 点', new Date(2026, 9, 20, 3, 0, 0))
+    expectTime('10-20 15:30', new Date(2026, 9, 20, 15, 30, 0))
+    expectTime('10.20 3点', new Date(2026, 9, 20, 3, 0, 0))
+    expectTime('10/20', new Date(2026, 9, 20, 9, 0, 0))
+    expectTime('10月20号', new Date(2026, 9, 20, 9, 0, 0))
+  })
+
+  it('parses morning shorthands', () => {
+    expectTime('明早8点', new Date(2026, 9, 19, 8, 0, 0))
+    expectTime('明早', new Date(2026, 9, 19, 8, 0, 0))
+    expectTime('今晚八点', new Date(2026, 9, 18, 20, 0, 0))
   })
 
   it('rolls explicit month/day dates to next year once passed', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MemoSummary } from '../../../../shared/api'
 import { memoImageUrl } from '../../../../shared/api'
 import { formatMemoDateTime, memoExcerpt, memoTitle } from '../utils/formatters'
@@ -6,13 +6,15 @@ import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { IconButton } from '../../components/IconButton'
 import { Tag } from '../../components/Tag'
+import { ShortcutInput } from '../components/ShortcutInput'
 import type { useMemoSettings } from '../hooks/useMemoSettings'
 
 type MemoModel = ReturnType<typeof useMemoSettings>
 
 interface Props {
   model: MemoModel
-  composeSignal: number
+  memoShortcut: string
+  onSaveShortcut: (accelerator: string) => void
 }
 
 function PinIcon({ active }: { active: boolean }) {
@@ -84,6 +86,22 @@ function CalendarIcon() {
   )
 }
 
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path
+        d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  )
+}
+
 function toLocalInputValue(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
@@ -91,7 +109,7 @@ function toLocalInputValue(date: Date): string {
   )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-export function MemoSettingsTab({ model, composeSignal }: Props) {
+export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) {
   const {
     memos,
     draft,
@@ -99,6 +117,7 @@ export function MemoSettingsTab({ model, composeSignal }: Props) {
     editingId,
     confirmDeleteId,
     setConfirmDeleteId,
+    editorOpen,
     busy,
     startNew,
     startEdit,
@@ -112,15 +131,16 @@ export function MemoSettingsTab({ model, composeSignal }: Props) {
     toggleAnchor,
     remove
   } = model
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const pickerRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
-    if (composeSignal > 0 && !editingId) {
+    if (editorOpen) {
       textareaRef.current?.focus()
       textareaRef.current?.scrollIntoView({ block: 'nearest' })
     }
-  }, [composeSignal, editingId])
+  }, [editorOpen, editingId])
 
   function handlePaste(event: React.ClipboardEvent<HTMLTextAreaElement>): void {
     const files: File[] = []
@@ -165,90 +185,19 @@ export function MemoSettingsTab({ model, composeSignal }: Props) {
     <section className="panel memo-panel">
       <div className="memo-header">
         <h2>备忘录</h2>
-        <Button variant="secondary" onClick={startNew}>
-          新建备忘录
-        </Button>
+        <div className="memo-header-actions">
+          <IconButton
+            label="备忘录设置"
+            aria-haspopup="dialog"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <GearIcon />
+          </IconButton>
+          <Button variant="secondary" onClick={startNew}>
+            新增备忘录
+          </Button>
+        </div>
       </div>
-      <p className="hint">
-        支持普通文本与粘贴图片；图片只保存在本机。设置提醒后，到点会通过桌宠气泡提醒。
-      </p>
-
-      <form className="memo-editor" onSubmit={(event) => void submit(event)}>
-        <textarea
-          ref={textareaRef}
-          className="fl-input memo-textarea"
-          value={draft.text}
-          maxLength={20000}
-          rows={6}
-          placeholder="写点什么……可直接粘贴图片"
-          onChange={(event) => setDraft({ ...draft, text: event.target.value })}
-          onPaste={handlePaste}
-        />
-
-        {draft.images.length > 0 ? (
-          <div className="memo-attachments">
-            {draft.images.map((image) => (
-              <div className="memo-attachment" key={image.id}>
-                <img
-                  src={memoImageUrl(image.id)}
-                  alt="备忘录图片"
-                  width={image.width}
-                  height={image.height}
-                  loading="lazy"
-                />
-                <button
-                  type="button"
-                  className="memo-attachment-remove"
-                  aria-label="移除图片"
-                  onClick={() => removeImage(image.id)}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="memo-reminder-field">
-          <input
-            className={`fl-input memo-reminder-input${draft.reminderError ? ' is-invalid' : ''}`}
-            value={draft.reminderText}
-            placeholder="提醒时间，例如：明天上午9点 / 2026-10-20 15:30"
-            onChange={(event) => updateReminderText(event.target.value)}
-          />
-          <Button variant="secondary" aria-label="选择提醒时间" onClick={openPicker}>
-            <CalendarIcon />
-            选择时间
-          </Button>
-          <input
-            ref={pickerRef}
-            className="memo-picker-hidden"
-            type="datetime-local"
-            step="1"
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={(event) => setReminderFromPicker(event.target.value)}
-          />
-        </div>
-        {draft.reminderError ? (
-          <p className="memo-reminder-error">{draft.reminderError}</p>
-        ) : draft.reminderAt ? (
-          <p className="memo-reminder-preview">提醒时间：{formatMemoDateTime(draft.reminderAt)}</p>
-        ) : (
-          <p className="hint">不填写则不提醒；支持“明天上午9点”“下周一 15:30”等表达。</p>
-        )}
-
-        <div className="form-actions">
-          <Button variant="primary" type="submit" disabled={busy}>
-            {editingId ? '保存修改' : '添加备忘录'}
-          </Button>
-          {editingId ? (
-            <Button variant="ghost" onClick={cancelEdit} disabled={busy}>
-              取消
-            </Button>
-          ) : null}
-        </div>
-      </form>
 
       {memos.length === 0 ? (
         <EmptyState title="还没有备忘录" description="记录一条备忘，设置提醒，或把它锚定到桌面。" />
@@ -268,6 +217,142 @@ export function MemoSettingsTab({ model, composeSignal }: Props) {
           ))}
         </div>
       )}
+
+      {editorOpen ? (
+        <div
+          className="memo-modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              cancelEdit()
+            }
+          }}
+        >
+          <div
+            className="memo-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="memo-editor-title"
+          >
+            <div className="memo-modal-header">
+              <h3 id="memo-editor-title">{editingId ? '编辑备忘录' : '新建备忘录'}</h3>
+              <IconButton label="关闭" onClick={cancelEdit}>
+                <span aria-hidden="true">×</span>
+              </IconButton>
+            </div>
+
+            <form className="memo-editor" onSubmit={(event) => void submit(event)}>
+              <textarea
+                ref={textareaRef}
+                className="fl-input memo-textarea"
+                value={draft.text}
+                maxLength={20000}
+                rows={6}
+                placeholder="写点什么……可直接粘贴图片"
+                onChange={(event) => setDraft({ ...draft, text: event.target.value })}
+                onPaste={handlePaste}
+              />
+
+              {draft.images.length > 0 ? (
+                <div className="memo-attachments">
+                  {draft.images.map((image) => (
+                    <div className="memo-attachment" key={image.id}>
+                      <img
+                        src={memoImageUrl(image.id)}
+                        alt="备忘录图片"
+                        width={image.width}
+                        height={image.height}
+                        loading="lazy"
+                      />
+                      <button
+                        type="button"
+                        className="memo-attachment-remove"
+                        aria-label="移除图片"
+                        onClick={() => removeImage(image.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="memo-reminder-field">
+                <input
+                  className={`fl-input memo-reminder-input${draft.reminderError ? ' is-invalid' : ''}`}
+                  value={draft.reminderText}
+                  placeholder="提醒时间，例如：下周五 3 点 / 2026-10-20 15:30"
+                  onChange={(event) => updateReminderText(event.target.value)}
+                />
+                <Button variant="secondary" aria-label="选择提醒时间" onClick={openPicker}>
+                  <CalendarIcon />
+                  选择时间
+                </Button>
+                <input
+                  ref={pickerRef}
+                  className="memo-picker-hidden"
+                  type="datetime-local"
+                  step="1"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  onChange={(event) => setReminderFromPicker(event.target.value)}
+                />
+              </div>
+              {draft.reminderError ? (
+                <p className="memo-reminder-error">{draft.reminderError}</p>
+              ) : draft.reminderAt ? (
+                <p className="memo-reminder-preview">
+                  提醒时间：{formatMemoDateTime(draft.reminderAt)}
+                </p>
+              ) : (
+                <p className="hint">
+                  不填写则不提醒；支持“明天上午9点”“下周五 3 点”“10-20 15:30”等表达。
+                </p>
+              )}
+
+              <div className="form-actions">
+                <Button variant="primary" type="submit" disabled={busy}>
+                  {editingId ? '保存修改' : '添加备忘录'}
+                </Button>
+                <Button variant="ghost" onClick={cancelEdit} disabled={busy}>
+                  取消
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {settingsOpen ? (
+        <div
+          className="memo-modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSettingsOpen(false)
+            }
+          }}
+        >
+          <div
+            className="memo-modal memo-settings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="memo-settings-title"
+          >
+            <div className="memo-modal-header">
+              <h3 id="memo-settings-title">备忘录设置</h3>
+              <IconButton label="关闭" onClick={() => setSettingsOpen(false)}>
+                <span aria-hidden="true">×</span>
+              </IconButton>
+            </div>
+            <div className="memo-setting-row">
+              <span className="memo-setting-label">新增快捷键</span>
+              <ShortcutInput value={memoShortcut} onSave={onSaveShortcut} />
+            </div>
+            <p className="hint">
+              按下组合键后打开设置并新建备忘录；点击组合键按钮可直接录制新组合键，退格清除。
+            </p>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

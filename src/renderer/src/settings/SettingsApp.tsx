@@ -472,7 +472,11 @@ function SettingsContent({
             />
           ) : null}
           {activeTab === 'memo' ? (
-            <MemoSettingsTab model={memo} composeSignal={composeSignal} />
+            <MemoSettingsTab
+              model={memo}
+              memoShortcut={config.app.memoShortcut}
+              onSaveShortcut={(accelerator) => void saveApp({ memoShortcut: accelerator })}
+            />
           ) : null}
           {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
           {activeTab === 'gmail' ? (

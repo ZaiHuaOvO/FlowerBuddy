@@ -66,6 +66,11 @@ export function parseReminderDateTime(value: string): Date | null {
     )
     return date
   }
+  // Only let Date.parse handle full ISO timestamps. It also accepts partial
+  // dates such as "10-20 15:30" and would invent the year 2001.
+  if (!/^\d{4}-\d{2}-\d{2}[T ]\d{1,2}:\d{2}/.test(trimmed)) {
+    return null
+  }
   const parsed = Date.parse(trimmed)
   if (!Number.isFinite(parsed)) {
     return null
@@ -163,11 +168,16 @@ export function parseReminderInput(
 }
 
 function normalizeInput(input: string): string {
-  return input
-    .trim()
-    .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0))
-    .replace(/：/g, ':')
-    .replace(/\s+/g, '')
+  return (
+    input
+      .trim()
+      .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0))
+      .replace(/：/g, ':')
+      // Keep the separator between two numbers (e.g. "10-20 15:30"), drop the
+      // rest so "下周五 3 点" and "下 周 五" both work.
+      .replace(/(?<=\D)\s+|\s+(?=\D)/g, '')
+      .replace(/\s+/g, ' ')
+  )
 }
 
 function buildLocalDate(
@@ -232,7 +242,10 @@ function parseChineseNumber(raw: string): number | null {
 }
 
 function parseRelative(input: string, now: Date): Date | null {
-  const match = /([0-9零一二两三四五六七八九十]+)(秒钟?|分钟|分|小时|天|周|星期)后/.exec(input)
+  const match =
+    /((?:\d+)|(?:[一二两三四五六七八九]?十[一二三四五六七八九]?|[零一二两三四五六七八九]))(秒钟?|分钟|分|小时|天|周|星期)后/.exec(
+      input
+    )
   if (!match) {
     return null
   }
@@ -275,7 +288,7 @@ function parseTime(input: string): TimeParts | null {
   }
 
   const point =
-    /(凌晨|早上|早晨|上午|中午|下午|傍晚|晚上|夜里)?([0-9零一二两三四五六七八九十]{1,3})[点时](半|[0-9零一二两三四五六七八九十]{1,3}分?)?/.exec(
+    /(凌晨|早上|早晨|上午|中午|下午|傍晚|晚上|夜里|今晚|明晚|今夜|明夜)?((?:\d{1,3})|(?:[一二两三四五六七八九]?十[一二三四五六七八九]?|[零一二两三四五六七八九]))[点时](半|(?:\d{1,3})分?|(?:[一二两三四五六七八九]?十[一二三四五六七八九]?|[零一二两三四五六七八九])分?)?/.exec(
       input
     )
   if (!point) {
@@ -302,9 +315,11 @@ function parseTime(input: string): TimeParts | null {
   }
 
   let hours = rawHour
-  if (period === '下午' || period === '傍晚' || period === '晚上' || period === '中午') {
+  const pmPeriods = ['下午', '傍晚', '晚上', '夜里', '今晚', '明晚', '今夜', '明夜', '中午']
+  const lateNightPeriods = ['晚上', '夜里', '今晚', '明晚', '今夜', '明夜']
+  if (pmPeriods.includes(period)) {
     if (hours === 12) {
-      hours = period === '晚上' ? 0 : 12
+      hours = lateNightPeriods.includes(period) ? 0 : 12
     } else if (hours < 12) {
       hours += 12
     }
@@ -357,6 +372,18 @@ function parseDateParts(input: string, now: Date): DateParts | null {
     }
   }
 
+  const numeric = /(\d{1,2})[/.-](\d{1,2})/.exec(input)
+  if (numeric) {
+    return {
+      year: now.getFullYear(),
+      month: Number(numeric[1]) - 1,
+      day: Number(numeric[2]),
+      defaultHours: 9,
+      rollYearWhenPast: true,
+      rollDaysWhenPast: false
+    }
+  }
+
   const dayOffset = parseDayWord(input)
   if (dayOffset !== null) {
     const at = new Date(now.getTime())
@@ -371,7 +398,7 @@ function parseDateParts(input: string, now: Date): DateParts | null {
     }
   }
 
-  const weekday = /(下下|下|本|这|上)?(?:周|星期|礼拜)([一二三四五六日天1-7])/.exec(input)
+  const weekday = /(下下|下个|下|这个|本|这|上)?(?:周|星期|礼拜)([一二三四五六日天1-7])/.exec(input)
   if (weekday) {
     const target = WEEKDAY_INDEX[weekday[2] as string]
     if (target === undefined) {
@@ -384,6 +411,8 @@ function parseDateParts(input: string, now: Date): DateParts | null {
       offset += 7
     } else if (prefix === '下下') {
       offset += 14
+    } else if (prefix === '下个') {
+      offset += 7
     } else if (prefix === '上') {
       offset -= 7
     }
@@ -409,8 +438,14 @@ function parseDayWord(input: string): { offset: number; defaultHours: number } |
   if (input.includes('后天')) {
     return { offset: 2, defaultHours: 9 }
   }
+  if (input.includes('明早')) {
+    return { offset: 1, defaultHours: 8 }
+  }
   if (input.includes('明晚') || input.includes('明天') || input.includes('明日')) {
     return { offset: 1, defaultHours: input.includes('明晚') ? 20 : 9 }
+  }
+  if (input.includes('今早')) {
+    return { offset: 0, defaultHours: 8 }
   }
   if (input.includes('今晚') || input.includes('今天') || input.includes('今日')) {
     return { offset: 0, defaultHours: input.includes('今晚') ? 20 : 9 }

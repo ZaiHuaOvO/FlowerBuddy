@@ -37,6 +37,7 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
   const [draft, setDraft] = useState<MemoDraft>(createMemoDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const newImageIds = useRef<Set<string>>(new Set())
   const newImageIdsSnapshot = useRef(newImageIds.current)
@@ -61,6 +62,7 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
       setDraft(createMemoDraft())
       setEditingId(null)
       setConfirmDeleteId(null)
+      setEditorOpen(true)
     }
   }, [api, composeSignal])
 
@@ -77,6 +79,7 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
     setDraft(createMemoDraft())
     setEditingId(null)
     setConfirmDeleteId(null)
+    setEditorOpen(true)
   }
 
   function startEdit(memo: MemoSummary): void {
@@ -93,12 +96,14 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
     })
     setEditingId(memo.id)
     setConfirmDeleteId(null)
+    setEditorOpen(true)
   }
 
   function cancelEdit(): void {
     releaseDraftImages()
     setDraft(createMemoDraft())
     setEditingId(null)
+    setEditorOpen(false)
   }
 
   function updateReminderText(value: string): void {
@@ -206,6 +211,7 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
       newImageIdsSnapshot.current = newImageIds.current
       setDraft(createMemoDraft())
       setEditingId(null)
+      setEditorOpen(false)
       flash(editingId ? '已保存' : '已添加备忘录')
     } catch (cause) {
       setError(toMessage(cause))
@@ -264,6 +270,7 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
     editingId,
     confirmDeleteId,
     setConfirmDeleteId,
+    editorOpen,
     busy,
     startNew,
     startEdit,
