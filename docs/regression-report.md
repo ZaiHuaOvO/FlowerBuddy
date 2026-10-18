@@ -125,12 +125,12 @@
 - `interval-reminder-module.test.ts` + `module-action-runner.test.ts`：同一提醒重复触发复用 `interval-reminder:<id>` 气泡 ID，不再堆积相同常驻气泡。
 - `memo-service.test.ts`：同时锚定上限为 20 张，第 21 张被拒绝；旧数据超过 20 张时加载后仅保留 20 张锚定。
 - `config-store.test.ts`：schema v9 迁移会删除 Gmail 模块及模块顺序中的残留 ID，同时保留其他模块的用户排序。
-- Gmail 相关源码、IPC、设置页、测试、Google 依赖和当前文档已无残留；历史记录文件保持原样。
+- Gmail 功能代码、IPC、设置页、测试、Google 依赖和当前功能文档已无残留；配置迁移、启动清理和历史记录中的必要引用保留。
 
 ### 3. GitHub Actions
 
 - `bcb623d` CI 已通过：<https://github.com/ZaiHuaOvO/FlowerBuddy/actions/runs/39138927630>（Checks 全部成功）。
-- 后续 `90026e3` 仅新增验收记录与发布许可文件，推送后同样触发 CI；以该提交对应的 Actions 页面为准。
+- 后续仅文档/发布声明的提交不改变代码验收结论；最终文档提交的 CI 结果以对应 Actions 页面为准。
 
 ### 4. 未覆盖的 Windows 实机项
 
