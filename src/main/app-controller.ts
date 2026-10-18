@@ -92,7 +92,9 @@ export class AppController {
       devServerUrl: options.devServerUrl,
       rendererIndexPath: options.rendererIndexPath,
       getPetBounds: () => this.pet.getBounds(),
-      getMenuActionCount: () => this.getMenuActions().length
+      getMenuActionCount: () => this.getMenuActions().length,
+      getBubbleDurationMs: () => this.config.app.bubbleDurationMs,
+      isPetVisible: () => !this.disposed && this.pet.isVisible()
     })
     this.pet = new PetWindowController({
       configStore: options.configStore,
@@ -107,7 +109,6 @@ export class AppController {
     this.actions = new ModuleActionRunner({
       moduleManager: options.moduleManager,
       presenter: this.overlays,
-      getBubbleDurationMs: () => this.config.app.bubbleDurationMs,
       isPetVisible: () => !this.disposed && this.pet.isVisible()
     })
     this.memoCards = new MemoCardWindowManager({
@@ -234,6 +235,10 @@ export class AppController {
 
   setMemoAnchored(id: string, anchored: boolean): MemoSummary[] {
     return this.options.memoService.setAnchored(id, anchored)
+  }
+
+  setMemoAnchorNew(enabled: boolean): PublicConfig {
+    return this.options.configStore.setMemoAnchorNew(enabled)
   }
 
   addMemoImage(data: ArrayBuffer | Uint8Array): MemoImageInfo {
@@ -436,7 +441,15 @@ export class AppController {
     return modules
   }
 
-  showModuleMessage(_moduleId: ModuleId, message: string): void {
+  showModuleMessage(
+    _moduleId: ModuleId,
+    message: string,
+    options?: { persistent?: boolean }
+  ): void {
+    if (options?.persistent) {
+      void this.actions.showPersistentBackground(message)
+      return
+    }
     void this.actions.showBackground(message)
   }
 
@@ -508,8 +521,13 @@ export class AppController {
     this.overlays.acknowledgeOpen()
   }
 
-  dismissBubble(): void {
-    this.actions.dismiss()
+  dismissBubble(id: string): void {
+    this.actions.dismiss(id)
+    this.overlays.dismissBubble(id)
+  }
+
+  setBubbleHeight(height: number): void {
+    this.overlays.setBubbleHeight(height)
   }
 
   openSettings(): void {
@@ -558,6 +576,7 @@ export class AppController {
     }
     this.pet.show()
     this.tray?.setPetVisible(true)
+    this.overlays.showBubbleStack()
   }
 
   showPet(): void {
@@ -566,6 +585,7 @@ export class AppController {
     }
     this.pet.show()
     this.tray?.setPetVisible(true)
+    this.overlays.showBubbleStack()
   }
 
   handleSecondInstance(): void {

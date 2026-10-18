@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 6
+export const CURRENT_CONFIG_SCHEMA_VERSION = 7
 
 export const MODULE_ID_VALUES = [
   'memo',
@@ -135,7 +135,9 @@ const petSchema = z.object({
   position: positionSchema
 })
 
-const memoModuleSchema = z.object({ enabled: booleanField(true) }).catch({ enabled: true })
+const memoModuleSchema = z
+  .object({ enabled: booleanField(true), anchorNewMemos: booleanField(false) })
+  .catch({ enabled: true, anchorNewMemos: false })
 
 const gmailModuleSchema = z
   .object({
@@ -175,7 +177,7 @@ const websiteCheckModuleSchema = z
 
 const modulesSchema = z
   .object({
-    memo: memoModuleSchema.default({ enabled: true }),
+    memo: memoModuleSchema.default({ enabled: true, anchorNewMemos: false }),
     gmail: gmailModuleSchema.default({
       enabled: false,
       pollIntervalMinutes: 3,
@@ -197,7 +199,7 @@ const modulesSchema = z
     })
   })
   .catch({
-    memo: { enabled: true },
+    memo: { enabled: true, anchorNewMemos: false },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -218,7 +220,7 @@ const configSchema = z
     }),
     pet: petSchema.default({ assetId: 'default', scale: 1, position: null }),
     modules: modulesSchema.default({
-      memo: { enabled: true },
+      memo: { enabled: true, anchorNewMemos: false },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -238,7 +240,7 @@ const configSchema = z
     },
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
-      memo: { enabled: true },
+      memo: { enabled: true, anchorNewMemos: false },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -248,7 +250,7 @@ const configSchema = z
 
 export function createDefaultModules(): ModulesSettings {
   return {
-    memo: { enabled: true },
+    memo: { enabled: true, anchorNewMemos: false },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -321,7 +323,7 @@ function migrateMemoModule(raw: unknown, fromVersion: number): unknown {
   const modules = isPlainObject(raw.modules) ? { ...raw.modules } : {}
   const dates = isPlainObject(modules.dates) ? modules.dates : null
   if (dates && !isPlainObject(modules.memo)) {
-    modules.memo = { enabled: dates.enabled !== false }
+    modules.memo = { enabled: dates.enabled !== false, anchorNewMemos: false }
   }
   delete modules.dates
   if (Array.isArray(app.moduleOrder)) {

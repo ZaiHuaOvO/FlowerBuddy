@@ -74,7 +74,7 @@ export type ModuleId = 'memo' | 'gmail' | 'esa' | 'deepseek' | 'website-check'
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
 
 export interface ModulesSettings {
-  memo: { enabled: boolean }
+  memo: { enabled: boolean; anchorNewMemos: boolean }
   gmail: {
     enabled: boolean
     pollIntervalMinutes: number
@@ -313,6 +313,21 @@ export interface BubblePayload {
   state: BubbleState
   message: string
   requestId: string | null
+  /** Persistent bubbles stay until the user acknowledges them. */
+  persistent?: boolean
+  /** Loading bubbles stay visible until replaced by their result. */
+  autoHide?: boolean
+}
+
+export interface BubbleItem {
+  id: string
+  state: BubbleState
+  message: string
+  persistent: boolean
+}
+
+export interface BubbleStackPayload {
+  bubbles: BubbleItem[]
 }
 
 export const IPC_CHANNELS = {
@@ -335,6 +350,7 @@ export const IPC_CHANNELS = {
   memosSetAnchored: 'memos:set-anchored',
   memosAddImage: 'memos:add-image',
   memosDiscardImages: 'memos:discard-images',
+  memosSetAnchorNew: 'memos:set-anchor-new',
   memosChanged: 'memos:changed',
   settingsOpenMemoComposer: 'settings:open-memo-composer',
   settingsUiReady: 'settings:ui-ready',
@@ -382,7 +398,8 @@ export const IPC_CHANNELS = {
   menuQuit: 'menu:quit',
   menuClose: 'menu:close',
   bubbleUpdate: 'bubble:update',
-  bubbleDismiss: 'bubble:dismiss'
+  bubbleDismiss: 'bubble:dismiss',
+  bubbleSetHeight: 'bubble:set-height'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -409,8 +426,9 @@ export interface MenuApi {
 }
 
 export interface BubbleApi {
-  onUpdate(callback: (payload: BubblePayload) => void): () => void
-  dismiss(): Promise<void>
+  onUpdate(callback: (payload: BubbleStackPayload) => void): () => void
+  dismiss(id: string): Promise<void>
+  setHeight(height: number): Promise<void>
 }
 
 export interface MemoCardApi {
@@ -446,6 +464,7 @@ export interface SettingsApi {
   setMemoAnchored(id: string, anchored: boolean): Promise<MemoSummary[]>
   addMemoImage(data: ArrayBuffer): Promise<MemoImageInfo>
   discardMemoImages(ids: string[]): Promise<void>
+  setMemoAnchorNew(enabled: boolean): Promise<PublicConfig>
   onMemosChanged(callback: () => void): () => void
   onOpenMemoComposer(callback: () => void): () => void
   settingsUiReady(): Promise<void>

@@ -18,12 +18,15 @@ import { AppError, toPublicError } from '../shared/errors'
 import type { LoggerLike } from '../shared/logger'
 import {
   appSettingsPatchSchema,
+  bubbleDismissInputSchema,
+  bubbleHeightInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
+  memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
   memoCardResizeInputSchema,
   memoDiscardImagesSchema,
@@ -121,6 +124,10 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     controller.discardMemoImages(input.ids)
   )
 
+  register(IPC_CHANNELS.memosSetAnchorNew, memoAnchorNewInputSchema, (input) =>
+    controller.setMemoAnchorNew(input.enabled)
+  )
+
   register(IPC_CHANNELS.settingsUiReady, null, () => controller.acknowledgeSettingsUiReady())
 
   register(IPC_CHANNELS.memoCardGetState, idInputSchema, (input) =>
@@ -205,5 +212,10 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   register(IPC_CHANNELS.menuHidePet, null, () => controller.hidePet())
   register(IPC_CHANNELS.menuQuit, null, () => controller.quitApp())
   register(IPC_CHANNELS.menuClose, null, () => controller.closeMenu())
-  register(IPC_CHANNELS.bubbleDismiss, null, () => controller.dismissBubble())
+  register(IPC_CHANNELS.bubbleDismiss, bubbleDismissInputSchema, (input) =>
+    controller.dismissBubble(input.id)
+  )
+  register(IPC_CHANNELS.bubbleSetHeight, bubbleHeightInputSchema, (input) =>
+    controller.setBubbleHeight(input.height)
+  )
 }

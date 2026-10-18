@@ -551,6 +551,11 @@
   gap: var(--space-2);
 }
 
+.memo-anchor-switch {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+}
+
 .memo-attachment {
   position: relative;
   width: 88px;

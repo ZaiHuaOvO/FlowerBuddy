@@ -14,7 +14,7 @@ function createHarness(
       void payload
       return Promise.resolve()
     }),
-    hideBubble: vi.fn()
+    dismissBubble: vi.fn()
   }
   const moduleManager = {
     getAction: vi.fn(() => ({ action: { loadingMessage: '加载中' } })),
@@ -23,7 +23,6 @@ function createHarness(
   const runner = new ModuleActionRunner({
     moduleManager,
     presenter,
-    getBubbleDurationMs: () => 5000,
     isPetVisible: () => true
   })
   return { runner, presenter, moduleManager }
@@ -38,23 +37,20 @@ afterEach(() => {
 })
 
 describe('ModuleActionRunner', () => {
-  it('shows loading then the action result and hides after the duration', async () => {
+  it('shows loading then the action result', async () => {
     const { runner, presenter } = createHarness()
 
     await runner.run('website-check:run-all')
 
     expect(presenter.showBubble).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ state: 'loading', message: '加载中' })
+      expect.objectContaining({ state: 'loading', message: '加载中', autoHide: false })
     )
     expect(presenter.showBubble).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ state: 'success', message: '完成' })
     )
-    expect(presenter.hideBubble).not.toHaveBeenCalled()
-
-    await vi.advanceTimersByTimeAsync(5000)
-    expect(presenter.hideBubble).toHaveBeenCalledTimes(1)
+    expect(presenter.dismissBubble).not.toHaveBeenCalled()
   })
 
   it('shows an error bubble when the action fails', async () => {
@@ -67,8 +63,6 @@ describe('ModuleActionRunner', () => {
     expect(presenter.showBubble).toHaveBeenLastCalledWith(
       expect.objectContaining({ state: 'error', message: 'action failed' })
     )
-    await vi.advanceTimersByTimeAsync(5000)
-    expect(presenter.hideBubble).toHaveBeenCalledTimes(1)
   })
 
   it('shows an error bubble when the action id is unknown', async () => {
@@ -107,7 +101,33 @@ describe('ModuleActionRunner', () => {
     expect(presenter.showBubble).toHaveBeenCalledTimes(2)
   })
 
-  it('dismiss cancels timers and ignores an in-flight result', async () => {
+  it('dismisses the previous bubble when a new action starts', async () => {
+    let resolveFirst: ((result: ModuleActionResult) => void) | undefined
+    let calls = 0
+    const { runner, presenter } = createHarness(() => {
+      calls += 1
+      if (calls === 1) {
+        return new Promise<ModuleActionResult>((resolve) => {
+          resolveFirst = resolve
+        })
+      }
+      return Promise.resolve({ state: 'success', message: 'second' })
+    })
+
+    const pending = runner.run('website-check:run-all')
+    await vi.advanceTimersByTimeAsync(0)
+    const firstRequestId = presenter.showBubble.mock.calls[0]?.[0]?.requestId
+
+    const second = runner.run('website-check:run-all')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(presenter.dismissBubble).toHaveBeenCalledWith(firstRequestId)
+
+    resolveFirst?.({ state: 'success', message: 'late' })
+    await pending
+    await second
+  })
+
+  it('ignores an in-flight result after the bubble is dismissed', async () => {
     let resolveAction: ((result: ModuleActionResult) => void) | undefined
     const { runner, presenter } = createHarness(
       () =>
@@ -118,32 +138,37 @@ describe('ModuleActionRunner', () => {
 
     const pending = runner.run('website-check:run-all')
     await vi.advanceTimersByTimeAsync(0)
-    runner.dismiss()
-    expect(presenter.hideBubble).toHaveBeenCalledTimes(1)
+    const requestId = presenter.showBubble.mock.calls[0]?.[0]?.requestId
+    runner.dismiss(requestId as string)
 
     resolveAction?.({ state: 'success', message: 'late' })
     await pending
     expect(presenter.showBubble).toHaveBeenCalledTimes(1)
-
-    await vi.advanceTimersByTimeAsync(60000)
-    expect(presenter.hideBubble).toHaveBeenCalledTimes(1)
   })
 
   it('does not show a background bubble while hidden or while an action runs', async () => {
     const hidden = createHarness()
-    hidden.runner = new ModuleActionRunner({
+    const hiddenRunner = new ModuleActionRunner({
       moduleManager: hidden.moduleManager,
       presenter: hidden.presenter,
-      getBubbleDurationMs: () => 5000,
       isPetVisible: () => false
     })
-    await hidden.runner.showBackground('mail')
+    await hiddenRunner.showBackground('mail')
     expect(hidden.presenter.showBubble).not.toHaveBeenCalled()
 
     const visible = createHarness()
     await visible.runner.showBackground('mail')
     expect(visible.presenter.showBubble).toHaveBeenCalledWith(
       expect.objectContaining({ state: 'success', message: 'mail' })
+    )
+  })
+
+  it('marks persistent background bubbles so the renderer keeps them', async () => {
+    const { runner, presenter } = createHarness()
+
+    await runner.showPersistentBackground('备忘提醒')
+    expect(presenter.showBubble).toHaveBeenCalledWith(
+      expect.objectContaining({ state: 'success', message: '备忘提醒', persistent: true })
     )
   })
 })

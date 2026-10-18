@@ -33,11 +33,12 @@ describe('config schema', () => {
   it('creates version 6 defaults with startup and Gmail options', () => {
     const config = createDefaultConfig()
 
-    expect(config.schemaVersion).toBe(6)
+    expect(config.schemaVersion).toBe(7)
     expect(config.app.launchAtLogin).toBe(false)
     expect(config.app.showPetOnStartup).toBe(true)
     expect(config.app.memoShortcut).toBe('Alt+A')
     expect(config.modules.memo.enabled).toBe(true)
+    expect(config.modules.memo.anchorNewMemos).toBe(false)
     expect(config.modules.gmail.enabled).toBe(false)
     expect(config.modules.gmail.hideSubject).toBe(true)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
@@ -81,7 +82,7 @@ describe('config schema', () => {
     expect(result.fromVersion).toBe(1)
     expect(result.migrated).toBe(true)
     expect(result.futureVersion).toBe(false)
-    expect(result.config.schemaVersion).toBe(6)
+    expect(result.config.schemaVersion).toBe(7)
     expect(result.config.app.alwaysOnTop).toBe(false)
     expect(result.config.pet.scale).toBe(1.5)
     expect(result.config.modules.memo.enabled).toBe(true)
@@ -105,7 +106,7 @@ describe('config schema', () => {
 
     expect(result.fromVersion).toBe(2)
     expect(result.migrated).toBe(true)
-    expect(result.config.schemaVersion).toBe(6)
+    expect(result.config.schemaVersion).toBe(7)
     expect(result.config.modules.esa.siteId).toBe('site-1')
     expect(result.config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(result.config.modules.deepseek.refreshIntervalMinutes).toBeNull()
@@ -180,6 +181,7 @@ describe('config store', () => {
     })
     store.updatePet({ scale: 1.5, position: { x: 100, y: 200 } })
     store.setModuleEnabled('gmail', true)
+    store.setMemoAnchorNew(true)
     store.setModuleRefreshInterval('deepseek', 15)
     store.setEsaSiteId('site-42')
     store.updateGmailSettings({ pollIntervalMinutes: 5, hideSubject: false })
@@ -194,6 +196,7 @@ describe('config store', () => {
     expect(reloaded.modules.gmail.pollIntervalMinutes).toBe(5)
     expect(reloaded.modules.gmail.hideSubject).toBe(false)
     expect(reloaded.modules.memo.enabled).toBe(true)
+    expect(reloaded.modules.memo.anchorNewMemos).toBe(true)
     expect(reloaded.modules.deepseek.refreshIntervalMinutes).toBe(15)
     expect(reloaded.modules.esa.siteId).toBe('site-42')
     expect(reloaded.app.launchAtLogin).toBe(true)
@@ -222,7 +225,7 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(6)
+    expect(config.schemaVersion).toBe(7)
     expect(config.modules.esa.siteId).toBe('kept-site')
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(readdirSync(directory).some((name) => name.startsWith('config.json.v2-'))).toBe(true)
@@ -250,7 +253,7 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(6)
+    expect(config.schemaVersion).toBe(7)
     expect(config.app.launchAtLogin).toBe(false)
     expect(config.app.showPetOnStartup).toBe(true)
     expect(config.modules.gmail.pollIntervalMinutes).toBe(5)

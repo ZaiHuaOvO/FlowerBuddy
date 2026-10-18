@@ -269,6 +269,15 @@ function SettingsContent({
     }
   }
 
+  async function saveMemoAnchorNew(enabled: boolean): Promise<void> {
+    setError('')
+    try {
+      setConfig(await api.setMemoAnchorNew(enabled))
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
   async function toggleModule(moduleId: ModuleId, enabled: boolean): Promise<void> {
     setError('')
     try {
@@ -346,7 +355,9 @@ function SettingsContent({
     flash,
     setError,
     composeSignal,
-    listVisible: activeTab === 'memo'
+    listVisible: activeTab === 'memo',
+    anchorNewMemos: config.modules.memo.anchorNewMemos,
+    onSetAnchorNew: (enabled) => void saveMemoAnchorNew(enabled)
   })
   const websiteSettings = useWebsiteSettings({
     api,

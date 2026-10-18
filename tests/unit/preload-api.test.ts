@@ -80,6 +80,7 @@ describe('preload bridge surface', () => {
       'saveEsaCredentials',
       'saveGmailClient',
       'savePetSettings',
+      'setMemoAnchorNew',
       'setMemoAnchored',
       'setModuleEnabled',
       'setModuleRefreshInterval',

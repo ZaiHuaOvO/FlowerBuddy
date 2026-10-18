@@ -148,7 +148,8 @@ async function bootstrap(): Promise<void> {
     configStore,
     scheduler,
     logger,
-    notify: (moduleId, message) => controller?.showModuleMessage(moduleId, message)
+    notify: (moduleId, message, options) =>
+      controller?.showModuleMessage(moduleId, message, options)
   })
 
   const appController = new AppController({

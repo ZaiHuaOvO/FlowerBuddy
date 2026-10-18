@@ -6,7 +6,7 @@ const MODULE_ACTION_TIMEOUT_MS = 45000
 
 export interface BubblePresenter {
   showBubble(payload: BubblePayload): Promise<void>
-  hideBubble(): void
+  dismissBubble(id: string): void
 }
 
 export interface ModuleActionSource {
@@ -17,23 +17,24 @@ export interface ModuleActionSource {
 export interface ModuleActionRunnerOptions {
   moduleManager: ModuleActionSource
   presenter: BubblePresenter
-  getBubbleDurationMs: () => number
   isPetVisible: () => boolean
 }
 
 /**
- * Owns the request id, timeout and hide timers for menu actions and the
- * background bubble. A newer request always invalidates an older result.
+ * Owns the request id and timeout for menu actions. The bubble presenter keeps
+ * the visible stack and handles per-bubble auto-hide.
  */
 export class ModuleActionRunner {
   private currentRequestId: string | null = null
   private safetyTimer: ReturnType<typeof setTimeout> | null = null
-  private hideTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(private readonly options: ModuleActionRunnerOptions) {}
 
   async run(actionId: string): Promise<void> {
-    this.clearTimers()
+    this.clearSafetyTimer()
+    if (this.currentRequestId) {
+      this.options.presenter.dismissBubble(this.currentRequestId)
+    }
     const requestId = randomUUID()
     this.currentRequestId = requestId
 
@@ -43,11 +44,15 @@ export class ModuleActionRunner {
     } catch (error) {
       const publicError = toPublicError(error)
       await this.showBubble({ state: 'error', message: publicError.message, requestId })
-      this.scheduleBubbleHide()
       return
     }
 
-    await this.showBubble({ state: 'loading', message: loadingMessage, requestId })
+    await this.showBubble({
+      state: 'loading',
+      message: loadingMessage,
+      requestId,
+      autoHide: false
+    })
     if (this.currentRequestId !== requestId) {
       return
     }
@@ -63,7 +68,6 @@ export class ModuleActionRunner {
         message: '请求超时，请稍后重试',
         requestId
       })
-      this.scheduleBubbleHide()
     }, MODULE_ACTION_TIMEOUT_MS)
 
     try {
@@ -73,7 +77,6 @@ export class ModuleActionRunner {
       }
       this.clearSafetyTimer()
       await this.showBubble({ state: result.state, message: result.message, requestId })
-      this.scheduleBubbleHide()
     } catch (error) {
       if (this.currentRequestId !== requestId) {
         return
@@ -81,7 +84,6 @@ export class ModuleActionRunner {
       this.clearSafetyTimer()
       const publicError = toPublicError(error)
       await this.showBubble({ state: 'error', message: publicError.message, requestId })
-      this.scheduleBubbleHide()
     }
   }
 
@@ -94,46 +96,37 @@ export class ModuleActionRunner {
       message,
       requestId: randomUUID()
     })
-    this.scheduleBubbleHide()
   }
 
-  dismiss(): void {
-    this.currentRequestId = null
-    this.clearTimers()
-    this.options.presenter.hideBubble()
+  async showPersistentBackground(message: string): Promise<void> {
+    await this.showBubble({
+      state: 'success',
+      message,
+      requestId: randomUUID(),
+      persistent: true
+    })
+  }
+
+  /** A manually dismissed bubble must not be revived by a late result. */
+  dismiss(id: string): void {
+    if (this.currentRequestId === id) {
+      this.currentRequestId = null
+      this.clearSafetyTimer()
+    }
   }
 
   dispose(): void {
-    this.clearTimers()
+    this.clearSafetyTimer()
   }
 
   private showBubble(payload: BubblePayload): Promise<void> {
     return this.options.presenter.showBubble(payload)
   }
 
-  private scheduleBubbleHide(): void {
-    if (this.hideTimer !== null) {
-      clearTimeout(this.hideTimer)
-    }
-    this.hideTimer = setTimeout(() => {
-      this.hideTimer = null
-      this.options.presenter.hideBubble()
-      this.currentRequestId = null
-    }, this.options.getBubbleDurationMs())
-  }
-
   private clearSafetyTimer(): void {
     if (this.safetyTimer !== null) {
       clearTimeout(this.safetyTimer)
       this.safetyTimer = null
-    }
-  }
-
-  private clearTimers(): void {
-    this.clearSafetyTimer()
-    if (this.hideTimer !== null) {
-      clearTimeout(this.hideTimer)
-      this.hideTimer = null
     }
   }
 }

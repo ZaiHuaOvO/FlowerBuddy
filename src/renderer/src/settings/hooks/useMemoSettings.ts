@@ -19,6 +19,7 @@ export interface MemoDraft {
   reminderText: string
   reminderAt: string | null
   reminderError: string
+  anchor: boolean
 }
 
 interface Options {
@@ -29,10 +30,12 @@ interface Options {
   setError: (message: string) => void
   composeSignal: number
   listVisible: boolean
+  anchorNewMemos: boolean
+  onSetAnchorNew: (enabled: boolean) => void
 }
 
-export function createMemoDraft(): MemoDraft {
-  return { text: '', images: [], reminderText: '', reminderAt: null, reminderError: '' }
+export function createMemoDraft(anchor = false): MemoDraft {
+  return { text: '', images: [], reminderText: '', reminderAt: null, reminderError: '', anchor }
 }
 
 export function useMemoSettings({
@@ -42,7 +45,9 @@ export function useMemoSettings({
   flash,
   setError,
   composeSignal,
-  listVisible
+  listVisible,
+  anchorNewMemos,
+  onSetAnchorNew
 }: Options) {
   const [draft, setDraft] = useState<MemoDraft>(createMemoDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -80,12 +85,12 @@ export function useMemoSettings({
       }
       newImageIds.current = new Set()
       newImageIdsSnapshot.current = newImageIds.current
-      setDraft(createMemoDraft())
+      setDraft(createMemoDraft(anchorNewMemos))
       setEditingId(null)
       setConfirmDeleteId(null)
       setEditorOpen(true)
     }
-  }, [api, composeSignal])
+  }, [anchorNewMemos, api, composeSignal])
 
   function releaseDraftImages(): void {
     if (api && newImageIds.current.size > 0) {
@@ -97,7 +102,7 @@ export function useMemoSettings({
 
   function startNew(): void {
     releaseDraftImages()
-    setDraft(createMemoDraft())
+    setDraft(createMemoDraft(anchorNewMemos))
     setEditingId(null)
     setConfirmDeleteId(null)
     setEditorOpen(true)
@@ -113,7 +118,8 @@ export function useMemoSettings({
       images: memo.images,
       reminderText: memo.reminderAt ? formatMemoDateTime(memo.reminderAt) : '',
       reminderAt: memo.reminderAt,
-      reminderError: ''
+      reminderError: '',
+      anchor: memo.anchored
     })
     setEditingId(memo.id)
     setConfirmDeleteId(null)
@@ -122,7 +128,7 @@ export function useMemoSettings({
 
   function cancelEdit(): void {
     releaseDraftImages()
-    setDraft(createMemoDraft())
+    setDraft(createMemoDraft(anchorNewMemos))
     setEditingId(null)
     setEditorOpen(false)
   }
@@ -205,6 +211,11 @@ export function useMemoSettings({
     }
   }
 
+  function toggleAnchorNew(enabled: boolean): void {
+    setDraft((current) => ({ ...current, anchor: enabled }))
+    onSetAnchorNew(enabled)
+  }
+
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault()
     if (!api) {
@@ -226,14 +237,30 @@ export function useMemoSettings({
         images: draft.images,
         reminderAt: draft.reminderAt
       }
-      const next = editingId ? await api.updateMemo(editingId, input) : await api.createMemo(input)
+      const existingIds = new Set(memos.map((memo) => memo.id))
+      let next = editingId ? await api.updateMemo(editingId, input) : await api.createMemo(input)
+      let anchorError = ''
+      if (!editingId && draft.anchor) {
+        const created = next.find((memo) => !existingIds.has(memo.id))
+        if (created) {
+          try {
+            next = await api.setMemoAnchored(created.id, true)
+          } catch (cause) {
+            anchorError = toMessage(cause)
+          }
+        }
+      }
       setMemos(next)
       newImageIds.current = new Set()
       newImageIdsSnapshot.current = newImageIds.current
-      setDraft(createMemoDraft())
+      setDraft(createMemoDraft(anchorNewMemos))
       setEditingId(null)
       setEditorOpen(false)
-      flash(editingId ? '已保存' : '已添加备忘录')
+      if (anchorError) {
+        setError(anchorError)
+      } else {
+        flash(editingId ? '已保存' : '已添加备忘录')
+      }
     } catch (cause) {
       setError(toMessage(cause))
     } finally {
@@ -319,6 +346,7 @@ export function useMemoSettings({
     submit,
     complete,
     uncomplete,
+    toggleAnchorNew,
     toggleAnchor,
     remove
   }

@@ -24,7 +24,7 @@ export interface ModuleManagerOptions {
   configStore: ConfigStore
   scheduler: TaskScheduler
   logger: LoggerLike
-  notify: (moduleId: ModuleId, message: string) => void
+  notify: (moduleId: ModuleId, message: string, options?: { persistent?: boolean }) => void
 }
 
 /** Owns module lifecycle: enabled && configured modules are started. */
@@ -178,7 +178,7 @@ export class ModuleManager {
     module.start({
       scheduler: this.options.scheduler,
       logger: this.options.logger,
-      notify: (message) => this.options.notify(module.id, message)
+      notify: (message, options) => this.options.notify(module.id, message, options)
     })
     this.started.add(module.id)
     this.options.logger.info('module started', { module: module.id })

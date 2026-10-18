@@ -195,7 +195,8 @@ export class MemoCardWindowManager {
     if (this.disposed || !memo || this.cards.has(id)) {
       return
     }
-    const bounds = this.initialBounds(memo)
+    const placement = this.initialBounds(memo)
+    const bounds = placement.bounds
     const window = createMemoCardWindow({
       preloadPath: this.options.preloadPath,
       bounds
@@ -206,6 +207,14 @@ export class MemoCardWindowManager {
     window.on('closed', () => {
       this.cards.delete(id)
     })
+
+    if (placement.persist) {
+      setTimeout(() => {
+        if (!this.disposed) {
+          this.options.service.updateBounds(id, bounds)
+        }
+      }, 0)
+    }
 
     const loaded = await loadViewAndWait(window, {
       devServerUrl: this.options.devServerUrl,
@@ -257,18 +266,66 @@ export class MemoCardWindowManager {
     this.options.service.updateBounds(id, bounds)
   }
 
-  private initialBounds(memo: StoredMemo): Rect {
+  private initialBounds(memo: StoredMemo): { bounds: Rect; persist: boolean } {
     const area = screen.getPrimaryDisplay().workArea
-    const width = MEMO_CARD_DEFAULT_WIDTH
-    const height = MEMO_CARD_DEFAULT_HEIGHT
-    const desired = memo.bounds ?? {
-      x: area.x + area.width - width - 48 - this.cards.size * 24,
-      y: area.y + 64 + this.cards.size * 24,
-      width,
-      height
+    const width = memo.bounds?.width ?? MEMO_CARD_DEFAULT_WIDTH
+    const height = memo.bounds?.height ?? MEMO_CARD_DEFAULT_HEIGHT
+
+    if (memo.bounds) {
+      const stored = {
+        ...clampToVisibleArea(memo.bounds, this.workAreas()),
+        width,
+        height
+      }
+      if (!this.overlapsExisting(stored)) {
+        return { bounds: stored, persist: false }
+      }
     }
-    const position = clampToVisibleArea(desired, this.workAreas())
-    return { ...position, width: desired.width, height: desired.height }
+
+    return { bounds: this.findFreeSlot(area, width, height), persist: true }
+  }
+
+  private findFreeSlot(area: Rect, width: number, height: number): Rect {
+    const margin = 40
+    const gap = 12
+    for (let column = 0; column < 8; column += 1) {
+      const x = area.x + area.width - width - margin - column * (width + gap)
+      if (x < area.x + margin) {
+        break
+      }
+      for (let row = 0; row < 12; row += 1) {
+        const y = area.y + margin + row * (height + gap)
+        if (y + height > area.y + area.height - margin) {
+          break
+        }
+        const candidate = { x, y, width, height }
+        if (!this.overlapsExisting(candidate)) {
+          return candidate
+        }
+      }
+    }
+    const fallback = { x: area.x + area.width - width - margin, y: area.y + margin, width, height }
+    const position = clampToVisibleArea(fallback, this.workAreas())
+    return { ...position, width, height }
+  }
+
+  private overlapsExisting(candidate: Rect): boolean {
+    const padding = 8
+    for (const card of this.cards.values()) {
+      if (card.window.isDestroyed()) {
+        continue
+      }
+      const other = card.window.getBounds()
+      if (
+        candidate.x < other.x + other.width + padding &&
+        candidate.x + candidate.width + padding > other.x &&
+        candidate.y < other.y + other.height + padding &&
+        candidate.y + candidate.height + padding > other.y
+      ) {
+        return true
+      }
+    }
+    return false
   }
 
   private workAreas(): Rect[] {

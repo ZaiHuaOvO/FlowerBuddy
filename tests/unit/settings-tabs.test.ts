@@ -34,7 +34,7 @@ function makeConfig(): PublicConfig {
     },
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
-      memo: { enabled: true },
+      memo: { enabled: true, anchorNewMemos: false },
       gmail: {
         enabled: false,
         pollIntervalMinutes: 3,
@@ -87,6 +87,7 @@ const memoModel = {
   submit: asyncNoop,
   complete: asyncNoop,
   uncomplete: asyncNoop,
+  toggleAnchorNew: noop,
   toggleAnchor: asyncNoop,
   remove: asyncNoop
 } as unknown as ReturnType<typeof useMemoSettings>

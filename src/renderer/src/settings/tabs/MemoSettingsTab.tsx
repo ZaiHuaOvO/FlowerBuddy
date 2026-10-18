@@ -130,6 +130,7 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
     submit,
     complete,
     uncomplete,
+    toggleAnchorNew,
     toggleAnchor,
     remove
   } = model
@@ -312,6 +313,18 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
                   不填写则不提醒；支持“明天上午9点”“下周五 3 点”“10-20 15:30”等表达。
                 </p>
               )}
+
+              {!editingId ? (
+                <label className="fl-switch memo-anchor-switch">
+                  <input
+                    type="checkbox"
+                    checked={draft.anchor}
+                    onChange={(event) => toggleAnchorNew(event.target.checked)}
+                  />
+                  <span className="fl-switch-track" aria-hidden="true" />
+                  <span className="fl-switch-label">创建后锚定到桌面</span>
+                </label>
+              ) : null}
 
               <div className="form-actions">
                 <Button variant="primary" type="submit" disabled={busy}>

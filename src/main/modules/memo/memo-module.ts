@@ -105,7 +105,7 @@ export class MemoModule implements ModuleDefinition {
     if (due.length > 0) {
       const first = due[0] as MemoSummary
       const extra = due.length > 1 ? ` 等 ${due.length} 条` : ''
-      context.notify(`备忘提醒：${preview(first)}${extra}`)
+      context.notify(`备忘提醒：${preview(first)}${extra}`, { persistent: true })
       for (const memo of due) {
         this.service.markReminded(memo.id, now)
       }

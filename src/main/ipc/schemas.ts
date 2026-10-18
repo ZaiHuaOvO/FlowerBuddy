@@ -84,6 +84,11 @@ const memoImageBytesSchema = z
   })
   .strict()
 
+const memoAnchorNewInputSchema = z.object({ enabled: z.boolean() }).strict()
+
+const bubbleDismissInputSchema = z.object({ id: z.string().uuid() }).strict()
+const bubbleHeightInputSchema = z.object({ height: z.number().min(0).max(2000) }).strict()
+
 const memoDiscardImagesSchema = z.object({ ids: z.array(z.string().uuid()).max(20) }).strict()
 
 const memoAnchoredInputSchema = z.object({ id: z.string().uuid(), anchored: z.boolean() }).strict()
@@ -162,12 +167,15 @@ const gmailSettingsPatchSchema = z
   .strict()
 
 export {
+  bubbleDismissInputSchema,
+  bubbleHeightInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
+  memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
   memoCardResizeInputSchema,
   memoDiscardImagesSchema,

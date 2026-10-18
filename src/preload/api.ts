@@ -4,7 +4,7 @@ import {
   type AppInfo,
   type AppSettingsPatch,
   type BubbleApi,
-  type BubblePayload,
+  type BubbleStackPayload,
   type MemoCardApi,
   type MemoCardEdge,
   type MemoCardState,
@@ -127,9 +127,12 @@ function createMenuApi(ipc: IpcBridge): MenuApi {
 function createBubbleApi(ipc: IpcBridge): BubbleApi {
   return {
     onUpdate: (callback) =>
-      ipc.on(IPC_CHANNELS.bubbleUpdate, (payload) => callback(payload as BubblePayload)),
-    dismiss: async () => {
-      await ipc.invoke(IPC_CHANNELS.bubbleDismiss)
+      ipc.on(IPC_CHANNELS.bubbleUpdate, (payload) => callback(payload as BubbleStackPayload)),
+    dismiss: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.bubbleDismiss, { id })
+    },
+    setHeight: async (height: number) => {
+      await ipc.invoke(IPC_CHANNELS.bubbleSetHeight, { height })
     }
   }
 }
@@ -206,6 +209,8 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     discardMemoImages: async (ids: string[]) => {
       await ipc.invoke(IPC_CHANNELS.memosDiscardImages, { ids })
     },
+    setMemoAnchorNew: async (enabled: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.memosSetAnchorNew, { enabled })) as PublicConfig,
     onMemosChanged: (callback) => ipc.on(IPC_CHANNELS.memosChanged, () => callback()),
     onOpenMemoComposer: (callback) =>
       ipc.on(IPC_CHANNELS.settingsOpenMemoComposer, () => callback()),

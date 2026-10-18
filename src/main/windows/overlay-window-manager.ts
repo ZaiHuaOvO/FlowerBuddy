@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto'
 import { BrowserWindow, screen, systemPreferences } from 'electron'
 import { IPC_CHANNELS } from '../../shared/api'
-import type { BubblePayload, MenuPresentation } from '../../shared/api'
+import type { BubbleItem, BubblePayload, MenuPresentation } from '../../shared/api'
 import {
   MENU_EXIT_MS,
   MENU_IDLE_CLOSE_MS,
@@ -10,7 +11,13 @@ import {
 import type { MenuLayout, Rect } from './geometry'
 import { computeMenuLayout, containsPoint, placeOverlay } from './geometry'
 import { loadViewAndWait } from './load-view'
-import { BUBBLE_SIZE, createBubbleWindow, createMenuWindow } from './overlay-windows'
+import {
+  BUBBLE_MAX_HEIGHT,
+  BUBBLE_MIN_HEIGHT,
+  BUBBLE_SIZE,
+  createBubbleWindow,
+  createMenuWindow
+} from './overlay-windows'
 
 type MenuState = 'idle' | 'opening' | 'open' | 'closing'
 
@@ -20,6 +27,8 @@ export interface OverlayWindowManagerOptions {
   rendererIndexPath: string
   getPetBounds: () => Rect | null
   getMenuActionCount: () => number
+  getBubbleDurationMs: () => number
+  isPetVisible: () => boolean
 }
 
 /** Owns menu and bubble windows: creation, placement, visibility and cleanup. */
@@ -41,6 +50,9 @@ export class OverlayWindowManager {
   private idlePollTimer: ReturnType<typeof setInterval> | null = null
   private awaySince: number | null = null
   private menuGeneration = 0
+  private bubbles: BubbleItem[] = []
+  private readonly bubbleTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private bubbleHeight = BUBBLE_SIZE.height
   private disposed = false
 
   constructor(private readonly options: OverlayWindowManagerOptions) {}
@@ -210,20 +222,80 @@ export class OverlayWindowManager {
     if (this.disposed) {
       return
     }
+    const id = payload.requestId ?? randomUUID()
+    const item: BubbleItem = {
+      id,
+      state: payload.state,
+      message: payload.message,
+      persistent: payload.persistent === true
+    }
+    const index = this.bubbles.findIndex((bubble) => bubble.id === id)
+    if (index >= 0) {
+      const next = [...this.bubbles]
+      next[index] = item
+      this.bubbles = next
+    } else {
+      this.bubbles = [...this.bubbles, item]
+    }
+    this.scheduleBubbleTimer(payload, id)
+
     const window = await this.ensureOverlayWindow('bubble')
     if (!window) {
       return
     }
-    this.positionBubble()
-    window.webContents.send(IPC_CHANNELS.bubbleUpdate, payload)
-    if (!window.isVisible()) {
-      window.showInactive()
+    this.pushBubbles()
+    if (this.options.isPetVisible() && !window.webContents.isLoading()) {
+      this.positionBubble()
+      if (!window.isVisible()) {
+        window.showInactive()
+      }
     }
+  }
+
+  dismissBubble(id: string): void {
+    const index = this.bubbles.findIndex((bubble) => bubble.id === id)
+    if (index === -1) {
+      return
+    }
+    this.clearBubbleTimer(id)
+    this.bubbles = this.bubbles.filter((bubble) => bubble.id !== id)
+    if (this.bubbles.length === 0) {
+      this.bubbleHeight = BUBBLE_SIZE.height
+      this.hideBubble()
+    }
+    this.pushBubbles()
   }
 
   hideBubble(): void {
     if (this.bubbleWindow && !this.bubbleWindow.isDestroyed()) {
       this.bubbleWindow.hide()
+    }
+  }
+
+  showBubbleStack(): void {
+    const window = this.bubbleWindow
+    if (!window || window.isDestroyed() || this.bubbles.length === 0) {
+      return
+    }
+    if (!this.options.isPetVisible() || window.webContents.isLoading()) {
+      return
+    }
+    this.positionBubble()
+    if (!window.isVisible()) {
+      window.showInactive()
+    }
+  }
+
+  setBubbleHeight(height: number): void {
+    const next = Math.round(
+      Math.max(BUBBLE_MIN_HEIGHT, Math.min(Number.isFinite(height) ? height : 0, BUBBLE_MAX_HEIGHT))
+    )
+    if (next === this.bubbleHeight) {
+      return
+    }
+    this.bubbleHeight = next
+    if (this.bubbles.length > 0) {
+      this.positionBubble()
     }
   }
 
@@ -242,6 +314,10 @@ export class OverlayWindowManager {
     this.cancelCloseTimer()
     this.stopIdleWatch()
     this.resolveOpenAck()
+    for (const timer of this.bubbleTimers.values()) {
+      clearTimeout(timer)
+    }
+    this.bubbleTimers.clear()
     this.menuState = 'idle'
   }
 
@@ -424,7 +500,38 @@ export class OverlayWindowManager {
       return
     }
     const area = screen.getDisplayMatching(anchor).workArea
-    const position = placeOverlay(anchor, BUBBLE_SIZE, area, 'above')
-    bubble.setBounds({ ...position, ...BUBBLE_SIZE })
+    const size = { width: BUBBLE_SIZE.width, height: this.bubbleHeight }
+    const position = placeOverlay(anchor, size, area, 'above')
+    bubble.setBounds({ ...position, ...size })
+  }
+
+  private pushBubbles(): void {
+    const window = this.bubbleWindow
+    if (!window || window.isDestroyed() || window.webContents.isDestroyed()) {
+      return
+    }
+    window.webContents.send(IPC_CHANNELS.bubbleUpdate, {
+      bubbles: this.bubbles.map((bubble) => ({ ...bubble }))
+    })
+  }
+
+  private scheduleBubbleTimer(payload: BubblePayload, id: string): void {
+    this.clearBubbleTimer(id)
+    if (payload.persistent || payload.autoHide === false) {
+      return
+    }
+    const timer = setTimeout(() => {
+      this.bubbleTimers.delete(id)
+      this.dismissBubble(id)
+    }, this.options.getBubbleDurationMs())
+    this.bubbleTimers.set(id, timer)
+  }
+
+  private clearBubbleTimer(id: string): void {
+    const timer = this.bubbleTimers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      this.bubbleTimers.delete(id)
+    }
   }
 }
