@@ -328,7 +328,6 @@ export interface BubbleItem {
 
 export interface BubbleStackPayload {
   bubbles: BubbleItem[]
-  placement: MenuPlacement
 }
 
 export const IPC_CHANNELS = {

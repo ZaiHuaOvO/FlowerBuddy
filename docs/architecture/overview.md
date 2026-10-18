@@ -292,7 +292,7 @@ interface ModuleDefinition {
   - 按 `app.bubbleDurationMs` 自动隐藏；
   - 有前台动作或桌宠不可见时，后台通知不抢占气泡。
 - Gmail 新邮件由 `AppController.handleGmailNewMessages()` 处理：可发 Windows 通知，并通过 `showBackground()` 显示气泡。
-- 气泡由 `OverlayWindowManager` 维护为一个栈：新气泡追加到末尾（界面从上到下按出现顺序），更新相同 `requestId` 只替换内容；普通气泡按 `app.bubbleDurationMs` 单独自动隐藏，`persistent` 气泡（备忘录提醒）不自动隐藏，需点击“知道了喵”。窗口高度由 renderer 测量后通过 `bubble:set-height` 上报，主进程据此向上扩展并重新定位；只有最靠近桌宠的气泡带尖角，超过上限时列表内部滚动。
+- 气泡由 `OverlayWindowManager` 维护为一个栈：新气泡追加到末尾（界面从上到下按出现顺序），更新相同 `requestId` 只替换内容；普通气泡按 `app.bubbleDurationMs` 单独自动隐藏，`persistent` 气泡（备忘录提醒）不自动隐藏，需点击“知道了喵”。窗口高度由 renderer 测量后通过 `bubble:set-height` 上报，主进程据此向上扩展并重新定位；超过上限时列表内部滚动。
 
 ### 6.5 备忘录、提醒与桌面卡片
 

@@ -30,32 +30,6 @@
   animation: fl-fade-in var(--motion-fast) var(--ease-standard);
 }
 
-/* Anime-style speech tail: only the bubble closest to the pet gets one. */
-.bubble-tail-down::after,
-.bubble-tail-up::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  background: var(--color-surface);
-  transform: translateX(-50%) rotate(45deg);
-}
-
-.bubble-tail-down::after {
-  bottom: -5px;
-  border-right: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
-  border-bottom-right-radius: 2px;
-}
-
-.bubble-tail-up::after {
-  top: -5px;
-  border-top: 1px solid var(--color-border);
-  border-left: 1px solid var(--color-border);
-  border-top-left-radius: 2px;
-}
-
 .bubble-text {
   flex: 1 1 auto;
   min-width: 0;

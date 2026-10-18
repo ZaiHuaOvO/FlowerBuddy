@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { BrowserWindow, screen, systemPreferences } from 'electron'
 import { IPC_CHANNELS } from '../../shared/api'
-import type { BubbleItem, BubblePayload, MenuPlacement, MenuPresentation } from '../../shared/api'
+import type { BubbleItem, BubblePayload, MenuPresentation } from '../../shared/api'
 import {
   MENU_EXIT_MS,
   MENU_IDLE_CLOSE_MS,
@@ -53,7 +53,6 @@ export class OverlayWindowManager {
   private bubbles: BubbleItem[] = []
   private readonly bubbleTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private bubbleHeight = BUBBLE_SIZE.height
-  private bubblePlacement: MenuPlacement = 'above'
   private disposed = false
 
   constructor(private readonly options: OverlayWindowManagerOptions) {}
@@ -503,13 +502,7 @@ export class OverlayWindowManager {
     const area = screen.getDisplayMatching(anchor).workArea
     const size = { width: BUBBLE_SIZE.width, height: this.bubbleHeight }
     const position = placeOverlay(anchor, size, area, 'above')
-    const placement: MenuPlacement = position.y + size.height <= anchor.y ? 'above' : 'below'
-    const changed = placement !== this.bubblePlacement
-    this.bubblePlacement = placement
     bubble.setBounds({ ...position, ...size })
-    if (changed) {
-      this.pushBubbles()
-    }
   }
 
   private pushBubbles(): void {
@@ -518,8 +511,7 @@ export class OverlayWindowManager {
       return
     }
     window.webContents.send(IPC_CHANNELS.bubbleUpdate, {
-      bubbles: this.bubbles.map((bubble) => ({ ...bubble })),
-      placement: this.bubblePlacement
+      bubbles: this.bubbles.map((bubble) => ({ ...bubble }))
     })
   }
 
