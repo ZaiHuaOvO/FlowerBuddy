@@ -14,24 +14,24 @@ import { menuActionListHeight, menuWindowHeight } from '../../src/shared/menu-la
 const PRIMARY_WORK_AREA: Rect = { x: 0, y: 0, width: 1920, height: 1040 }
 
 describe('computePetWindowSize', () => {
-  it('uses a 160px base height at scale 1', () => {
-    expect(computePetWindowSize(512, 512, 1)).toEqual({ width: 160, height: 160 })
+  it('uses an 80px base height at scale 1', () => {
+    expect(computePetWindowSize(512, 512, 1)).toEqual({ width: 80, height: 80 })
   })
 
   it('preserves the aspect ratio of wide and tall images', () => {
     const wide = computePetWindowSize(1000, 500, 1)
-    expect(wide.height).toBe(160)
-    expect(wide.width).toBe(320)
+    expect(wide.height).toBe(80)
+    expect(wide.width).toBe(160)
 
     const tall = computePetWindowSize(500, 1000, 1)
-    expect(tall.height).toBe(160)
-    expect(tall.width).toBe(80)
+    expect(tall.height).toBe(80)
+    expect(tall.width).toBe(40)
   })
 
   it('scales with the configured factor and clamps the factor', () => {
-    expect(computePetWindowSize(512, 512, 2)).toEqual({ width: 320, height: 320 })
-    expect(computePetWindowSize(512, 512, 5)).toEqual({ width: 320, height: 320 })
-    expect(computePetWindowSize(512, 512, 0.1)).toEqual({ width: 80, height: 80 })
+    expect(computePetWindowSize(512, 512, 2)).toEqual({ width: 160, height: 160 })
+    expect(computePetWindowSize(512, 512, 5)).toEqual({ width: 160, height: 160 })
+    expect(computePetWindowSize(512, 512, 0.1)).toEqual({ width: 40, height: 40 })
   })
 
   it('caps extreme wide images at the maximum width', () => {
@@ -48,7 +48,7 @@ describe('computePetWindowSize', () => {
   })
 
   it('falls back to a sane size for invalid dimensions', () => {
-    expect(computePetWindowSize(0, 0, Number.NaN)).toEqual({ width: 160, height: 160 })
+    expect(computePetWindowSize(0, 0, Number.NaN)).toEqual({ width: 80, height: 80 })
   })
 })
 

@@ -298,6 +298,17 @@
   transform: translateY(0);
 }
 
+.tooltip-right::after {
+  right: auto;
+  left: 0;
+  transform: translateY(2px);
+}
+
+.tooltip-right:hover::after,
+.tooltip-right:focus-visible::after {
+  transform: translateY(0);
+}
+
 .info-tip {
   display: inline-flex;
   flex: 0 0 auto;

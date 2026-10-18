@@ -113,7 +113,7 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
                 >
                   <span className="module-row-main">
                     <span className="module-row-name">{module.name}</span>
-                    <InfoTip text={module.description} align="left" />
+                    <InfoTip text={module.description} align="right" />
                   </span>
                   <IconButton label="停用" tone="danger" onClick={() => onToggle(module.id, false)}>
                     <TrashIcon />
@@ -131,7 +131,7 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
           ) : (
             <ul className="module-list">
               {disabled.map((module) => (
-                <li key={module.id} className="module-row">
+                <li key={module.id} className="module-row is-disabled">
                   <span className="module-row-main">
                     <span className="module-row-name">{module.name}</span>
                     <InfoTip text={module.description} align="left" />
@@ -146,7 +146,7 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
         </div>
       </div>
 
-      <p className="hint">拖拽左侧功能可调整顺序；未配置的功能不会发起任何后台请求。</p>
+      <p className="hint">已启用功能可拖拽排序</p>
     </section>
   )
 }

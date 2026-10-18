@@ -6,6 +6,7 @@ import type {
   GmailStateView,
   ModuleId,
   ModuleSummary,
+  PetSettingsPatch,
   PublicConfig,
   RefreshableModuleId,
   SecurityStatus,
@@ -257,6 +258,15 @@ function SettingsContent({
     }
   }
 
+  async function savePet(patch: PetSettingsPatch): Promise<void> {
+    setError('')
+    try {
+      setConfig(await api.savePetSettings(patch))
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
   async function toggleModule(moduleId: ModuleId, enabled: boolean): Promise<void> {
     setError('')
     try {
@@ -423,6 +433,7 @@ function SettingsContent({
             <GeneralSettingsTab
               config={config}
               onSave={(patch) => void saveApp(patch)}
+              onSavePet={(patch) => void savePet(patch)}
               onImportImage={() => void importPetImage()}
             />
           ) : null}

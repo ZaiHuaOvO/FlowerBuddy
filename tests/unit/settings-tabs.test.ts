@@ -152,6 +152,7 @@ describe('settings tabs render', () => {
         createElement(GeneralSettingsTab, {
           config,
           onSave: noop,
+          onSavePet: noop,
           onImportImage: noop
         })
       )

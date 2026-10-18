@@ -1,12 +1,15 @@
 interface InfoTipProps {
   text: string
-  align?: 'center' | 'left'
+  /** Which side the tooltip opens toward; use 'right' near the left edge of a clipped container. */
+  align?: 'center' | 'left' | 'right'
 }
 
 export function InfoTip({ text, align = 'center' }: InfoTipProps) {
+  const alignClass = align === 'left' ? ' tooltip-left' : align === 'right' ? ' tooltip-right' : ''
+
   return (
     <span
-      className={`info-tip tooltip-trigger${align === 'left' ? ' tooltip-left' : ''}`}
+      className={`info-tip tooltip-trigger${alignClass}`}
       role="img"
       tabIndex={0}
       aria-label={text}

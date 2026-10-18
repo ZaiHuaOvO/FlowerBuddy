@@ -5,6 +5,13 @@
 
 export type WindowView = 'pet' | 'menu' | 'bubble' | 'settings'
 
+export const PET_ASSET_SCHEME = 'flowerbuddy-pet'
+
+/** URL served by the main-process pet asset protocol. */
+export function petAssetUrl(assetId: string): string {
+  return `${PET_ASSET_SCHEME}://asset/${encodeURIComponent(assetId)}`
+}
+
 export function isWindowView(value: string): value is WindowView {
   return value === 'pet' || value === 'menu' || value === 'bubble' || value === 'settings'
 }

@@ -4,6 +4,7 @@ import {
   menuWindowHeight,
   menuWindowWidth
 } from '../../shared/menu-layout'
+import { PET_BASE_HEIGHT } from '../../shared/pet-layout'
 
 export interface Size {
   width: number
@@ -27,10 +28,9 @@ export function containsPoint(rect: Rect, x: number, y: number, margin = 0): boo
   )
 }
 
-export const PET_BASE_HEIGHT = 160
 export const PET_MIN_WIDTH = 40
 export const PET_MAX_WIDTH = 700
-export const PET_MIN_HEIGHT = 60
+export const PET_MIN_HEIGHT = 40
 export const PET_MAX_HEIGHT = 600
 export const DEFAULT_MARGIN = 24
 export const OVERLAY_GAP = 8

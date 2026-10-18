@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { protocol } from 'electron'
+import { PET_ASSET_SCHEME } from '../../shared/api'
 
-export const PET_ASSET_SCHEME = 'flowerbuddy-pet'
+export { PET_ASSET_SCHEME }
 
 /** Must run before app ready. */
 export function registerPetAssetScheme(): void {

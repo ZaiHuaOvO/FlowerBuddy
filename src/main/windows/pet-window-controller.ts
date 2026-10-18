@@ -1,9 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { BrowserWindow, dialog, screen } from 'electron'
 import type { OpenDialogOptions } from 'electron'
-import { IPC_CHANNELS } from '../../shared/api'
+import { IPC_CHANNELS, petAssetUrl } from '../../shared/api'
 import type { PetAssetInfo, PetViewState, PublicConfig } from '../../shared/api'
-import { PET_ASSET_SCHEME } from '../protocol/pet-asset-protocol'
 import type { ConfigStore } from '../storage/config-store'
 import {
   PetAssetError,
@@ -213,7 +212,7 @@ export class PetWindowController {
         assetId: imported.assetId,
         width: imported.info.width,
         height: imported.info.height,
-        url: this.assetUrl(imported.assetId)
+        url: petAssetUrl(imported.assetId)
       }
       this.resize()
       this.pushState()
@@ -270,11 +269,7 @@ export class PetWindowController {
       }
     }
 
-    return { assetId, width, height, url: this.assetUrl(assetId) }
-  }
-
-  private assetUrl(assetId: string): string {
-    return `${PET_ASSET_SCHEME}://asset/${encodeURIComponent(assetId)}`
+    return { assetId, width, height, url: petAssetUrl(assetId) }
   }
 
   private createWindow(): void {
