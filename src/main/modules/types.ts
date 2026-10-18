@@ -11,7 +11,7 @@ export interface ModuleContext {
   scheduler: TaskScheduler
   logger: LoggerLike
   /** Shows a short background message (pet bubble) to the user. */
-  notify: (message: string, options?: { persistent?: boolean }) => void
+  notify: (message: string, options?: { persistent?: boolean; id?: string }) => void
 }
 
 /** Narrow view of the main-process Secret Store used by credential modules. */

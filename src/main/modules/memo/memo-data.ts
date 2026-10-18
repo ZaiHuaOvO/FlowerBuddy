@@ -8,6 +8,7 @@ import {
 } from '../../../shared/memo-layout'
 import {
   createEmptyMemoData,
+  MEMO_ANCHORED_MAX,
   MEMO_COUNT_MAX,
   MEMO_IMAGE_MAX_DIMENSION,
   MEMO_IMAGES_MAX,
@@ -130,9 +131,17 @@ export function sanitizeMemoData(raw: unknown): MemoData {
 
   const usedIds = new Set<string>()
   const memos: StoredMemo[] = []
+  let anchoredCount = 0
   for (const entry of raw.memos.slice(0, MEMO_COUNT_MAX)) {
     const memo = sanitizeStoredMemo(entry, usedIds)
     if (memo) {
+      if (memo.anchored) {
+        if (anchoredCount < MEMO_ANCHORED_MAX) {
+          anchoredCount += 1
+        } else {
+          memo.anchored = false
+        }
+      }
       memos.push(memo)
     }
   }

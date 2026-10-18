@@ -26,13 +26,13 @@ function createHarness() {
   })
   store.load()
   const service = new IntervalReminderService(store)
-  const messages: Array<{ text: string; persistent: boolean }> = []
+  const messages: Array<{ text: string; persistent: boolean; id: string | undefined }> = []
   const scheduler = new TaskScheduler({ logger })
   const context = {
     scheduler,
     logger,
-    notify: (text: string, options?: { persistent?: boolean }) => {
-      messages.push({ text, persistent: options?.persistent === true })
+    notify: (text: string, options?: { persistent?: boolean; id?: string }) => {
+      messages.push({ text, persistent: options?.persistent === true, id: options?.id })
     }
   }
   return { service, messages, context }
@@ -73,7 +73,37 @@ describe('interval reminder module', () => {
     await vi.advanceTimersByTimeAsync(30_000)
     expect(messages).toEqual([])
     await vi.advanceTimersByTimeAsync(31_000)
-    expect(messages).toEqual([{ text: '该喝水啦！', persistent: true }])
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toMatchObject({ text: '该喝水啦！', persistent: true })
+    expect(messages[0]?.id).toMatch(/^interval-reminder:/)
+    module.stop()
+  })
+
+  it('reuses the same bubble id when the same reminder fires again', async () => {
+    const { service, messages, context } = createHarness()
+    service.create({
+      name: '喝水',
+      text: '该喝水啦！',
+      enabled: true,
+      intervalMinutes: 1,
+      ranges: [],
+      randomEnabled: false,
+      randomJitterMinutes: 0
+    })
+    const module = new IntervalReminderModule(
+      service,
+      () => 0.5,
+      () => Date.now(),
+      1000
+    )
+    module.start(context)
+
+    await vi.advanceTimersByTimeAsync(61_000)
+    await vi.advanceTimersByTimeAsync(61_000)
+
+    expect(messages).toHaveLength(2)
+    expect(messages[0]?.id).toBe(messages[1]?.id)
+    expect(messages[0]?.id).toMatch(/^interval-reminder:/)
     module.stop()
   })
 

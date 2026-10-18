@@ -29,7 +29,7 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 - 单张 PNG 导入：校验格式与大小（≤15 MB），复制到用户数据目录，保留宽高比。
 - 桌宠位置、尺寸和设置持久化到用户数据目录的 `config.json`，采用临时文件 + rename 原子写入并带 `schemaVersion`。
 - 多显示器与分辨率变化时自动把桌宠移回可见区域；单实例锁避免重复启动。
-- 安全基线：`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true`、窄 preload 桥、IPC sender 校验、权限请求全部拒绝、生产环境严格 CSP。导航与 `window.open` 拦截尚待核实，见 [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md)。
+- 安全基线：`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true`、窄 preload 桥、IPC sender 校验、权限请求全部拒绝、生产环境严格 CSP。所有应用窗口拒绝新建窗口和外部顶层导航，只允许加载应用自身页面。
 - 桌宠图片通过自定义 `flowerbuddy-pet://` 协议提供；主进程只允许读取当前配置的形象和内置默认形象。
 - Vitest 单元测试、ESLint、Prettier、TypeScript 类型检查。
 - electron-builder 的 NSIS 安装版与 portable 便携版配置，产物输出到 `release/`。
@@ -123,7 +123,7 @@ src/
     modules/             # 静态模块注册表、备忘录/定时提醒/网站/DeepSeek/ESA
     protocol/            # 桌宠与备忘录图片自定义协议
     scheduler/           # 统一任务调度器
-    security/            # 安全窗口选项与 Secret Store
+    security/            # 安全窗口选项、导航防护与 Secret Store
     shared/              # 统一错误类型与脱敏日志
     storage/             # 配置 schema/迁移、数据文件与图片导入
     tray/                # 系统托盘
@@ -149,9 +149,9 @@ release/                 # 安装包输出（不入库）
 - 关闭设置窗口不会退出程序；必须通过托盘或快捷菜单的红色电源图标结束。
 - 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`data/`、`pets/`、`memo-images/` 与 `logs/`；定时提醒保存在 `data/interval-reminders.json`。显示名称已改为“花伴”，为兼容升级，数据目录继续沿用 `FlowerBuddy`。
 - 设置中的“功能管理”可以独立启用/停用每个模块；未配置或尚未实现的模块不会发起后台请求。
-- 软件初始默认启用“备忘录”和“定时提醒”，其余模块默认停用；旧配置升级到 schemaVersion 8 时也会重置为该初始选择。
-- “备忘录”分页默认展示全部备忘；新增/编辑使用弹窗，支持文本、粘贴图片与提醒时间；新增弹窗的“创建后锚定到桌面”开关会被记住；已完成项可再次点击完成图标取消完成。
-- “定时提醒”分页管理重复提醒：列表只显示名字、开关和生效时间，点击行编辑间隔、生效时段、随机值和提醒文本；提醒到点后以常驻气泡显示提醒文本。
+- 软件初始默认启用“备忘录”和“定时提醒”，其余模块默认停用；旧配置升级到 schemaVersion 8 时也会重置为该初始选择，当前 schemaVersion 为 9。
+- “备忘录”分页默认展示全部备忘；新增/编辑使用弹窗，支持文本、粘贴图片与提醒时间；新增弹窗的“创建后锚定到桌面”开关会被记住；已完成项可再次点击完成图标取消完成；同时锚定的桌面卡片上限为 20 张。
+- “定时提醒”分页管理重复提醒：列表只显示名字、开关和生效时间，点击行编辑间隔、生效时段、随机值和提醒文本；提醒到点后以常驻气泡显示提醒文本；同一提醒再次触发时更新原气泡，不会重复堆叠。
 - “网站”分页管理 URL、超时与可选定时检测。
 - 备忘录提醒到点后通过桌宠气泡常驻提示；多个提醒按出现顺序堆叠，点击“知道了喵”才关闭；默认快捷键 `Alt+A` 打开设置并弹出新建备忘录，可在备忘录页标题旁的设置图标中修改。
 - 桌面备忘卡片始终置顶，高度按正文内容自动适配（正文高度 + 一行空行）；默认从桌面右上角开始排列，多张卡片自动错开且不重叠；可拖动标题栏移动、拖动四角调整大小，并提供完成与取消锚点按钮。
@@ -177,7 +177,7 @@ release/                 # 安装包输出（不入库）
 - 凭据只允许在主进程中处理；渲染进程永远不持有 API Key、AccessKey Secret 等凭据。
 - 敏感值使用 Electron `safeStorage` 异步 API 加密后写入 `secrets.enc.json`；加密不可用时拒绝保存，不回退明文。密钥读取没有渲染进程接口。
 - 日志统一脱敏，且不记录密钥、认证信息或用户个人数据；日志按大小轮转并保留 7 天。
-- 所有窗口统一使用 `src/main/security/web-preferences.ts` 中的安全选项。
+- 所有窗口统一使用 `src/main/security/web-preferences.ts` 中的安全选项，并通过 `navigation-guards.ts` 拒绝新窗口与外部顶层导航。
 - 每个 IPC handler 先校验 `event.senderFrame.url`，再用 Zod 校验输入，只向渲染进程返回安全的错误码与说明。
 - 生产环境渲染进程只加载本地文件，并注入严格 CSP；开发环境额外允许 React Refresh 内联脚本与本地 HMR WebSocket。
 
@@ -195,6 +195,13 @@ npm run dist:win
 
 用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。隐私与删除方式见 [PRIVACY.md](PRIVACY.md)。
 
+### 发布到 GitHub Releases
+
+1. 在 Windows 环境运行 `npm ci`、全部质量检查与 `npm run dist:win`，确认产物来自当前验收提交。
+2. 记录 Setup、Portable、ZIP 的实际文件大小，并用 `Get-FileHash` 生成 SHA-256 校验值。不要把 `app.asar` 或 `win-unpacked` 体积当作最终下载量。
+3. 创建 GitHub Release，附上 Setup、Portable、ZIP 与校验值；说明版本号、安装/卸载方式、用户数据保留位置、未签名导致 SmartScreen 提示，以及 ZIP 与 Portable 的用途区别。
+4. 不要用 GitHub Actions 的临时工件作为首版下载来源；工件默认只保留 14 天。
+
 ## 已知限制（第一版）
 
 - 真实 DeepSeek/ESA 账户数据需在应用内输入凭据后查看；仓库不包含真实凭据。
@@ -211,4 +218,11 @@ npm run dist:win
 
 ## 许可证
 
-本项目自有代码暂未声明开源许可证。第三方依赖的许可证见 `npm run licenses` 生成的清单。发布前需补全隐私说明与最终许可文件。
+本项目为**专有软件**，采用“保留所有权利”策略：
+
+- 源码公开用于查看、审计和协作，不授予复制、修改、再分发、商用或再许可的权利。
+- 二进制版本仅在版权持有人明确授权的范围内分发。
+- 默认桌宠形象、应用图标及其它美术素材的权利单独保留，不随源代码授权。
+- 第三方依赖遵循各自许可证，见 `npm run licenses` 生成的清单。
+
+完整声明见根目录 [LICENSE](LICENSE)。

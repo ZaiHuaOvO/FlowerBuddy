@@ -171,4 +171,14 @@ describe('ModuleActionRunner', () => {
       expect.objectContaining({ state: 'success', message: '备忘提醒', persistent: true })
     )
   })
+
+  it('reuses a supplied id so repeated reminders update one bubble', async () => {
+    const { runner, presenter } = createHarness()
+
+    await runner.showPersistentBackground('该喝水啦！', 'interval-reminder:r1')
+    await runner.showPersistentBackground('该喝水啦！', 'interval-reminder:r1')
+
+    expect(presenter.showBubble.mock.calls[0]?.[0]?.requestId).toBe('interval-reminder:r1')
+    expect(presenter.showBubble.mock.calls[1]?.[0]?.requestId).toBe('interval-reminder:r1')
+  })
 })

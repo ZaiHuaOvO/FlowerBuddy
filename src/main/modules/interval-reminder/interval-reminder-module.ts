@@ -97,7 +97,10 @@ export class IntervalReminderModule implements ModuleDefinition {
       }
       if (isWithinRanges(new Date(now), reminder.ranges)) {
         plan.nextAt = computeNextDue(now, reminder, this.random)
-        context.notify(reminder.text, { persistent: true })
+        context.notify(reminder.text, {
+          persistent: true,
+          id: `interval-reminder:${reminder.id}`
+        })
         this.service.markFired(reminder.id, new Date(now))
       } else {
         plan.nextAt = deferToActive(now, reminder.ranges)

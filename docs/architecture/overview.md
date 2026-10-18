@@ -31,7 +31,7 @@ session.defaultSession.setPermissionRequestHandler((_webContents, _permission, c
 session.defaultSession.setPermissionCheckHandler(() => false)
 ```
 
-> 待核实：源码中未找到 `setWindowOpenHandler` 或 `will-navigate` 拦截。当前该事项登记在 [OPEN_ITEMS.md](../OPEN_ITEMS.md)，不要把它写成已实现的安全能力。
+> 两个自定义 scheme 在 app ready 前通过一次 `registerSchemesAsPrivileged()` 统一声明；所有应用窗口通过 `security/navigation-guards.ts` 拒绝新窗口、外部顶层导航和重定向，只允许加载应用自身页面。
 
 ## 2. 目录与关键入口
 
@@ -49,12 +49,14 @@ src/
       module-manager.ts          # enabled && configured 生命周期
       types.ts                   # ModuleDefinition / ModuleContext
       memo/ interval-reminder/ esa/ deepseek/ website-check/
+    protocol/app-schemes.ts
     protocol/pet-asset-protocol.ts
     protocol/memo-image-protocol.ts
     shortcuts/global-shortcuts.ts
     scheduler/task-scheduler.ts
     security/
       web-preferences.ts
+      navigation-guards.ts
       secret-store.ts
       secret-ids.ts
       safe-storage-backend.ts
@@ -299,6 +301,7 @@ interface ModuleDefinition {
 - `MemoService`（`modules/memo/memo-service.ts`）负责 CRUD、排序与完成状态：有提醒的未完成项按提醒时间升序，其次无提醒项按创建时间倒序，最后是完成项按完成时间倒序；完成会取消锚点，已完成项可再次取消完成，删除会同时删除其图片文件。设置页在完成/取消完成时只就地更新数据、不立即重排，离开并重新进入备忘录页时才按服务端顺序刷新。
 - `MemoModule.start()` 为最早到期的提醒安排一次 `setTimeout`，另有 30 秒安全轮询；触发后通过 `ModuleContext.notify(..., { persistent: true })` 请求常驻桌宠气泡，并写入 `remindedAt` 防止重复提醒。修改提醒时间会清除 `remindedAt`；系统恢复时 `handleResume()` 会立即补查。
 - `MemoCardWindowManager`（`windows/memo-card-window-manager.ts`）为每条 `anchored && !completed` 的备忘录维护一个 `memo-card` 窗口。新卡片默认从主显示器右上角开始，按“先向下、满列后向左”的网格寻找不重叠的位置并持久化；已有位置在未被其他卡片占用时保留。卡片高度在窗口创建时由 renderer 按正文内容测量并通过 `memo-card:fit-height` 回写，约为正文高度加一行空行。窗口使用自定义拖动与四角缩放 IPC（主进程读取系统光标位置），结束时把位置/尺寸写回 `MemoService`；模块停用、删除、完成或取消锚点时关闭对应窗口，显示器变化时重新限制到可见区域。
+- 同时锚定的未完成备忘卡片上限为 20 张：`sanitizeMemoData` 在加载旧数据时会取消超出上限条目的锚定状态，`MemoService.setAnchored` 对第 21 张返回明确错误。
 - 全局快捷键由 `shortcuts/global-shortcuts.ts` 注册，默认 `Alt+A`，保存在 `config.app.memoShortcut`；界面入口是备忘录页标题旁的齿轮设置弹窗，不出现在常规页；新建弹窗中的“创建后锚定到桌面”开关会把偏好写入 `modules.memo.anchorNewMemos`，创建后立即锚定。冲突时保留原快捷键并返回 `INVALID_INPUT`。触发后打开设置；渲染进程通过 `settings:ui-ready` 握手，主进程再发送 `settings:open-memo-composer` 切换到备忘录页并弹出新建弹窗。
 
 ### 6.6 ESA 快捷流量范围
@@ -309,7 +312,7 @@ interface ModuleDefinition {
 
 - `IntervalReminderService`（`modules/interval-reminder/`）保存多个提醒；首次启动（`seeded=false`）写入默认关闭的“喝水”提醒，之后即使用户删除全部提醒也不会重复写入。
 - 提醒配置包括名字、气泡文本、开关、间隔（分钟）、生效时段数组和 `±N` 分钟随机值。间隔 30 分钟、随机值 5 分钟时，实际间隔在 25–35 分钟之间随机。
-- `IntervalReminderModule` 每 30 秒检查一次：为每个启用提醒计算下次时间；到期且处于生效时段时通过 `ModuleContext.notify(text, { persistent: true })` 显示常驻气泡并记录 `lastFiredAt`；到期但不在时段内时顺延到下一个时段开始。系统恢复时立即补查。
+- `IntervalReminderModule` 每 30 秒检查一次：为每个启用提醒计算下次时间；到期且处于生效时段时通过 `ModuleContext.notify(text, { persistent: true, id })` 显示常驻气泡并记录 `lastFiredAt`，其中 `id` 为 `interval-reminder:<reminderId>`；同一提醒重复触发会更新原气泡，不会无限新增相同条目。到期但不在时段内时顺延到下一个时段开始；系统恢复时立即补查。
 - 生效时段为本地 `HH:mm`，支持跨午夜范围；时段为空表示全天生效。提醒不经过 `TaskScheduler`，避免分钟级间隔被调度器的指数退避/重叠策略影响。
 
 ## 7. 数据、凭据与日志
@@ -320,7 +323,7 @@ interface ModuleDefinition {
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `config.json`                  | 应用设置、桌宠配置、模块开关、启用模块顺序（`app.moduleOrder`）、全局快捷键、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`                     | `schemaVersion` 当前为 9；v5 的 `dates` 模块会在迁移时映射为 `memo`，v8 迁移会把模块选择重置为“备忘录 + 定时提醒”，v9 移除 Gmail 模块及其在模块顺序中的残留 ID，其余模块停用；备忘录的“创建后锚定”偏好保存在 `modules.memo.anchorNewMemos`；Zod 修复非法值并归一化模块顺序；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
 | `secrets.enc.json`             | 加密后的 API Key、AccessKey                                                                                        | `SecretStore`                     | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                                                                                                                                                                                                                                                                |
-| `data/memos.json`              | 备忘录文本、提醒、完成状态、锚点与卡片位置                                                                         | `JsonStore<MemoData>`             | `sanitizeMemoData` 修复非法输入；最多 500 条；原子写入                                                                                                                                                                                                                                                                                  |
+| `data/memos.json`              | 备忘录文本、提醒、完成状态、锚点与卡片位置                                                                         | `JsonStore<MemoData>`             | `sanitizeMemoData` 修复非法输入；最多 500 条；同时锚定最多 20 条，超出时自动取消锚定；原子写入                                                                                                                                                                                                                                          |
 | `data/interval-reminders.json` | 定时提醒的名称、文本、开关、间隔、生效时段、随机值与上次触发时间                                                   | `JsonStore<IntervalReminderData>` | `sanitizeIntervalReminderData` 修复非法输入；最多 100 条；首次创建时写入默认“喝水”提醒；原子写入                                                                                                                                                                                                                                        |
 | `data/website-checks.json`     | 网站检测配置与最近结果                                                                                             | `JsonStore<WebsiteData>`          | `sanitizeWebsiteData`；结果只保留展示字段                                                                                                                                                                                                                                                                                               |
 | `pets/<uuid>.png`              | 用户导入的桌宠图片                                                                                                 | `storage/pet-assets.ts`           | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                                                                                                                                                                                                                                                            |
@@ -335,10 +338,11 @@ interface ModuleDefinition {
 
 凭据只在主进程读取；`SecretStore` 对 ID 做格式校验，密文以外不落盘。渲染进程没有读取明文的 IPC 接口。
 
-桌宠图片访问：
+桌宠与备忘录图片访问：
 
-- 自定义协议 `flowerbuddy-pet://asset/<assetId>` 在 app ready 前注册为 privileged scheme。
+- `flowerbuddy-pet://asset/<assetId>` 与 `flowerbuddy-memo://image/<imageId>` 在 app ready 前由 `protocol/app-schemes.ts` 一次性注册为 privileged scheme。
 - `handlePetAssetRequests` 只接受当前配置的 assetId 或内置 `default`；`resolvePetAssetPath` 只解析内置路径或 UUID 文件名，无法读取任意文件。
+- `handleMemoImageRequests` 只接受备忘录图片目录中的 UUID 文件名。
 
 ## 8. 外部网络访问
 
@@ -399,12 +403,12 @@ main    ←  renderer（不得导入）
 ## 11. 安全边界摘要
 
 - 所有窗口使用统一安全 `webPreferences`；权限请求全部拒绝。
+- `web-contents-created` 为每个应用窗口安装导航防护：拒绝 `window.open`，阻止离开应用页面的顶层导航与重定向；开发环境只允许 Vite dev server 的根页面。
 - 每个 IPC handler 校验 sender URL 和输入 schema；错误只返回公开字段。
 - 凭据只在主进程解密；普通配置、日志和渲染进程都不含明文凭据。
 - 日志统一脱敏，元数据键名包含 `secret`、`token`、`email`、`subject`、`body` 等会被替换。
 - 生产 renderer 只加载本地文件并注入严格 CSP。
-- 桌宠图片通过受限自定义协议提供。
-- 待核实：导航与 `window.open` 拦截尚未在源码中确认，见 [OPEN_ITEMS.md](../OPEN_ITEMS.md)。
+- 桌宠图片与备忘录图片通过受限自定义协议提供；两个 scheme 在一次 `registerSchemesAsPrivileged()` 调用中声明。
 
 ## 12. 与旧规划文档的已知差异
 

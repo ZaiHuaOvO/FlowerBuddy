@@ -407,10 +407,10 @@ export class AppController {
   showModuleMessage(
     _moduleId: ModuleId,
     message: string,
-    options?: { persistent?: boolean }
+    options?: { persistent?: boolean; id?: string }
   ): void {
     if (options?.persistent) {
-      void this.actions.showPersistentBackground(message)
+      void this.actions.showPersistentBackground(message, options.id)
       return
     }
     void this.actions.showBackground(message)

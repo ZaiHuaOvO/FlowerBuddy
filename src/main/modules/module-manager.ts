@@ -24,7 +24,11 @@ export interface ModuleManagerOptions {
   configStore: ConfigStore
   scheduler: TaskScheduler
   logger: LoggerLike
-  notify: (moduleId: ModuleId, message: string, options?: { persistent?: boolean }) => void
+  notify: (
+    moduleId: ModuleId,
+    message: string,
+    options?: { persistent?: boolean; id?: string }
+  ) => void
 }
 
 /** Owns module lifecycle: enabled && configured modules are started. */

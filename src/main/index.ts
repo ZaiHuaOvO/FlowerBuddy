@@ -23,8 +23,9 @@ import {
   type WebsiteData
 } from './modules/website-check/website-types'
 import { WebsiteService } from './modules/website-check/website-service'
-import { registerMemoImageScheme, handleMemoImageRequests } from './protocol/memo-image-protocol'
-import { handlePetAssetRequests, registerPetAssetScheme } from './protocol/pet-asset-protocol'
+import { registerAppSchemes } from './protocol/app-schemes'
+import { handleMemoImageRequests } from './protocol/memo-image-protocol'
+import { handlePetAssetRequests } from './protocol/pet-asset-protocol'
 import { TaskScheduler } from './scheduler/task-scheduler'
 import { electronSafeStorageBackend } from './security/safe-storage-backend'
 import { SecretStore } from './security/secret-store'
@@ -32,6 +33,7 @@ import { Logger } from './shared/logger'
 import { ConfigStore } from './storage/config-store'
 import { JsonStore } from './storage/json-store'
 import { MemoImageStore } from './storage/memo-images'
+import { installNavigationGuards } from './security/navigation-guards'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
 const LEGACY_GMAIL_SECRET_IDS = ['gmail.clientId', 'gmail.clientSecret', 'gmail.refreshToken']
@@ -67,6 +69,12 @@ async function bootstrap(): Promise<void> {
     callback(false)
   })
   session.defaultSession.setPermissionCheckHandler(() => false)
+
+  app.on('web-contents-created', (_event, contents) => {
+    if (contents.getType() === 'window') {
+      installNavigationGuards(contents, { devServerUrl, rendererIndexPath })
+    }
+  })
 
   const userDataPath = app.getPath('userData')
   const logger = new Logger(join(userDataPath, 'logs'))
@@ -209,8 +217,7 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock()
 if (!hasSingleInstanceLock) {
   app.quit()
 } else {
-  registerPetAssetScheme()
-  registerMemoImageScheme()
+  registerAppSchemes()
 
   app.on('second-instance', () => {
     controller?.handleSecondInstance()

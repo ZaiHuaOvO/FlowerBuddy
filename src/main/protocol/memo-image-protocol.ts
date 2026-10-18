@@ -2,21 +2,6 @@ import { readFile } from 'node:fs/promises'
 import { protocol } from 'electron'
 import { MEMO_IMAGE_SCHEME } from '../../shared/api'
 
-/** Must run before app ready. */
-export function registerMemoImageScheme(): void {
-  protocol.registerSchemesAsPrivileged([
-    {
-      scheme: MEMO_IMAGE_SCHEME,
-      privileges: {
-        standard: true,
-        secure: true,
-        supportFetchAPI: true,
-        stream: true
-      }
-    }
-  ])
-}
-
 /**
  * Serves memo images. The resolver only accepts UUID file names inside the
  * memo image directory, so arbitrary file reads are impossible.

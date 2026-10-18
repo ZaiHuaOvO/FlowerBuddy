@@ -76,6 +76,44 @@ describe('memo service', () => {
     expect(created[0]?.text.length).toBe(20000)
   })
 
+  it('limits simultaneously anchored memos to 20', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const anchoredIds: string[] = []
+    for (let index = 0; index < 20; index += 1) {
+      const text = `memo ${index}`
+      const id = idOf(service.create({ text, images: [], reminderAt: null }), text)
+      service.setAnchored(id, true)
+      anchoredIds.push(id)
+    }
+
+    const extraId = idOf(service.create({ text: 'extra', images: [], reminderAt: null }), 'extra')
+    expect(() => service.setAnchored(extraId, true)).toThrow('不能超过 20 张')
+    expect(service.list().filter((memo) => memo.anchored)).toHaveLength(20)
+
+    // Re-applying the anchor state to an already anchored memo stays valid.
+    service.setAnchored(anchoredIds[0] as string, true)
+  })
+
+  it('drops excess anchored state from legacy data on load', () => {
+    const memos = Array.from({ length: 21 }, (_, index) => ({
+      id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      text: `memo ${index}`,
+      images: [],
+      reminderAt: null,
+      remindedAt: null,
+      completed: false,
+      completedAt: null,
+      anchored: true,
+      bounds: null,
+      createdAt: '2026-10-18T00:00:00.000Z',
+      updatedAt: '2026-10-18T00:00:00.000Z'
+    }))
+
+    const data = sanitizeMemoData({ schemaVersion: 1, memos })
+    expect(data.memos.filter((memo) => memo.anchored)).toHaveLength(20)
+    expect(data.memos[20]?.anchored).toBe(false)
+  })
+
   it('deletes images with the memo and when removed from an update', () => {
     const { service, removed } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
     const created = service.create({

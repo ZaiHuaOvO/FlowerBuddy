@@ -2,23 +2,6 @@ import { readFile } from 'node:fs/promises'
 import { protocol } from 'electron'
 import { PET_ASSET_SCHEME } from '../../shared/api'
 
-export { PET_ASSET_SCHEME }
-
-/** Must run before app ready. */
-export function registerPetAssetScheme(): void {
-  protocol.registerSchemesAsPrivileged([
-    {
-      scheme: PET_ASSET_SCHEME,
-      privileges: {
-        standard: true,
-        secure: true,
-        supportFetchAPI: true,
-        stream: true
-      }
-    }
-  ])
-}
-
 /**
  * Serves pet images to the renderers. The resolver only knows the configured
  * asset and the bundled default, so arbitrary file reads are impossible.

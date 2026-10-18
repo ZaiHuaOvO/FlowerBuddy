@@ -4,6 +4,7 @@ import { AppError } from '../../shared/errors'
 import type { JsonStore } from '../../storage/json-store'
 import { normalizeIsoTimestamp, sanitizeMemoBounds, sanitizeMemoImages } from './memo-data'
 import {
+  MEMO_ANCHORED_MAX,
   MEMO_COUNT_MAX,
   MEMO_TEXT_MAX,
   type MemoBounds,
@@ -201,6 +202,13 @@ export class MemoService {
     const current = memos[index] as StoredMemo
     if (current.completed && anchored) {
       throw new AppError('INVALID_INPUT', '已完成的备忘录不能锚定到桌面')
+    }
+    if (
+      anchored &&
+      !current.anchored &&
+      memos.filter((memo) => memo.anchored && !memo.completed).length >= MEMO_ANCHORED_MAX
+    ) {
+      throw new AppError('INVALID_INPUT', `同时锚定的备忘卡片不能超过 ${MEMO_ANCHORED_MAX} 张`)
     }
     const updated = [...memos]
     updated[index] = { ...current, anchored }

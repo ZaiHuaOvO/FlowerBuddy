@@ -48,21 +48,21 @@ npm run dist:win
 
 ## 3. 当前自动化覆盖范围
 
-`tests/unit/` 现有 31 个测试文件，按实际文件名归类：
+`tests/unit/` 现有 33 个测试文件，按实际文件名归类：
 
-| 区域       | 测试文件                                                                                                              | 主要覆盖                                                                 |
-| ---------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 备忘录     | `memo-service.test.ts`、`memo-reminder.test.ts`、`memo-module.test.ts`、`memo-images.test.ts`、`memo-order.test.ts`   | 排序/完成/锚点、中文时间解析、到点提醒去重、图片校验与清理、列表顺序保持 |
-| 网站检测   | `website-check.test.ts`、`website-service.test.ts`、`website-module.test.ts`                                          | HTTP 状态、超时、DNS/TLS 分类、URL 清洗、定时任务重建                    |
-| DeepSeek   | `deepseek-service.test.ts`、`deepseek-module.test.ts`                                                                 | 响应结构、多币种、错误码、余额格式化                                     |
-| ESA        | `esa-service.test.ts`、`esa-module.test.ts`                                                                           | 本地自然日转 UTC、Traffic 聚合、采样率、错误映射                         |
-| 调度       | `task-scheduler.test.ts`                                                                                              | 间隔、重叠跳过、退避、停止、恢复重新计时                                 |
-| 模块管理   | `module-manager.test.ts`、`module-action-runner.test.ts`                                                              | enabled/configured 生命周期、动作校验、请求失效、超时                    |
-| 配置与存储 | `config-store.test.ts`、`pet-assets.test.ts`、`memo-images.test.ts`、`assets.test.ts`                                 | 迁移/损坏修复、原子写入、PNG 校验、图片目录清理                          |
-| 安全       | `secret-store.test.ts`、`logger.test.ts`、`web-preferences.test.ts`、`validate-sender.test.ts`、`ipc-schemas.test.ts` | 加密不可用不回退、脱敏、窗口选项、sender 校验、Zod 边界                  |
-| 几何/窗口  | `geometry.test.ts`、`memo-card-geometry.test.ts`                                                                      | 尺寸、缩放、可见区域、overlay 定位、卡片四角缩放                         |
-| IPC 桥     | `preload-api.test.ts`                                                                                                 | 按视图暴露 API、通道调用                                                 |
-| 设置页     | `settings-formatters.test.ts`、`settings-tabs.test.ts`                                                                | 格式化、tab 渲染                                                         |
+| 区域       | 测试文件                                                                                                                                                                  | 主要覆盖                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 备忘录     | `memo-service.test.ts`、`memo-reminder.test.ts`、`memo-module.test.ts`、`memo-images.test.ts`、`memo-order.test.ts`                                                       | 排序/完成/锚点、中文时间解析、到点提醒去重、图片校验与清理、列表顺序保持       |
+| 网站检测   | `website-check.test.ts`、`website-service.test.ts`、`website-module.test.ts`                                                                                              | HTTP 状态、超时、DNS/TLS 分类、URL 清洗、定时任务重建                          |
+| DeepSeek   | `deepseek-service.test.ts`、`deepseek-module.test.ts`                                                                                                                     | 响应结构、多币种、错误码、余额格式化                                           |
+| ESA        | `esa-service.test.ts`、`esa-module.test.ts`                                                                                                                               | 本地自然日转 UTC、Traffic 聚合、采样率、错误映射                               |
+| 调度       | `task-scheduler.test.ts`                                                                                                                                                  | 间隔、重叠跳过、退避、停止、恢复重新计时                                       |
+| 模块管理   | `module-manager.test.ts`、`module-action-runner.test.ts`                                                                                                                  | enabled/configured 生命周期、动作校验、请求失效、超时                          |
+| 配置与存储 | `config-store.test.ts`、`pet-assets.test.ts`、`memo-images.test.ts`、`assets.test.ts`                                                                                     | 迁移/损坏修复、原子写入、PNG 校验、图片目录清理                                |
+| 安全       | `secret-store.test.ts`、`logger.test.ts`、`web-preferences.test.ts`、`navigation-guards.test.ts`、`app-schemes.test.ts`、`validate-sender.test.ts`、`ipc-schemas.test.ts` | 加密不可用不回退、脱敏、窗口选项、导航拦截、scheme 声明、sender 校验、Zod 边界 |
+| 几何/窗口  | `geometry.test.ts`、`memo-card-geometry.test.ts`                                                                                                                          | 尺寸、缩放、可见区域、overlay 定位、卡片四角缩放                               |
+| IPC 桥     | `preload-api.test.ts`                                                                                                                                                     | 按视图暴露 API、通道调用                                                       |
+| 设置页     | `settings-formatters.test.ts`、`settings-tabs.test.ts`                                                                                                                    | 格式化、tab 渲染                                                               |
 
 > `docs/regression-report.md` 记录 2026-10-17 的一次执行结果（27 个文件、199 项通过）。这是历史记录，不是本轮测试结果；不要在新文档中把它写成“当前已通过”。
 

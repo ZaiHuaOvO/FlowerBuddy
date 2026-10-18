@@ -103,11 +103,11 @@ export class ModuleActionRunner {
     })
   }
 
-  async showPersistentBackground(message: string): Promise<void> {
+  async showPersistentBackground(message: string, id?: string): Promise<void> {
     await this.showBubble({
       state: 'success',
       message,
-      requestId: randomUUID(),
+      requestId: id ?? randomUUID(),
       persistent: true
     })
   }

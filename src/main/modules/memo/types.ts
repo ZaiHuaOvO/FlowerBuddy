@@ -31,6 +31,7 @@ export const MEMO_IMAGES_MAX = 9
 export const MEMO_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 export const MEMO_IMAGE_MAX_DIMENSION = 4096
 export const MEMO_COUNT_MAX = 500
+export const MEMO_ANCHORED_MAX = 20
 
 export function createEmptyMemoData(): MemoData {
   return { schemaVersion: 1, memos: [] }
