@@ -136,7 +136,7 @@ describe('ESA module', () => {
     })
 
     configStore.setModuleRefreshInterval('esa', 10)
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
     expect(scheduler.getTaskIds()).toEqual(['esa:refresh'])
 
     configStore.setModuleRefreshInterval('esa', null)

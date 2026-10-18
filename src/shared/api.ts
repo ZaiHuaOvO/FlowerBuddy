@@ -3,17 +3,29 @@
  * and the renderer. Nothing here may contain credentials.
  */
 
-export type WindowView = 'pet' | 'menu' | 'bubble' | 'settings'
+export type WindowView = 'pet' | 'menu' | 'bubble' | 'settings' | 'memo-card'
 
 export const PET_ASSET_SCHEME = 'flowerbuddy-pet'
+export const MEMO_IMAGE_SCHEME = 'flowerbuddy-memo'
 
 /** URL served by the main-process pet asset protocol. */
 export function petAssetUrl(assetId: string): string {
   return `${PET_ASSET_SCHEME}://asset/${encodeURIComponent(assetId)}`
 }
 
+/** URL served by the main-process memo image protocol. */
+export function memoImageUrl(imageId: string): string {
+  return `${MEMO_IMAGE_SCHEME}://image/${encodeURIComponent(imageId)}`
+}
+
 export function isWindowView(value: string): value is WindowView {
-  return value === 'pet' || value === 'menu' || value === 'bubble' || value === 'settings'
+  return (
+    value === 'pet' ||
+    value === 'menu' ||
+    value === 'bubble' ||
+    value === 'settings' ||
+    value === 'memo-card'
+  )
 }
 
 export interface AppInfo {
@@ -32,6 +44,7 @@ export interface AppSettings {
   bounceAnimation: boolean
   bubbleDurationMs: number
   launchAtLogin: boolean
+  memoShortcut: string
   moduleOrder: ModuleId[]
   showPetOnStartup: boolean
 }
@@ -41,6 +54,7 @@ export interface AppSettingsPatch {
   bounceAnimation?: boolean
   bubbleDurationMs?: number
   launchAtLogin?: boolean
+  memoShortcut?: string
   moduleOrder?: ModuleId[]
   showPetOnStartup?: boolean
 }
@@ -55,12 +69,12 @@ export interface PetSettingsPatch {
   scale?: number
 }
 
-export type ModuleId = 'dates' | 'gmail' | 'esa' | 'deepseek' | 'website-check'
+export type ModuleId = 'memo' | 'gmail' | 'esa' | 'deepseek' | 'website-check'
 
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
 
 export interface ModulesSettings {
-  dates: { enabled: boolean }
+  memo: { enabled: boolean }
   gmail: {
     enabled: boolean
     pollIntervalMinutes: number
@@ -161,39 +175,43 @@ export interface ModuleActionResult {
   message: string
 }
 
-export type DateRecurrence = 'none' | 'yearly'
-export type DateCategory = 'birthday' | 'anniversary' | 'overtime' | 'custom'
-
-export interface DateEventInput {
-  title: string
-  date: string
-  recurrence: DateRecurrence
-  category: DateCategory
-  notifyDaysBefore?: number[]
-}
-
-export interface DateEventPatch {
-  title?: string
-  date?: string
-  recurrence?: DateRecurrence
-  category?: DateCategory
-  notifyDaysBefore?: number[]
-  enabled?: boolean
-}
-
-export interface DateEventSummary {
+export interface MemoImageInfo {
   id: string
-  title: string
-  date: string
-  recurrence: DateRecurrence
-  category: DateCategory
-  notifyDaysBefore: number[]
-  enabled: boolean
+  width: number
+  height: number
+}
+
+export interface MemoSummary {
+  id: string
+  text: string
+  images: MemoImageInfo[]
+  reminderAt: string | null
+  completed: boolean
+  completedAt: string | null
+  anchored: boolean
   createdAt: string
   updatedAt: string
-  daysUntil: number | null
-  occurrence: string | null
-  upcoming: boolean
+}
+
+export interface MemoInput {
+  text: string
+  images: MemoImageInfo[]
+  reminderAt: string | null
+}
+
+export interface MemoPatch {
+  text?: string
+  images?: MemoImageInfo[]
+  reminderAt?: string | null
+}
+
+export type MemoCardEdge = 'nw' | 'ne' | 'sw' | 'se'
+
+export interface MemoCardState {
+  id: string
+  text: string
+  images: MemoImageInfo[]
+  reminderAt: string | null
 }
 
 export type WebsiteCheckErrorKind =
@@ -308,11 +326,17 @@ export const IPC_CHANNELS = {
   modulesList: 'modules:list',
   modulesSetEnabled: 'modules:set-enabled',
   securityStatus: 'security:status',
-  datesList: 'dates:list',
-  datesCreate: 'dates:create',
-  datesUpdate: 'dates:update',
-  datesDelete: 'dates:delete',
-  datesSetEnabled: 'dates:set-enabled',
+  memosList: 'memos:list',
+  memosCreate: 'memos:create',
+  memosUpdate: 'memos:update',
+  memosDelete: 'memos:delete',
+  memosComplete: 'memos:complete',
+  memosSetAnchored: 'memos:set-anchored',
+  memosAddImage: 'memos:add-image',
+  memosDiscardImages: 'memos:discard-images',
+  memosChanged: 'memos:changed',
+  settingsOpenMemoComposer: 'settings:open-memo-composer',
+  settingsUiReady: 'settings:ui-ready',
   websitesList: 'websites:list',
   websitesCreate: 'websites:create',
   websitesUpdate: 'websites:update',
@@ -343,6 +367,14 @@ export const IPC_CHANNELS = {
   petDragMove: 'pet:drag-move',
   petEndDrag: 'pet:end-drag',
   petOpenMenu: 'pet:open-menu',
+  memoCardGetState: 'memo-card:get-state',
+  memoCardStateChanged: 'memo-card:state-changed',
+  memoCardBeginDrag: 'memo-card:begin-drag',
+  memoCardDragMove: 'memo-card:drag-move',
+  memoCardEndDrag: 'memo-card:end-drag',
+  memoCardBeginResize: 'memo-card:begin-resize',
+  memoCardResizeMove: 'memo-card:resize-move',
+  memoCardEndResize: 'memo-card:end-resize',
   menuRunAction: 'menu:run-action',
   menuOpenSettings: 'menu:open-settings',
   menuHidePet: 'menu:hide-pet',
@@ -380,6 +412,19 @@ export interface BubbleApi {
   dismiss(): Promise<void>
 }
 
+export interface MemoCardApi {
+  getState(id: string): Promise<MemoCardState>
+  onStateChanged(callback: (state: MemoCardState) => void): () => void
+  beginDrag(id: string): Promise<void>
+  dragMove(id: string): Promise<void>
+  endDrag(id: string): Promise<void>
+  beginResize(id: string, edge: MemoCardEdge): Promise<void>
+  resizeMove(id: string): Promise<void>
+  endResize(id: string): Promise<void>
+  complete(id: string): Promise<void>
+  unanchor(id: string): Promise<void>
+}
+
 export interface SettingsApi {
   getAppInfo(): Promise<AppInfo>
   getConfig(): Promise<PublicConfig>
@@ -391,11 +436,17 @@ export interface SettingsApi {
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): Promise<ModuleSummary[]>
   getSecurityStatus(): Promise<SecurityStatus>
   getStartupNotice(): Promise<string | null>
-  listDateEvents(): Promise<DateEventSummary[]>
-  createDateEvent(input: DateEventInput): Promise<DateEventSummary[]>
-  updateDateEvent(id: string, patch: DateEventPatch): Promise<DateEventSummary[]>
-  deleteDateEvent(id: string): Promise<DateEventSummary[]>
-  setDateEventEnabled(id: string, enabled: boolean): Promise<DateEventSummary[]>
+  listMemos(): Promise<MemoSummary[]>
+  createMemo(input: MemoInput): Promise<MemoSummary[]>
+  updateMemo(id: string, patch: MemoPatch): Promise<MemoSummary[]>
+  deleteMemo(id: string): Promise<MemoSummary[]>
+  completeMemo(id: string): Promise<MemoSummary[]>
+  setMemoAnchored(id: string, anchored: boolean): Promise<MemoSummary[]>
+  addMemoImage(data: ArrayBuffer): Promise<MemoImageInfo>
+  discardMemoImages(ids: string[]): Promise<void>
+  onMemosChanged(callback: () => void): () => void
+  onOpenMemoComposer(callback: () => void): () => void
+  settingsUiReady(): Promise<void>
   listWebsiteChecks(): Promise<WebsiteCheckConfig[]>
   createWebsiteCheck(input: WebsiteCheckInput): Promise<WebsiteCheckConfig[]>
   updateWebsiteCheck(id: string, patch: WebsiteCheckPatch): Promise<WebsiteCheckConfig[]>

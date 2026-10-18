@@ -48,8 +48,10 @@ src/
       registry.ts                # 静态模块注册表
       module-manager.ts          # enabled && configured 生命周期
       types.ts                   # ModuleDefinition / ModuleContext
-      dates/ gmail/ esa/ deepseek/ website-check/
+      memo/ gmail/ esa/ deepseek/ website-check/
     protocol/pet-asset-protocol.ts
+    protocol/memo-image-protocol.ts
+    shortcuts/global-shortcuts.ts
     scheduler/task-scheduler.ts
     security/
       web-preferences.ts
@@ -63,11 +65,15 @@ src/
       config-schema.ts
       json-store.ts
       pet-assets.ts
+      memo-images.ts
     tray/tray.ts
     windows/
       pet-window.ts
       pet-window-controller.ts
       settings-window.ts
+      memo-card-window.ts
+      memo-card-window-manager.ts
+      memo-card-geometry.ts
       overlay-windows.ts
       overlay-window-manager.ts
       geometry.ts
@@ -81,7 +87,7 @@ src/
     src/
       main.tsx                   # React 根与全局样式
       App.tsx                    # 按 ?view= 选择视图
-      pet/ menu/ bubbles/        # 常驻视图
+      pet/ menu/ bubbles/ memo-card/  # 常驻视图与桌面备忘卡片
       settings/                  # 懒加载设置应用：核心导航 + 启用模块导航、7 个页面组件、5 个状态 hook
       components/                # Button / Field / Tag / EmptyState 等
       styles/                    # tokens.css + 各视图样式
@@ -96,11 +102,11 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 
 1. 设置 AppUserModelID、浅色主题，移除应用菜单。
 2. 拒绝所有权限请求。
-3. 在 `app.getPath('userData')` 下创建并加载：`Logger`、`ConfigStore`、`SecretStore`、两个 `JsonStore`（日期/网站）、`Gmail` 状态存储。
+3. 在 `app.getPath('userData')` 下创建并加载：`Logger`、`ConfigStore`、`SecretStore`、`JsonStore`（备忘录/网站）、`Gmail` 状态存储与 `MemoImageStore`；旧的 `data/dates.json` 会在此时删除。
 4. 创建 `TaskScheduler`、各业务 service/module、`ModuleManager` 和 `AppController`。
-5. 注册 Gmail 新邮件回调、桌宠图片协议处理器、IPC handlers。
+5. 注册 Gmail 新邮件回调、桌宠与备忘录图片协议处理器、IPC handlers。
 6. 监听 `powerMonitor` 的 `resume`，调用 `ModuleManager.handleResume()` 重新计时。
-7. `AppController.start()`：应用开机启动设置、创建桌宠窗口、托盘、启动模块，并监听显示器变化。
+7. `AppController.start()`：应用开机启动设置、创建桌宠窗口、托盘、启动模块、注册全局快捷键、同步桌面备忘卡片，并监听显示器变化。
 
 单实例：
 
@@ -114,28 +120,30 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 
 ## 4. 窗口与 renderer 视图
 
-一个 Vite renderer 工程通过 `?view=` 渲染四种视图；窗口类型与视图一一对应：
+一个 Vite renderer 工程通过 `?view=` 渲染五种视图；窗口类型与视图一一对应：
 
-| 视图       | 窗口创建                     | 加载方式                           | 主要行为                                                                                                                          |
-| ---------- | ---------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `pet`      | `windows/pet-window.ts`      | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
-| `menu`     | `windows/overlay-windows.ts` | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
-| `bubble`   | `windows/overlay-windows.ts` | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
-| `settings` | `windows/settings-window.ts` | 单例窗口，780×720，最小 640×540    | 常规、功能管理，以及按启用顺序动态出现的日期、网站、Gmail、DeepSeek、ESA 页面                                                     |
+| 视图        | 窗口创建                      | 加载方式                           | 主要行为                                                                                                                          |
+| ----------- | ----------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `pet`       | `windows/pet-window.ts`       | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
+| `menu`      | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
+| `bubble`    | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
+| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 常规、功能管理，以及按启用顺序动态出现的备忘录、网站、Gmail、DeepSeek、ESA 页面                                                   |
+| `memo-card` | `windows/memo-card-window.ts` | 每条锚定备忘录一个窗口             | 透明无边框、始终置顶、可聚焦；标题栏拖动、四角自定义缩放、完成与取消锚点；内容由 `memo-card:state-changed` 同步                   |
 
 加载规则（`windows/load-view.ts`）：
 
-- 开发环境：`<devServerUrl>/?view=<view>`。
-- 生产环境：`loadFile(rendererIndexPath, { query: { view } })`。
+- 开发环境：`<devServerUrl>/?view=<view>`，备忘卡片额外带 `memoId`。
+- 生产环境：`loadFile(rendererIndexPath, { query: { view, ...query } })`。
 
 preload 通过 `--fb-view=<view>` 参数决定暴露哪个 API：
 
-| 视图       | 暴露对象             | 类型          |
-| ---------- | -------------------- | ------------- |
-| `pet`      | `window.petApi`      | `PetApi`      |
-| `menu`     | `window.menuApi`     | `MenuApi`     |
-| `bubble`   | `window.bubbleApi`   | `BubbleApi`   |
-| `settings` | `window.settingsApi` | `SettingsApi` |
+| 视图        | 暴露对象             | 类型          |
+| ----------- | -------------------- | ------------- |
+| `pet`       | `window.petApi`      | `PetApi`      |
+| `menu`      | `window.menuApi`     | `MenuApi`     |
+| `bubble`    | `window.bubbleApi`   | `BubbleApi`   |
+| `settings`  | `window.settingsApi` | `SettingsApi` |
+| `memo-card` | `window.memoCardApi` | `MemoCardApi` |
 
 `src/preload/index.ts` 与 `src/renderer/src/App.tsx` 分别从启动参数和 URL 查询参数读取视图，两者由 `loadView` 保证一致。新增视图时必须同时修改 `WindowView`、`IPC_CHANNELS`/API 类型、`BRIDGE_KEYS`、`App.tsx` 和窗口创建逻辑。
 
@@ -149,7 +157,7 @@ flowchart LR
     R[React 视图]
   end
   subgraph Preload[Preload 窄桥]
-    P[window.petApi / menuApi / bubbleApi / settingsApi]
+    P[window.petApi / menuApi / bubbleApi / settingsApi / memoCardApi]
   end
   subgraph Main[Electron main 可信层]
     H[ipc/register-handlers.ts]
@@ -192,6 +200,9 @@ preload 的 `unwrapResult` 把 `IpcResult` 解包；失败时抛出一个可序�
 - `pet:state-changed` → `pet` 视图（形象与弹跳设置变化）。
 - `bubble:update` → `bubble` 视图（`BubblePayload`）。
 - `menu:presentation` → `menu` 视图（`MenuPresentation`：打开/关闭阶段、上下方向、递增 token）。
+- `memo-card:state-changed` → 对应备忘卡片（文本、提醒时间、图片）。
+- `memos:changed` → 设置窗口（备忘录数据变化，触发重新拉取）。
+- `settings:open-memo-composer` → 设置窗口（快捷键请求新建备忘录；渲染进程通过 `settings:ui-ready` 握手后才会收到）。
 
 `menu` 视图在挂载时通过 `menu:ready` 握手获取当前表现状态，避免首次打开时推送早于订阅。菜单窗口只在首次打开时创建并 `show()` 一次，之后不再隐藏：关闭时把面板动画到完全透明，并让窗口忽略鼠标事件、释放焦点；重开时只切换面板内容，renderer 通过 `menu:opened` 确认新面板已提交后主进程才重新接收鼠标事件。这样可以避开 Windows 对工具窗口的显示过渡——隐藏后再次 `show()` 时系统会先呈现上一次缓存的画面，看起来就像菜单连续加载了两次。菜单窗口在打开时按“展开动作列表”的高度一次性定位并显示；之后展开/收起只由 renderer 切换内容，不再改变窗口尺寸，因此可见窗口不会因 resize 闪烁。面板只在首次打开时挂载，之后保持挂载并在每次关闭/重开时复用，不会重新加载内容；每次打开（含重开）都由根节点从关闭态切回打开态重新触发表格的错峰入场动画，关闭时播放退场动画（执行动作等需要立即隐藏的场景除外）。主进程在菜单打开期间轮询指针位置：只有指针同时离开菜单窗口和桌宠窗口超过 `MENU_IDLE_CLOSE_MS` 才播放退场并隐藏内容；再次右键不会关闭菜单。
 
@@ -199,7 +210,7 @@ renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程
 
 ### 5.4 通道定义
 
-所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`dates:`、`websites:`、`deepseek:`、`esa:`、`gmail:`、`menu:`、`pet:`、`bubble:`。
+所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`memos:`、`memo-card:`、`websites:`、`deepseek:`、`esa:`、`gmail:`、`menu:`、`pet:`、`bubble:`。
 
 新增 IPC 的最小改动面：
 
@@ -216,7 +227,7 @@ renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程
 
 `src/main/modules/registry.ts` 返回固定模块数组，不读取文件系统、不执行动态插件代码：
 
-- `DatesModule`
+- `MemoModule`（含提醒定时器，通过 `ModuleContext.notify` 请求桌宠气泡提示）
 - `GmailModule`
 - `EsaModule`
 - `DeepSeekModule`
@@ -236,6 +247,7 @@ interface ModuleDefinition {
   getStatus(): ModuleStatus
   start(context: ModuleContext): void
   stop(): void
+  handleResume?(): void
   runAction?(actionId: string): Promise<ModuleActionResult>
 }
 ```
@@ -281,19 +293,27 @@ interface ModuleDefinition {
   - 有前台动作或桌宠不可见时，后台通知不抢占气泡。
 - Gmail 新邮件由 `AppController.handleGmailNewMessages()` 处理：可发 Windows 通知，并通过 `showBackground()` 显示气泡。
 
+### 6.5 备忘录、提醒与桌面卡片
+
+- `MemoService`（`modules/memo/memo-service.ts`）负责 CRUD、排序与完成状态：有提醒的未完成项按提醒时间升序，其次无提醒项按创建时间倒序，最后是完成项按完成时间倒序；完成会取消锚点，删除会同时删除其图片文件。
+- `MemoModule.start()` 为最早到期的提醒安排一次 `setTimeout`，另有 30 秒安全轮询；触发后通过 `ModuleContext.notify` 请求桌宠气泡，并写入 `remindedAt` 防止重复提醒。修改提醒时间会清除 `remindedAt`；系统恢复时 `handleResume()` 会立即补查。
+- `MemoCardWindowManager`（`windows/memo-card-window-manager.ts`）为每条 `anchored && !completed` 的备忘录维护一个 `memo-card` 窗口。窗口使用自定义拖动与四角缩放 IPC（主进程读取系统光标位置），结束时把位置/尺寸写回 `MemoService`；模块停用、删除、完成或取消锚点时关闭对应窗口，显示器变化时重新限制到可见区域。
+- 全局快捷键由 `shortcuts/global-shortcuts.ts` 注册，默认 `Alt+A`，保存在 `config.app.memoShortcut`；冲突时保留原快捷键并返回 `INVALID_INPUT`。触发后打开设置；渲染进程通过 `settings:ui-ready` 握手，主进程再发送 `settings:open-memo-composer` 切换到备忘录页并聚焦编辑器。
+
 ## 7. 数据、凭据与日志
 
 所有可变数据写入 `app.getPath('userData')`，不写入安装目录：
 
-| 文件/目录                  | 内容                                                                                                   | 写入者                   | 安全处理                                                                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `config.json`              | 应用设置、桌宠配置、模块开关、启用模块顺序（`app.moduleOrder`）、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`            | `schemaVersion` 当前为 5；Zod 修复非法值并归一化模块顺序；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
-| `secrets.enc.json`         | 加密后的 API Key、AccessKey、OAuth Client/Refresh Token                                                | `SecretStore`            | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                                              |
-| `data/dates.json`          | 日期事件                                                                                               | `JsonStore<DatesData>`   | `sanitizeDatesData` 修复非法输入；原子写入                                                                            |
-| `data/website-checks.json` | 网站检测配置与最近结果                                                                                 | `JsonStore<WebsiteData>` | `sanitizeWebsiteData`；结果只保留展示字段                                                                             |
-| `data/gmail-state.json`    | 邮箱地址、`historyId`、已通知消息 ID、授权失效标记                                                     | `JsonStore<GmailState>`  | 不保存正文；消息 ID 有上限                                                                                            |
-| `pets/<uuid>.png`          | 用户导入的桌宠图片                                                                                     | `storage/pet-assets.ts`  | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                                          |
-| `logs/app.log`             | JSON Lines 脱敏日志                                                                                    | `Logger`                 | 密钥/token/邮件主题等脱敏；2 MB 轮转；保留 7 天                                                                       |
+| 文件/目录                  | 内容                                                                                                               | 写入者                   | 安全处理                                                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config.json`              | 应用设置、桌宠配置、模块开关、启用模块顺序（`app.moduleOrder`）、全局快捷键、非敏感配置（如 ESA SiteId、轮询间隔） | `ConfigStore`            | `schemaVersion` 当前为 6；v5 的 `dates` 模块会在迁移时映射为 `memo`；Zod 修复非法值并归一化模块顺序；未来版本/损坏文件备份后重置；150 ms 防抖；临时文件 + rename |
+| `secrets.enc.json`         | 加密后的 API Key、AccessKey、OAuth Client/Refresh Token                                                            | `SecretStore`            | 仅保存 Base64 密文；`safeStorage` 异步加密；不可用时拒绝保存，不回退明文                                                                                         |
+| `data/memos.json`          | 备忘录文本、提醒、完成状态、锚点与卡片位置                                                                         | `JsonStore<MemoData>`    | `sanitizeMemoData` 修复非法输入；最多 500 条；原子写入                                                                                                           |
+| `data/website-checks.json` | 网站检测配置与最近结果                                                                                             | `JsonStore<WebsiteData>` | `sanitizeWebsiteData`；结果只保留展示字段                                                                                                                        |
+| `data/gmail-state.json`    | 邮箱地址、`historyId`、已通知消息 ID、授权失效标记                                                                 | `JsonStore<GmailState>`  | 不保存正文；消息 ID 有上限                                                                                                                                       |
+| `pets/<uuid>.png`          | 用户导入的桌宠图片                                                                                                 | `storage/pet-assets.ts`  | 仅 PNG，≤15 MB，尺寸 ≤8192；随机 UUID 文件名                                                                                                                     |
+| `memo-images/<uuid>.png`   | 备忘录粘贴的图片                                                                                                   | `storage/memo-images.ts` | 仅 PNG，≤10 MB，尺寸 ≤4096；随机 UUID；删除备忘录时清理；启动时清理未引用文件                                                                                    |
+| `logs/app.log`             | JSON Lines 脱敏日志                                                                                                | `Logger`                 | 密钥/token/邮件主题等脱敏；2 MB 轮转；保留 7 天                                                                                                                  |
 
 凭据 ID（`src/main/security/secret-ids.ts`）：
 

@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 5
+export const CURRENT_CONFIG_SCHEMA_VERSION = 6
 
 export const MODULE_ID_VALUES = [
-  'dates',
+  'memo',
   'gmail',
   'esa',
   'deepseek',
@@ -12,7 +12,7 @@ export const MODULE_ID_VALUES = [
 ] as const satisfies readonly ModuleId[]
 
 const moduleIdSchema = z.enum(MODULE_ID_VALUES)
-const defaultModuleOrder: ModuleId[] = ['dates', 'website-check']
+const defaultModuleOrder: ModuleId[] = ['memo', 'website-check']
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -70,8 +70,8 @@ function moduleOrderField() {
 
 function isModuleEnabledIn(modules: ModulesSettings, moduleId: ModuleId): boolean {
   switch (moduleId) {
-    case 'dates':
-      return modules.dates.enabled
+    case 'memo':
+      return modules.memo.enabled
     case 'gmail':
       return modules.gmail.enabled
     case 'esa':
@@ -121,6 +121,7 @@ const appSchema = z.object({
   bounceAnimation: booleanField(true),
   bubbleDurationMs: integerField(1000, 30000, 5000),
   launchAtLogin: booleanField(false),
+  memoShortcut: stringField(64, 'Alt+A'),
   moduleOrder: moduleOrderField(),
   showPetOnStartup: booleanField(true)
 })
@@ -134,7 +135,7 @@ const petSchema = z.object({
   position: positionSchema
 })
 
-const datesModuleSchema = z.object({ enabled: booleanField(true) }).catch({ enabled: true })
+const memoModuleSchema = z.object({ enabled: booleanField(true) }).catch({ enabled: true })
 
 const gmailModuleSchema = z
   .object({
@@ -174,7 +175,7 @@ const websiteCheckModuleSchema = z
 
 const modulesSchema = z
   .object({
-    dates: datesModuleSchema.default({ enabled: true }),
+    memo: memoModuleSchema.default({ enabled: true }),
     gmail: gmailModuleSchema.default({
       enabled: false,
       pollIntervalMinutes: 3,
@@ -196,7 +197,7 @@ const modulesSchema = z
     })
   })
   .catch({
-    dates: { enabled: true },
+    memo: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -211,12 +212,13 @@ const configSchema = z
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      memoShortcut: 'Alt+A',
       moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     }),
     pet: petSchema.default({ assetId: 'default', scale: 1, position: null }),
     modules: modulesSchema.default({
-      dates: { enabled: true },
+      memo: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -230,12 +232,13 @@ const configSchema = z
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      memoShortcut: 'Alt+A',
       moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     },
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
-      dates: { enabled: true },
+      memo: { enabled: true },
       gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
       esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
       deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -245,7 +248,7 @@ const configSchema = z
 
 export function createDefaultModules(): ModulesSettings {
   return {
-    dates: { enabled: true },
+    memo: { enabled: true },
     gmail: { enabled: false, pollIntervalMinutes: 3, notifyNewMail: true, hideSubject: true },
     esa: { enabled: false, siteId: '', refreshIntervalMinutes: null },
     deepseek: { enabled: false, refreshIntervalMinutes: null },
@@ -261,6 +264,7 @@ export function createDefaultConfig(): PublicConfig {
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      memoShortcut: 'Alt+A',
       moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     },
@@ -303,6 +307,31 @@ export interface ConfigMigrationResult {
   futureVersion: boolean
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** v5 stored the memo module under `dates`; keep its enabled state and order. */
+function migrateMemoModule(raw: unknown, fromVersion: number): unknown {
+  if (fromVersion >= 6 || !isPlainObject(raw)) {
+    return raw
+  }
+  const next: Record<string, unknown> = { ...raw }
+  const app = isPlainObject(raw.app) ? { ...raw.app } : {}
+  const modules = isPlainObject(raw.modules) ? { ...raw.modules } : {}
+  const dates = isPlainObject(modules.dates) ? modules.dates : null
+  if (dates && !isPlainObject(modules.memo)) {
+    modules.memo = { enabled: dates.enabled !== false }
+  }
+  delete modules.dates
+  if (Array.isArray(app.moduleOrder)) {
+    app.moduleOrder = app.moduleOrder.map((id) => (id === 'dates' ? 'memo' : id))
+  }
+  next.app = app
+  next.modules = modules
+  return next
+}
+
 export function migrateConfig(raw: unknown): ConfigMigrationResult {
   const fromVersion = readSchemaVersion(raw)
   if (fromVersion > CURRENT_CONFIG_SCHEMA_VERSION) {
@@ -315,7 +344,7 @@ export function migrateConfig(raw: unknown): ConfigMigrationResult {
   }
 
   return {
-    config: parseConfig(raw),
+    config: parseConfig(migrateMemoModule(raw, fromVersion)),
     fromVersion,
     migrated: fromVersion < CURRENT_CONFIG_SCHEMA_VERSION,
     futureVersion: false

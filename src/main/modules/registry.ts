@@ -1,14 +1,14 @@
-import type { DatesService } from './dates/dates-service'
-import { DatesModule } from './dates/dates-module'
 import type { DeepSeekModule } from './deepseek/deepseek-module'
 import type { EsaModule } from './esa/esa-module'
 import type { GmailModule } from './gmail/gmail-module'
+import { MemoModule } from './memo/memo-module'
+import type { MemoService } from './memo/memo-service'
 import type { ModuleDefinition } from './types'
 import { WebsiteCheckModule } from './website-check/website-module'
 import type { WebsiteService } from './website-check/website-service'
 
 export interface ModuleRegistryDependencies {
-  datesService: DatesService
+  memoService: MemoService
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
@@ -21,7 +21,7 @@ export interface ModuleRegistryDependencies {
  */
 export function createModuleRegistry(dependencies: ModuleRegistryDependencies): ModuleDefinition[] {
   return [
-    new DatesModule(dependencies.datesService),
+    new MemoModule(dependencies.memoService),
     dependencies.gmailModule,
     dependencies.esaModule,
     dependencies.deepSeekModule,

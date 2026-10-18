@@ -30,20 +30,21 @@ const V1_CONFIG = {
 }
 
 describe('config schema', () => {
-  it('creates version 5 defaults with startup and Gmail options', () => {
+  it('creates version 6 defaults with startup and Gmail options', () => {
     const config = createDefaultConfig()
 
-    expect(config.schemaVersion).toBe(5)
+    expect(config.schemaVersion).toBe(6)
     expect(config.app.launchAtLogin).toBe(false)
     expect(config.app.showPetOnStartup).toBe(true)
-    expect(config.modules.dates.enabled).toBe(true)
+    expect(config.app.memoShortcut).toBe('Alt+A')
+    expect(config.modules.memo.enabled).toBe(true)
     expect(config.modules.gmail.enabled).toBe(false)
     expect(config.modules.gmail.hideSubject).toBe(true)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(config.modules.websiteCheck.enabled).toBe(true)
     expect(config.modules.websiteCheck.defaultTimeoutMs).toBe(8000)
-    expect(config.app.moduleOrder).toEqual(['dates', 'website-check'])
+    expect(config.app.moduleOrder).toEqual(['memo', 'website-check'])
   })
 
   it('repairs invalid values instead of rejecting the file', () => {
@@ -70,7 +71,7 @@ describe('config schema', () => {
     expect(config.modules.esa.siteId).toBe('')
     expect(config.modules.esa.refreshIntervalMinutes).toBe(60)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
-    expect(config.app.moduleOrder).toEqual(['dates', 'website-check'])
+    expect(config.app.moduleOrder).toEqual(['memo', 'website-check'])
     expect(config).not.toHaveProperty('secrets')
   })
 
@@ -80,12 +81,12 @@ describe('config schema', () => {
     expect(result.fromVersion).toBe(1)
     expect(result.migrated).toBe(true)
     expect(result.futureVersion).toBe(false)
-    expect(result.config.schemaVersion).toBe(5)
+    expect(result.config.schemaVersion).toBe(6)
     expect(result.config.app.alwaysOnTop).toBe(false)
     expect(result.config.pet.scale).toBe(1.5)
-    expect(result.config.modules.dates.enabled).toBe(true)
+    expect(result.config.modules.memo.enabled).toBe(true)
     expect(result.config.modules.deepseek.refreshIntervalMinutes).toBeNull()
-    expect(result.config.app.moduleOrder).toEqual(['dates', 'website-check'])
+    expect(result.config.app.moduleOrder).toEqual(['memo', 'website-check'])
   })
 
   it('migrates version 2 files by adding refresh intervals', () => {
@@ -104,10 +105,31 @@ describe('config schema', () => {
 
     expect(result.fromVersion).toBe(2)
     expect(result.migrated).toBe(true)
-    expect(result.config.schemaVersion).toBe(5)
+    expect(result.config.schemaVersion).toBe(6)
     expect(result.config.modules.esa.siteId).toBe('site-1')
     expect(result.config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(result.config.modules.deepseek.refreshIntervalMinutes).toBeNull()
+  })
+
+  it('migrates the dates module to memo and keeps its enabled state', () => {
+    const enabled = migrateConfig({
+      schemaVersion: 5,
+      app: { moduleOrder: ['dates', 'website-check'] },
+      modules: { dates: { enabled: true } }
+    })
+    expect(enabled.fromVersion).toBe(5)
+    expect(enabled.migrated).toBe(true)
+    expect(enabled.config.modules.memo.enabled).toBe(true)
+    expect(enabled.config.app.moduleOrder).toEqual(['memo', 'website-check'])
+    expect(enabled.config).not.toHaveProperty('modules.dates')
+
+    const disabled = migrateConfig({
+      schemaVersion: 5,
+      app: { moduleOrder: ['dates', 'website-check'] },
+      modules: { dates: { enabled: false } }
+    })
+    expect(disabled.config.modules.memo.enabled).toBe(false)
+    expect(disabled.config.app.moduleOrder).toEqual(['website-check'])
   })
 
   it('flags newer schema versions instead of silently overwriting them', () => {
@@ -140,7 +162,7 @@ describe('config store', () => {
     expect(config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
     expect(config.app.alwaysOnTop).toBe(false)
     expect(config.pet.scale).toBe(1.5)
-    expect(config.modules.dates.enabled).toBe(true)
+    expect(config.modules.memo.enabled).toBe(true)
     expect(readdirSync(directory).some((name) => name.startsWith('config.json.v1-'))).toBe(true)
   })
 
@@ -154,7 +176,7 @@ describe('config store', () => {
       alwaysOnTop: false,
       bubbleDurationMs: 8000,
       launchAtLogin: true,
-      moduleOrder: ['website-check', 'dates']
+      moduleOrder: ['website-check', 'memo']
     })
     store.updatePet({ scale: 1.5, position: { x: 100, y: 200 } })
     store.setModuleEnabled('gmail', true)
@@ -171,11 +193,11 @@ describe('config store', () => {
     expect(reloaded.modules.gmail.enabled).toBe(true)
     expect(reloaded.modules.gmail.pollIntervalMinutes).toBe(5)
     expect(reloaded.modules.gmail.hideSubject).toBe(false)
-    expect(reloaded.modules.dates.enabled).toBe(true)
+    expect(reloaded.modules.memo.enabled).toBe(true)
     expect(reloaded.modules.deepseek.refreshIntervalMinutes).toBe(15)
     expect(reloaded.modules.esa.siteId).toBe('site-42')
     expect(reloaded.app.launchAtLogin).toBe(true)
-    expect(reloaded.app.moduleOrder).toEqual(['website-check', 'dates', 'gmail'])
+    expect(reloaded.app.moduleOrder).toEqual(['website-check', 'memo', 'gmail'])
   })
 
   it('backs up a version 2 file when migrating to the current version', () => {
@@ -200,7 +222,7 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(5)
+    expect(config.schemaVersion).toBe(6)
     expect(config.modules.esa.siteId).toBe('kept-site')
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(readdirSync(directory).some((name) => name.startsWith('config.json.v2-'))).toBe(true)
@@ -228,7 +250,7 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(5)
+    expect(config.schemaVersion).toBe(6)
     expect(config.app.launchAtLogin).toBe(false)
     expect(config.app.showPetOnStartup).toBe(true)
     expect(config.modules.gmail.pollIntervalMinutes).toBe(5)
@@ -288,14 +310,14 @@ describe('config store', () => {
     const store = new ConfigStore(join(directory, 'config.json'))
     store.load()
 
-    expect(store.get().app.moduleOrder).toEqual(['dates', 'website-check'])
+    expect(store.get().app.moduleOrder).toEqual(['memo', 'website-check'])
     expect(store.isModuleEnabled('deepseek')).toBe(false)
     store.setModuleEnabled('deepseek', true)
     expect(store.isModuleEnabled('deepseek')).toBe(true)
-    expect(store.get().app.moduleOrder).toEqual(['dates', 'website-check', 'deepseek'])
+    expect(store.get().app.moduleOrder).toEqual(['memo', 'website-check', 'deepseek'])
     store.setModuleEnabled('website-check', false)
     expect(store.isModuleEnabled('website-check')).toBe(false)
-    expect(store.get().app.moduleOrder).toEqual(['dates', 'deepseek'])
-    expect(store.isModuleEnabled('dates')).toBe(true)
+    expect(store.get().app.moduleOrder).toEqual(['memo', 'deepseek'])
+    expect(store.isModuleEnabled('memo')).toBe(true)
   })
 })

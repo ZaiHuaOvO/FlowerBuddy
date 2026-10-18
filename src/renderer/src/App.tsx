@@ -4,6 +4,7 @@ import PetView from './pet/PetView'
 import QuickMenu from './quick-menu/QuickMenu'
 
 const SettingsApp = lazy(() => import('./settings/SettingsApp'))
+const MemoCardView = lazy(() => import('./memo-card/MemoCardView'))
 
 export default function App() {
   const view = new URLSearchParams(window.location.search).get('view')
@@ -15,6 +16,8 @@ export default function App() {
     content = <BubbleView />
   } else if (view === 'settings') {
     content = <SettingsApp />
+  } else if (view === 'memo-card') {
+    content = <MemoCardView />
   } else {
     content = <PetView />
   }

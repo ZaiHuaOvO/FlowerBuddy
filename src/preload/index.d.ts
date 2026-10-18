@@ -1,4 +1,4 @@
-import type { BubbleApi, MenuApi, PetApi, SettingsApi } from '../shared/api'
+import type { BubbleApi, MemoCardApi, MenuApi, PetApi, SettingsApi } from '../shared/api'
 
 declare global {
   interface Window {
@@ -6,6 +6,7 @@ declare global {
     menuApi?: MenuApi
     bubbleApi?: BubbleApi
     settingsApi?: SettingsApi
+    memoCardApi?: MemoCardApi
   }
 }
 

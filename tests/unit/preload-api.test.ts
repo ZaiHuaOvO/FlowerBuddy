@@ -47,16 +47,19 @@ describe('preload bridge surface', () => {
 
     expect(exposed?.key).toBe('settingsApi')
     expect(Object.keys(exposed?.value ?? {}).sort()).toEqual([
+      'addMemoImage',
       'checkAllWebsites',
       'checkGmailNow',
       'checkWebsite',
       'clearDeepSeekKey',
       'clearEsaCredentials',
+      'completeMemo',
       'connectGmail',
-      'createDateEvent',
+      'createMemo',
       'createWebsiteCheck',
-      'deleteDateEvent',
+      'deleteMemo',
       'deleteWebsiteCheck',
+      'discardMemoImages',
       'disconnectGmail',
       'fetchDeepSeekBalance',
       'fetchEsaTraffic',
@@ -67,20 +70,23 @@ describe('preload bridge surface', () => {
       'getSecurityStatus',
       'getStartupNotice',
       'importPetImage',
-      'listDateEvents',
+      'listMemos',
       'listWebsiteChecks',
+      'onMemosChanged',
+      'onOpenMemoComposer',
       'resetPetPosition',
       'saveAppSettings',
       'saveDeepSeekKey',
       'saveEsaCredentials',
       'saveGmailClient',
       'savePetSettings',
-      'setDateEventEnabled',
+      'setMemoAnchored',
       'setModuleEnabled',
       'setModuleRefreshInterval',
       'setWebsiteCheckEnabled',
-      'updateDateEvent',
+      'settingsUiReady',
       'updateGmailSettings',
+      'updateMemo',
       'updateWebsiteCheck'
     ])
   })
@@ -89,6 +95,7 @@ describe('preload bridge surface', () => {
     const { bridge } = createFakeBridge()
     expect(createBridge('menu', bridge)?.key).toBe('menuApi')
     expect(createBridge('bubble', bridge)?.key).toBe('bubbleApi')
+    expect(createBridge('memo-card', bridge)?.key).toBe('memoCardApi')
   })
 
   it('forwards menu presentation calls', async () => {
@@ -120,7 +127,7 @@ describe('preload bridge surface', () => {
 
   it('does not leak Node.js or Electron primitives', () => {
     const { bridge } = createFakeBridge()
-    for (const view of ['pet', 'menu', 'bubble', 'settings']) {
+    for (const view of ['pet', 'menu', 'bubble', 'settings', 'memo-card']) {
       const value = createBridge(view, bridge)?.value as Record<string, unknown>
       for (const name of ['ipcRenderer', 'require', 'process', 'fs', 'shell', 'invoke', 'on']) {
         expect(name in value).toBe(false)

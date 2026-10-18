@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
-  categoryLabel,
-  countdownLabel,
-  dateStatusLabel,
-  dateTone,
   formatBalanceAmount,
   formatBytes,
+  formatMemoDateTime,
   formatTime,
   formatTrafficRange,
   maskEmail,
+  memoExcerpt,
+  memoTitle,
   tagTone,
   toMessage,
-  todayIso,
   websiteLabel,
   websiteTone
 } from '../../src/renderer/src/settings/utils/formatters'
@@ -30,34 +28,13 @@ describe('settings formatters', () => {
     expect(tagTone('not-implemented')).toBe('muted')
   })
 
-  it('formats date category and countdown labels', () => {
-    expect(categoryLabel('birthday')).toBe('生日')
-    expect(categoryLabel('custom')).toBe('自定义')
-    expect(countdownLabel(null)).toBe('已过去')
-    expect(countdownLabel(0)).toBe('今天')
-    expect(countdownLabel(3)).toBe('还有 3 天')
-  })
-
-  it('derives date status and tone from enabled/upcoming state', () => {
-    const base = {
-      id: '1',
-      title: 'Test',
-      date: '2026-10-20',
-      recurrence: 'yearly' as const,
-      category: 'custom' as const,
-      notifyDaysBefore: [0],
-      enabled: true,
-      createdAt: '',
-      updatedAt: '',
-      upcoming: true,
-      daysUntil: 0,
-      occurrence: '2026-10-20'
-    }
-    expect(dateTone(base)).toBe('warning')
-    expect(dateStatusLabel(base)).toBe('今天')
-    expect(dateTone({ ...base, enabled: false })).toBe('muted')
-    expect(dateStatusLabel({ ...base, enabled: false })).toBe('已停用')
-    expect(dateStatusLabel({ ...base, upcoming: false, daysUntil: null })).toBe('已过去')
+  it('formats memo titles, excerpts and timestamps', () => {
+    expect(memoTitle('第一行\n第二行')).toBe('第一行')
+    expect(memoTitle('\n\n')).toBe('图片备忘')
+    expect(memoExcerpt('第一行\n第二行\n第三行')).toBe('第二行 第三行')
+    const local = new Date(2026, 9, 20, 15, 30, 5)
+    expect(formatMemoDateTime(local.toISOString())).toBe('2026-10-20 15:30:05')
+    expect(formatMemoDateTime('invalid')).toBe('invalid')
   })
 
   it('formats website results', () => {
@@ -101,9 +78,5 @@ describe('settings formatters', () => {
     expect(formatTime('2026-10-17T04:03:00.000Z')).toMatch(/\d{2}:\d{2}/)
     expect(formatTime('invalid')).toBe('invalid')
     expect(formatTrafficRange('invalid', 'invalid')).toBe('')
-  })
-
-  it('produces a local ISO date', () => {
-    expect(todayIso()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

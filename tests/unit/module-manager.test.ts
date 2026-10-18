@@ -74,15 +74,16 @@ function createEnvironment() {
   })
   configStore.load()
   const scheduler = new TaskScheduler({ logger: silentLogger })
-  const dates = createTestModule({ id: 'dates', configured: true, schedule: true })
+  const memo = createTestModule({ id: 'memo', configured: true, schedule: true })
   const gmail = createTestModule({ id: 'gmail', configured: false })
   const manager = new ModuleManager({
-    modules: [dates.module, gmail.module],
+    modules: [memo.module, gmail.module],
     configStore,
     scheduler,
-    logger: silentLogger
+    logger: silentLogger,
+    notify: () => {}
   })
-  return { directory, configStore, scheduler, manager, dates, gmail }
+  return { directory, configStore, scheduler, manager, memo, gmail }
 }
 
 afterEach(() => {
@@ -93,16 +94,16 @@ afterEach(() => {
 
 describe('module manager', () => {
   it('starts only enabled and configured modules', () => {
-    const { manager, scheduler, dates, gmail } = createEnvironment()
+    const { manager, scheduler, memo, gmail } = createEnvironment()
 
     manager.start()
 
-    expect(dates.getStartCalls()).toBe(1)
+    expect(memo.getStartCalls()).toBe(1)
     expect(gmail.getStartCalls()).toBe(0)
-    expect(scheduler.getTaskIds()).toEqual(['dates:tick'])
+    expect(scheduler.getTaskIds()).toEqual(['memo:tick'])
 
     const summaries = manager.list()
-    expect(summaries.find((module) => module.id === 'dates')).toMatchObject({
+    expect(summaries.find((module) => module.id === 'memo')).toMatchObject({
       enabled: true,
       configured: true,
       status: 'ready',
@@ -119,27 +120,27 @@ describe('module manager', () => {
   })
 
   it('stops a module and its scheduled tasks when disabled', () => {
-    const { manager, scheduler, dates, configStore } = createEnvironment()
+    const { manager, scheduler, memo, configStore } = createEnvironment()
     manager.start()
 
-    manager.setEnabled('dates', false)
+    manager.setEnabled('memo', false)
 
-    expect(dates.getStopCalls()).toBe(1)
+    expect(memo.getStopCalls()).toBe(1)
     expect(scheduler.getTaskIds()).toEqual([])
-    expect(configStore.get().modules.dates.enabled).toBe(false)
+    expect(configStore.get().modules.memo.enabled).toBe(false)
 
     manager.stop()
   })
 
   it('restarts a module when re-enabled', () => {
-    const { manager, scheduler, dates } = createEnvironment()
+    const { manager, scheduler, memo } = createEnvironment()
     manager.start()
 
-    manager.setEnabled('dates', false)
-    manager.setEnabled('dates', true)
+    manager.setEnabled('memo', false)
+    manager.setEnabled('memo', true)
 
-    expect(dates.getStartCalls()).toBe(2)
-    expect(scheduler.getTaskIds()).toEqual(['dates:tick'])
+    expect(memo.getStartCalls()).toBe(2)
+    expect(scheduler.getTaskIds()).toEqual(['memo:tick'])
 
     manager.stop()
   })
@@ -155,12 +156,12 @@ describe('module manager', () => {
   })
 
   it('stops every module and clears the scheduler on shutdown', () => {
-    const { manager, scheduler, dates } = createEnvironment()
+    const { manager, scheduler, memo } = createEnvironment()
     manager.start()
 
     manager.stop()
 
-    expect(dates.getStopCalls()).toBe(1)
+    expect(memo.getStopCalls()).toBe(1)
     expect(scheduler.getTaskIds()).toEqual([])
   })
 
@@ -172,10 +173,10 @@ describe('module manager', () => {
     })
     configStore.load()
     const scheduler = new TaskScheduler({ logger: silentLogger })
-    const dates = createTestModule({
-      id: 'dates',
+    const memo = createTestModule({
+      id: 'memo',
       configured: true,
-      actionIds: ['dates:upcoming']
+      actionIds: ['memo:upcoming']
     })
     const gmail = createTestModule({
       id: 'gmail',
@@ -183,24 +184,25 @@ describe('module manager', () => {
       actionIds: ['gmail:check']
     })
     const manager = new ModuleManager({
-      modules: [dates.module, gmail.module],
+      modules: [memo.module, gmail.module],
       configStore,
       scheduler,
-      logger: silentLogger
+      logger: silentLogger,
+      notify: () => {}
     })
     manager.start()
 
     expect(manager.getMenuActions()).toEqual([
-      { id: 'dates:upcoming', label: 'dates:upcoming', moduleId: 'dates' }
+      { id: 'memo:upcoming', label: 'memo:upcoming', moduleId: 'memo' }
     ])
-    await expect(manager.runAction('dates:upcoming')).resolves.toEqual({
+    await expect(manager.runAction('memo:upcoming')).resolves.toEqual({
       state: 'success',
-      message: 'dates ok'
+      message: 'memo ok'
     })
 
-    manager.setEnabled('dates', false)
+    manager.setEnabled('memo', false)
     expect(manager.getMenuActions()).toEqual([])
-    await expect(manager.runAction('dates:upcoming')).rejects.toMatchObject({
+    await expect(manager.runAction('memo:upcoming')).rejects.toMatchObject({
       code: 'MODULE_DISABLED'
     })
     await expect(manager.runAction('missing:action')).rejects.toMatchObject({

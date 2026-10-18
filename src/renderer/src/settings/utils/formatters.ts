@@ -1,11 +1,5 @@
-import type {
-  DateCategory,
-  DateEventSummary,
-  ModuleStatus,
-  WebsiteCheckResult
-} from '../../../../shared/api'
+import type { ModuleStatus, WebsiteCheckResult } from '../../../../shared/api'
 import type { TagTone } from '../../components/tag-tone'
-import { CATEGORY_OPTIONS } from './constants'
 
 export function toMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -33,39 +27,34 @@ export function tagTone(status: ModuleStatus): TagTone {
   }
 }
 
-export function todayIso(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
+function pad(value: number): string {
+  return String(value).padStart(2, '0')
 }
 
-export function categoryLabel(category: DateCategory): string {
-  return CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? '自定义'
+export function formatMemoDateTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-export function countdownLabel(days: number | null): string {
-  if (days === null) {
-    return '已过去'
-  }
-  return days === 0 ? '今天' : `还有 ${days} 天`
+export function memoTitle(text: string): string {
+  const line = text
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .find((entry) => entry.length > 0)
+  return line ?? '图片备忘'
 }
 
-export function dateTone(event: DateEventSummary): TagTone {
-  if (!event.enabled || !event.upcoming) {
-    return 'muted'
-  }
-  return event.daysUntil === 0 ? 'warning' : 'success'
-}
-
-export function dateStatusLabel(event: DateEventSummary): string {
-  if (!event.enabled) {
-    return '已停用'
-  }
-  if (!event.upcoming) {
-    return '已过去'
-  }
-  return countdownLabel(event.daysUntil)
+export function memoExcerpt(text: string): string {
+  const lines = text
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+  return lines.slice(1).join(' ').slice(0, 80)
 }
 
 export function websiteTone(result: WebsiteCheckResult | null): TagTone {

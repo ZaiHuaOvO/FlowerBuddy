@@ -121,7 +121,7 @@ describe('Gmail module', () => {
     const handler = vi.fn()
     module.setNewMailHandler(handler)
 
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
     expect(scheduler.getTaskIds()).toEqual(['gmail:poll'])
 
     await vi.advanceTimersByTimeAsync(3 * 60 * 1000)
@@ -142,7 +142,7 @@ describe('Gmail module', () => {
       pollIntervalMinutes: () => 1
     })
     const scheduler = new TaskScheduler({ logger })
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
 
     await vi.advanceTimersByTimeAsync(60 * 1000)
     expect(poll).toHaveBeenCalledTimes(1)

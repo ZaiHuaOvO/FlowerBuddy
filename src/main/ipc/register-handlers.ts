@@ -5,10 +5,10 @@ import type { z } from 'zod'
 import { IPC_CHANNELS } from '../../shared/api'
 import type {
   AppSettingsPatch,
-  DateEventInput,
-  DateEventPatch,
   GmailSettingsPatch,
   IpcResult,
+  MemoInput,
+  MemoPatch,
   PetSettingsPatch,
   WebsiteCheckInput,
   WebsiteCheckPatch
@@ -18,14 +18,18 @@ import { AppError, toPublicError } from '../shared/errors'
 import type { LoggerLike } from '../shared/logger'
 import {
   appSettingsPatchSchema,
-  dateEventInputSchema,
-  dateUpdateInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
+  memoAnchoredInputSchema,
+  memoCardResizeInputSchema,
+  memoDiscardImagesSchema,
+  memoImageBytesSchema,
+  memoInputSchema,
+  memoUpdateInputSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   parseInput,
@@ -95,16 +99,47 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.securityStatus, null, () => controller.getSecurityStatus())
 
-  register(IPC_CHANNELS.datesList, null, () => controller.listDateEvents())
-  register(IPC_CHANNELS.datesCreate, dateEventInputSchema, (input) =>
-    controller.createDateEvent(input as DateEventInput)
+  register(IPC_CHANNELS.memosList, null, () => controller.listMemos())
+  register(IPC_CHANNELS.memosCreate, memoInputSchema, (input) =>
+    controller.createMemo(input as MemoInput)
   )
-  register(IPC_CHANNELS.datesUpdate, dateUpdateInputSchema, (input) =>
-    controller.updateDateEvent(input.id, input.patch as DateEventPatch)
+  register(IPC_CHANNELS.memosUpdate, memoUpdateInputSchema, (input) =>
+    controller.updateMemo(input.id, input.patch as MemoPatch)
   )
-  register(IPC_CHANNELS.datesDelete, idInputSchema, (input) => controller.deleteDateEvent(input.id))
-  register(IPC_CHANNELS.datesSetEnabled, idEnabledInputSchema, (input) =>
-    controller.setDateEventEnabled(input.id, input.enabled)
+  register(IPC_CHANNELS.memosDelete, idInputSchema, (input) => controller.deleteMemo(input.id))
+  register(IPC_CHANNELS.memosComplete, idInputSchema, (input) => controller.completeMemo(input.id))
+  register(IPC_CHANNELS.memosSetAnchored, memoAnchoredInputSchema, (input) =>
+    controller.setMemoAnchored(input.id, input.anchored)
+  )
+  register(IPC_CHANNELS.memosAddImage, memoImageBytesSchema, (input) =>
+    controller.addMemoImage(input.data)
+  )
+  register(IPC_CHANNELS.memosDiscardImages, memoDiscardImagesSchema, (input) =>
+    controller.discardMemoImages(input.ids)
+  )
+
+  register(IPC_CHANNELS.settingsUiReady, null, () => controller.acknowledgeSettingsUiReady())
+
+  register(IPC_CHANNELS.memoCardGetState, idInputSchema, (input) =>
+    controller.getMemoCardState(input.id)
+  )
+  register(IPC_CHANNELS.memoCardBeginDrag, idInputSchema, (input) =>
+    controller.memoCardBeginDrag(input.id)
+  )
+  register(IPC_CHANNELS.memoCardDragMove, idInputSchema, (input) =>
+    controller.memoCardDragMove(input.id)
+  )
+  register(IPC_CHANNELS.memoCardEndDrag, idInputSchema, (input) =>
+    controller.memoCardEndDrag(input.id)
+  )
+  register(IPC_CHANNELS.memoCardBeginResize, memoCardResizeInputSchema, (input) =>
+    controller.memoCardBeginResize(input.id, input.edge)
+  )
+  register(IPC_CHANNELS.memoCardResizeMove, idInputSchema, (input) =>
+    controller.memoCardResizeMove(input.id)
+  )
+  register(IPC_CHANNELS.memoCardEndResize, idInputSchema, (input) =>
+    controller.memoCardEndResize(input.id)
   )
 
   register(IPC_CHANNELS.websitesList, null, () => controller.listWebsiteChecks())

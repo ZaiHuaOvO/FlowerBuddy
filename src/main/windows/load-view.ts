@@ -5,16 +5,18 @@ export interface ViewLoadOptions {
   devServerUrl: string | undefined
   rendererIndexPath: string
   view: WindowView
+  query?: Record<string, string>
 }
 
 /** Dev loads from the Vite server, packaged builds load the bundled HTML file. */
 export function loadView(window: BrowserWindow, options: ViewLoadOptions): void {
+  const query = { view: options.view, ...options.query }
   if (options.devServerUrl) {
     const base = options.devServerUrl.replace(/\/+$/, '')
-    void window.loadURL(`${base}/?view=${options.view}`)
+    void window.loadURL(`${base}/?${new URLSearchParams(query).toString()}`)
     return
   }
-  void window.loadFile(options.rendererIndexPath, { query: { view: options.view } })
+  void window.loadFile(options.rendererIndexPath, { query })
 }
 
 /**

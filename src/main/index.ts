@@ -1,16 +1,17 @@
+import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, Menu, nativeTheme, powerMonitor, session, shell } from 'electron'
 import { AppController } from './app-controller'
 import { registerIpcHandlers } from './ipc/register-handlers'
 import { createSenderValidator } from './ipc/validate-sender'
-import { sanitizeDatesData } from './modules/dates/dates-data'
-import { DatesService } from './modules/dates/dates-service'
-import { createEmptyDatesData, type DatesData } from './modules/dates/types'
 import { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import { EsaModule } from './modules/esa/esa-module'
 import { GmailModule } from './modules/gmail/gmail-module'
 import { GmailService } from './modules/gmail/gmail-service'
 import { createEmptyGmailState, sanitizeGmailState, type GmailState } from './modules/gmail/types'
+import { sanitizeMemoData } from './modules/memo/memo-data'
+import { MemoService } from './modules/memo/memo-service'
+import { createEmptyMemoData, type MemoData } from './modules/memo/types'
 import { ModuleManager } from './modules/module-manager'
 import { createModuleRegistry } from './modules/registry'
 import {
@@ -19,6 +20,7 @@ import {
   type WebsiteData
 } from './modules/website-check/website-types'
 import { WebsiteService } from './modules/website-check/website-service'
+import { registerMemoImageScheme, handleMemoImageRequests } from './protocol/memo-image-protocol'
 import { handlePetAssetRequests, registerPetAssetScheme } from './protocol/pet-asset-protocol'
 import { TaskScheduler } from './scheduler/task-scheduler'
 import { electronSafeStorageBackend } from './security/safe-storage-backend'
@@ -26,6 +28,7 @@ import { SecretStore } from './security/secret-store'
 import { Logger } from './shared/logger'
 import { ConfigStore } from './storage/config-store'
 import { JsonStore } from './storage/json-store'
+import { MemoImageStore } from './storage/memo-images'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
 
@@ -82,13 +85,24 @@ async function bootstrap(): Promise<void> {
   const scheduler = new TaskScheduler({ logger })
   const dataDirectory = join(userDataPath, 'data')
 
-  const datesStore = new JsonStore<DatesData>(join(dataDirectory, 'dates.json'), {
-    label: 'dates',
-    defaults: createEmptyDatesData,
-    sanitize: sanitizeDatesData,
+  // The dates module was replaced by memos; its old data is intentionally discarded.
+  const legacyDatesPath = join(dataDirectory, 'dates.json')
+  if (existsSync(legacyDatesPath)) {
+    try {
+      rmSync(legacyDatesPath, { force: true })
+      logger.info('legacy dates data removed')
+    } catch {
+      logger.warn('legacy dates data could not be removed')
+    }
+  }
+
+  const memoStore = new JsonStore<MemoData>(join(dataDirectory, 'memos.json'), {
+    label: 'memos',
+    defaults: createEmptyMemoData,
+    sanitize: sanitizeMemoData,
     logger
   })
-  datesStore.load()
+  memoStore.load()
 
   const websiteStore = new JsonStore<WebsiteData>(join(dataDirectory, 'website-checks.json'), {
     label: 'website-checks',
@@ -98,7 +112,9 @@ async function bootstrap(): Promise<void> {
   })
   websiteStore.load()
 
-  const datesService = new DatesService(datesStore)
+  const memoImageStore = new MemoImageStore(join(userDataPath, 'memo-images'))
+  const memoService = new MemoService(memoStore, memoImageStore)
+  memoImageStore.cleanupOrphans(memoService.referencedImageIds())
   const websiteService = new WebsiteService(websiteStore)
   const deepSeekModule = new DeepSeekModule({ secretStore, configStore })
   const esaModule = new EsaModule({ secretStore, configStore })
@@ -123,7 +139,7 @@ async function bootstrap(): Promise<void> {
 
   const moduleManager = new ModuleManager({
     modules: createModuleRegistry({
-      datesService,
+      memoService,
       websiteService,
       deepSeekModule,
       esaModule,
@@ -131,14 +147,16 @@ async function bootstrap(): Promise<void> {
     }),
     configStore,
     scheduler,
-    logger
+    logger,
+    notify: (moduleId, message) => controller?.showModuleMessage(moduleId, message)
   })
 
   const appController = new AppController({
     configStore,
     moduleManager,
     secretStore,
-    datesService,
+    memoService,
+    memoImageStore,
     websiteService,
     deepSeekModule,
     esaModule,
@@ -162,6 +180,7 @@ async function bootstrap(): Promise<void> {
   })
 
   handlePetAssetRequests((assetId) => appController.resolveAssetPath(assetId))
+  handleMemoImageRequests((imageId) => memoImageStore.resolvePath(imageId))
   registerIpcHandlers({
     controller: appController,
     isTrustedSender: createSenderValidator({ devServerUrl, rendererIndexPath }),
@@ -182,6 +201,7 @@ if (!hasSingleInstanceLock) {
   app.quit()
 } else {
   registerPetAssetScheme()
+  registerMemoImageScheme()
 
   app.on('second-instance', () => {
     controller?.handleSecondInstance()

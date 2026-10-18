@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
-  dateEventInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
+  memoCardResizeInputSchema,
+  memoImageBytesSchema,
+  memoInputSchema,
+  memoPatchSchema,
   moduleIdSchema,
   parseAppSettingsPatch,
   parseInput,
@@ -30,8 +33,8 @@ describe('IPC input schemas', () => {
       bubbleDurationMs: 8000
     })
     expect(parseAppSettingsPatch({})).toEqual({})
-    expect(parseAppSettingsPatch({ moduleOrder: ['dates', 'gmail'] })).toEqual({
-      moduleOrder: ['dates', 'gmail']
+    expect(parseAppSettingsPatch({ moduleOrder: ['memo', 'gmail'] })).toEqual({
+      moduleOrder: ['memo', 'gmail']
     })
     expect(parseAppSettingsPatch({ bubbleDurationMs: 1000 })).toEqual({ bubbleDurationMs: 1000 })
     expect(parsePetSettingsPatch({ scale: 1.5 })).toEqual({ scale: 1.5 })
@@ -55,19 +58,19 @@ describe('IPC input schemas', () => {
 
   it('validates module toggle payloads', () => {
     const input = parseInput(moduleEnabledInputSchema, {
-      moduleId: 'dates',
+      moduleId: 'memo',
       enabled: false
     })
-    expect(input).toEqual({ moduleId: 'dates', enabled: false })
+    expect(input).toEqual({ moduleId: 'memo', enabled: false })
 
     expect(() => parseInput(moduleEnabledInputSchema, { moduleId: 'nope', enabled: true })).toThrow(
       AppError
     )
     expect(() =>
-      parseInput(moduleEnabledInputSchema, { moduleId: 'dates', enabled: 'yes' })
+      parseInput(moduleEnabledInputSchema, { moduleId: 'memo', enabled: 'yes' })
     ).toThrow(AppError)
     expect(() =>
-      parseInput(moduleEnabledInputSchema, { moduleId: 'dates', enabled: true, x: 1 })
+      parseInput(moduleEnabledInputSchema, { moduleId: 'memo', enabled: true, x: 1 })
     ).toThrow(AppError)
   })
 
@@ -91,39 +94,45 @@ describe('IPC input schemas', () => {
     expect(petSettingsPatchSchema.parse({ scale: 0.5 })).toEqual({ scale: 0.5 })
   })
 
-  it('validates date event inputs', () => {
-    const input = parseInput(dateEventInputSchema, {
-      title: '结婚纪念日',
-      date: '2026-10-17',
-      recurrence: 'yearly',
-      category: 'anniversary'
+  it('validates memo inputs and image payloads', () => {
+    const input = parseInput(memoInputSchema, {
+      text: '买牛奶',
+      images: [{ id: '9f1c1c34-7d0c-4a18-9a94-7d1c5d2a3b11', width: 320, height: 200 }],
+      reminderAt: '2026-10-20T07:30:00.000Z'
     })
-    expect(input).toMatchObject({ title: '结婚纪念日', recurrence: 'yearly' })
+    expect(input.text).toBe('买牛奶')
+    expect(input.images).toHaveLength(1)
 
     expect(() =>
-      parseInput(dateEventInputSchema, {
-        title: 'x',
-        date: '2026-02-30',
-        recurrence: 'none',
-        category: 'custom'
+      parseInput(memoInputSchema, { text: '', images: [], reminderAt: null })
+    ).not.toThrow()
+    expect(() =>
+      parseInput(memoInputSchema, { text: 'x', images: [], reminderAt: 'not-a-date' })
+    ).toThrow(AppError)
+    expect(() =>
+      parseInput(memoInputSchema, {
+        text: 'x',
+        images: [{ id: 'not-a-uuid', width: 1, height: 1 }],
+        reminderAt: null
       })
     ).toThrow(AppError)
     expect(() =>
-      parseInput(dateEventInputSchema, {
-        title: '',
-        date: '2026-10-17',
-        recurrence: 'none',
-        category: 'custom'
-      })
+      parseInput(memoInputSchema, { text: 'x', images: [], reminderAt: null, extra: true })
     ).toThrow(AppError)
+    expect(parseInput(memoPatchSchema, { text: 'updated' })).toEqual({ text: 'updated' })
+    expect(
+      parseInput(memoCardResizeInputSchema, {
+        id: '9f1c1c34-7d0c-4a18-9a94-7d1c5d2a3b11',
+        edge: 'se'
+      })
+    ).toMatchObject({ edge: 'se' })
     expect(() =>
-      parseInput(dateEventInputSchema, {
-        title: 'x',
-        date: '2026-10-17',
-        recurrence: 'monthly',
-        category: 'custom'
+      parseInput(memoCardResizeInputSchema, {
+        id: '9f1c1c34-7d0c-4a18-9a94-7d1c5d2a3b11',
+        edge: 'center'
       })
     ).toThrow(AppError)
+    expect(parseInput(memoImageBytesSchema, { data: new ArrayBuffer(2) })).toBeTruthy()
   })
 
   it('validates website inputs', () => {
@@ -155,7 +164,7 @@ describe('IPC input schemas', () => {
   })
 
   it('accepts registry action ids and rejects malformed ones', () => {
-    expect(parseInput(menuActionSchema, 'dates:upcoming')).toBe('dates:upcoming')
+    expect(parseInput(menuActionSchema, 'memo:open')).toBe('memo:open')
     expect(parseInput(menuActionSchema, 'website-check:run-all')).toBe('website-check:run-all')
     expect(() => parseInput(menuActionSchema, 'demo')).toThrow(AppError)
     expect(() => parseInput(menuActionSchema, 'Dates Upcoming')).toThrow(AppError)
@@ -216,11 +225,15 @@ describe('IPC input schemas', () => {
     )
   })
 
-  it('accepts startup options in app settings patches', () => {
+  it('accepts startup options and shortcut patches', () => {
     expect(parseAppSettingsPatch({ launchAtLogin: true, showPetOnStartup: false })).toEqual({
       launchAtLogin: true,
       showPetOnStartup: false
     })
+    expect(parseAppSettingsPatch({ memoShortcut: 'Alt+Shift+M' })).toEqual({
+      memoShortcut: 'Alt+Shift+M'
+    })
+    expect(parseAppSettingsPatch({ memoShortcut: '' })).toEqual({ memoShortcut: '' })
   })
 
   it('validates Gmail client and notification settings', () => {

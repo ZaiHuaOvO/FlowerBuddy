@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type {
   AppInfo,
   AppSettingsPatch,
-  DateEventSummary,
   GmailStateView,
+  MemoSummary,
   ModuleId,
   ModuleSummary,
   PetSettingsPatch,
@@ -12,14 +12,14 @@ import type {
   SecurityStatus,
   WebsiteCheckConfig
 } from '../../../shared/api'
-import { DatesSettingsTab } from './tabs/DatesSettingsTab'
+import { MemoSettingsTab } from './tabs/MemoSettingsTab'
 import { DeepSeekSettingsTab } from './tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from './tabs/EsaSettingsTab'
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab'
 import { GmailSettingsTab } from './tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from './tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from './tabs/WebsitesSettingsTab'
-import { useDatesSettings } from './hooks/useDatesSettings'
+import { useMemoSettings } from './hooks/useMemoSettings'
 import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
 import { useGmailSettings } from './hooks/useGmailSettings'
@@ -37,7 +37,7 @@ export default function SettingsApp() {
   const [modules, setModules] = useState<ModuleSummary[]>([])
   const [security, setSecurity] = useState<SecurityStatus | null>(null)
   const [startupNotice, setStartupNotice] = useState<string | null>(null)
-  const [dateEvents, setDateEvents] = useState<DateEventSummary[]>([])
+  const [memos, setMemos] = useState<MemoSummary[]>([])
   const [websites, setWebsites] = useState<WebsiteCheckConfig[]>([])
   const [gmailState, setGmailState] = useState<GmailStateView | null>(null)
   const [error, setError] = useState('')
@@ -115,10 +115,10 @@ export default function SettingsApp() {
       .catch(() => {})
 
     void api
-      .listDateEvents()
+      .listMemos()
       .then((next) => {
         if (active) {
-          setDateEvents(next)
+          setMemos(next)
         }
       })
       .catch((cause: unknown) => {
@@ -175,8 +175,8 @@ export default function SettingsApp() {
       setModules={setModules}
       security={security}
       startupNotice={startupNotice}
-      dateEvents={dateEvents}
-      setDateEvents={setDateEvents}
+      memos={memos}
+      setMemos={setMemos}
       websites={websites}
       setWebsites={setWebsites}
       gmailState={gmailState}
@@ -196,8 +196,8 @@ interface ContentProps {
   setModules: (modules: ModuleSummary[]) => void
   security: SecurityStatus | null
   startupNotice: string | null
-  dateEvents: DateEventSummary[]
-  setDateEvents: (events: DateEventSummary[]) => void
+  memos: MemoSummary[]
+  setMemos: (memos: MemoSummary[]) => void
   websites: WebsiteCheckConfig[]
   setWebsites: (websites: WebsiteCheckConfig[]) => void
   gmailState: GmailStateView | null
@@ -215,8 +215,8 @@ function SettingsContent({
   setModules,
   security,
   startupNotice,
-  dateEvents,
-  setDateEvents,
+  memos,
+  setMemos,
   websites,
   setWebsites,
   gmailState,
@@ -312,12 +312,38 @@ function SettingsContent({
     }
   }
 
-  const dates = useDatesSettings({
+  const [composeSignal, setComposeSignal] = useState(0)
+  const modulesRef = useRef(modules)
+  modulesRef.current = modules
+
+  useEffect(() => {
+    const offMemos = api.onMemosChanged(() => {
+      void api
+        .listMemos()
+        .then(setMemos)
+        .catch((cause: unknown) => setError(toMessage(cause)))
+    })
+    const offComposer = api.onOpenMemoComposer(() => {
+      setComposeSignal((value) => value + 1)
+      const memoEnabled = modulesRef.current.some(
+        (module) => module.id === 'memo' && module.enabled
+      )
+      setActiveTab(memoEnabled ? 'memo' : 'modules')
+    })
+    void api.settingsUiReady()
+    return () => {
+      offMemos()
+      offComposer()
+    }
+  }, [api, setError, setMemos])
+
+  const memo = useMemoSettings({
     api,
-    events: dateEvents,
-    setEvents: setDateEvents,
+    memos,
+    setMemos,
     flash,
-    setError
+    setError,
+    composeSignal
   })
   const websiteSettings = useWebsiteSettings({
     api,
@@ -445,7 +471,9 @@ function SettingsContent({
               onReorder={(order) => void reorderModules(order)}
             />
           ) : null}
-          {activeTab === 'dates' ? <DatesSettingsTab model={dates} /> : null}
+          {activeTab === 'memo' ? (
+            <MemoSettingsTab model={memo} composeSignal={composeSignal} />
+          ) : null}
           {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
           {activeTab === 'gmail' ? (
             <GmailSettingsTab

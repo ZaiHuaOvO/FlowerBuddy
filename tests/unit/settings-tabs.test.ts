@@ -2,37 +2,39 @@ import { createElement, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { ModuleSummary, PublicConfig } from '../../src/shared/api'
-import { DatesSettingsTab } from '../../src/renderer/src/settings/tabs/DatesSettingsTab'
+import { MemoSettingsTab } from '../../src/renderer/src/settings/tabs/MemoSettingsTab'
 import { DeepSeekSettingsTab } from '../../src/renderer/src/settings/tabs/DeepSeekSettingsTab'
 import { EsaSettingsTab } from '../../src/renderer/src/settings/tabs/EsaSettingsTab'
 import { GeneralSettingsTab } from '../../src/renderer/src/settings/tabs/GeneralSettingsTab'
 import { GmailSettingsTab } from '../../src/renderer/src/settings/tabs/GmailSettingsTab'
 import { ModulesSettingsTab } from '../../src/renderer/src/settings/tabs/ModulesSettingsTab'
 import { WebsitesSettingsTab } from '../../src/renderer/src/settings/tabs/WebsitesSettingsTab'
-import type { useDatesSettings } from '../../src/renderer/src/settings/hooks/useDatesSettings'
+import type { useMemoSettings } from '../../src/renderer/src/settings/hooks/useMemoSettings'
 import type { useDeepSeekSettings } from '../../src/renderer/src/settings/hooks/useDeepSeekSettings'
 import type { useEsaSettings } from '../../src/renderer/src/settings/hooks/useEsaSettings'
 import type { useGmailSettings } from '../../src/renderer/src/settings/hooks/useGmailSettings'
 import type { useWebsiteSettings } from '../../src/renderer/src/settings/hooks/useWebsiteSettings'
-import { createDateForm, createWebsiteForm } from '../../src/renderer/src/settings/utils/forms'
+import { createMemoDraft } from '../../src/renderer/src/settings/hooks/useMemoSettings'
+import { createWebsiteForm } from '../../src/renderer/src/settings/utils/forms'
 
 const noop = (): void => {}
 const asyncNoop = async (): Promise<void> => {}
 
 function makeConfig(): PublicConfig {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     app: {
       alwaysOnTop: true,
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
-      moduleOrder: ['dates', 'website-check'],
+      memoShortcut: 'Alt+A',
+      moduleOrder: ['memo', 'website-check'],
       showPetOnStartup: true
     },
     pet: { assetId: 'default', scale: 1, position: null },
     modules: {
-      dates: { enabled: true },
+      memo: { enabled: true },
       gmail: {
         enabled: false,
         pollIntervalMinutes: 3,
@@ -60,25 +62,32 @@ function moduleSummary(id: ModuleSummary['id'], name: string): ModuleSummary {
 }
 
 const modules = [
-  moduleSummary('dates', '特殊日期'),
+  moduleSummary('memo', '备忘录'),
   moduleSummary('gmail', 'Gmail'),
   moduleSummary('deepseek', 'DeepSeek'),
   moduleSummary('esa', 'ESA')
 ]
 
-const datesModel = {
-  events: [],
-  form: createDateForm(),
-  setForm: noop,
+const memoModel = {
+  memos: [],
+  draft: createMemoDraft(),
+  setDraft: noop,
   editingId: null,
   confirmDeleteId: null,
   setConfirmDeleteId: noop,
-  submit: asyncNoop,
+  busy: false,
+  startNew: noop,
   startEdit: noop,
   cancelEdit: noop,
-  toggle: asyncNoop,
+  updateReminderText: noop,
+  setReminderFromPicker: noop,
+  addPastedImages: asyncNoop,
+  removeImage: noop,
+  submit: asyncNoop,
+  complete: asyncNoop,
+  toggleAnchor: asyncNoop,
   remove: asyncNoop
-} as unknown as ReturnType<typeof useDatesSettings>
+} as unknown as ReturnType<typeof useMemoSettings>
 
 const websiteModel = {
   websites: [],
@@ -167,9 +176,9 @@ describe('settings tabs render', () => {
         })
       )
     ).toContain('<h2>功能管理</h2>')
-    expect(render(createElement(DatesSettingsTab, { model: datesModel }))).toContain(
-      '<h2>日期事件</h2>'
-    )
+    expect(
+      render(createElement(MemoSettingsTab, { model: memoModel, composeSignal: 0 }))
+    ).toContain('<h2>备忘录</h2>')
     expect(render(createElement(WebsitesSettingsTab, { model: websiteModel }))).toContain(
       '<h2>网站检测</h2>'
     )

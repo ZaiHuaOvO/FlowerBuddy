@@ -1,18 +1,17 @@
 import { z } from 'zod'
 import type {
   AppSettingsPatch,
-  DateEventInput,
-  DateEventPatch,
+  MemoInput,
+  MemoPatch,
   ModuleId,
   PetSettingsPatch,
   WebsiteCheckInput,
   WebsiteCheckPatch
 } from '../../shared/api'
-import { parseIsoDate } from '../modules/dates/dates-compute'
 import { isHttpUrl } from '../modules/website-check/website-types'
 import { AppError } from '../shared/errors'
 
-export const moduleIdSchema = z.enum(['dates', 'gmail', 'esa', 'deepseek', 'website-check'])
+export const moduleIdSchema = z.enum(['memo', 'gmail', 'esa', 'deepseek', 'website-check'])
 
 export const appSettingsPatchSchema = z
   .object({
@@ -20,6 +19,7 @@ export const appSettingsPatchSchema = z
     bounceAnimation: z.boolean().optional(),
     bubbleDurationMs: z.number().int().min(1000).max(30000).optional(),
     launchAtLogin: z.boolean().optional(),
+    memoShortcut: z.string().trim().max(64).optional(),
     moduleOrder: z.array(moduleIdSchema).max(5).optional(),
     showPetOnStartup: z.boolean().optional()
   })
@@ -44,30 +44,52 @@ export const menuActionSchema = z
   .max(80)
   .regex(/^[a-z0-9-]+:[a-z0-9-]+$/)
 
-const isoDateSchema = z
+const memoTimestampSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => parseIsoDate(value) !== null, '日期不合法')
+  .trim()
+  .min(1)
+  .max(64)
+  .refine((value) => Number.isFinite(Date.parse(value)), '提醒时间不合法')
 
-const dateEventInputSchema = z
+const memoImageSchema = z
   .object({
-    title: z.string().trim().min(1).max(80),
-    date: isoDateSchema,
-    recurrence: z.enum(['none', 'yearly']),
-    category: z.enum(['birthday', 'anniversary', 'overtime', 'custom']),
-    notifyDaysBefore: z.array(z.number().int().min(0).max(365)).max(10).optional()
+    id: z.string().uuid(),
+    width: z.number().int().min(1).max(4096),
+    height: z.number().int().min(1).max(4096)
   })
   .strict()
 
-const dateEventPatchSchema = z
+const memoInputSchema = z
   .object({
-    title: z.string().trim().min(1).max(80).optional(),
-    date: isoDateSchema.optional(),
-    recurrence: z.enum(['none', 'yearly']).optional(),
-    category: z.enum(['birthday', 'anniversary', 'overtime', 'custom']).optional(),
-    notifyDaysBefore: z.array(z.number().int().min(0).max(365)).max(10).optional(),
-    enabled: z.boolean().optional()
+    text: z.string().max(20000),
+    images: z.array(memoImageSchema).max(9),
+    reminderAt: memoTimestampSchema.nullable()
   })
+  .strict()
+
+const memoPatchSchema = z
+  .object({
+    text: z.string().max(20000).optional(),
+    images: z.array(memoImageSchema).max(9).optional(),
+    reminderAt: memoTimestampSchema.nullable().optional()
+  })
+  .strict()
+
+const memoImageBytesSchema = z
+  .object({
+    data: z.custom<ArrayBuffer | Uint8Array>(
+      (value) => value instanceof ArrayBuffer || ArrayBuffer.isView(value),
+      '图片数据不合法'
+    )
+  })
+  .strict()
+
+const memoDiscardImagesSchema = z.object({ ids: z.array(z.string().uuid()).max(20) }).strict()
+
+const memoAnchoredInputSchema = z.object({ id: z.string().uuid(), anchored: z.boolean() }).strict()
+
+const memoCardResizeInputSchema = z
+  .object({ id: z.string().uuid(), edge: z.enum(['nw', 'ne', 'sw', 'se']) })
   .strict()
 
 const idInputSchema = z.object({ id: z.string().uuid() }).strict()
@@ -101,9 +123,7 @@ const websitePatchSchema = z
   })
   .strict()
 
-const dateUpdateInputSchema = z
-  .object({ id: z.string().uuid(), patch: dateEventPatchSchema })
-  .strict()
+const memoUpdateInputSchema = z.object({ id: z.string().uuid(), patch: memoPatchSchema }).strict()
 
 const websiteUpdateInputSchema = z
   .object({ id: z.string().uuid(), patch: websitePatchSchema })
@@ -142,15 +162,19 @@ const gmailSettingsPatchSchema = z
   .strict()
 
 export {
-  dateEventInputSchema,
-  dateEventPatchSchema,
-  dateUpdateInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   gmailClientInputSchema,
   gmailSettingsPatchSchema,
   idEnabledInputSchema,
   idInputSchema,
+  memoAnchoredInputSchema,
+  memoCardResizeInputSchema,
+  memoDiscardImagesSchema,
+  memoImageBytesSchema,
+  memoInputSchema,
+  memoPatchSchema,
+  memoUpdateInputSchema,
   refreshIntervalInputSchema,
   websiteInputSchema,
   websitePatchSchema,
@@ -161,15 +185,15 @@ export type ModuleEnabledInput = z.infer<typeof moduleEnabledInputSchema>
 export type MenuAction = z.infer<typeof menuActionSchema>
 export type IdInput = z.infer<typeof idInputSchema>
 export type IdEnabledInput = z.infer<typeof idEnabledInputSchema>
-export type DateEventUpdateInput = { id: string; patch: DateEventPatch }
+export type MemoUpdateInput = { id: string; patch: MemoPatch }
 export type WebsiteUpdateInput = { id: string; patch: WebsiteCheckPatch }
 
-export function parseDateEventInput(raw: unknown): DateEventInput {
-  return parseInput(dateEventInputSchema, raw) as DateEventInput
+export function parseMemoInput(raw: unknown): MemoInput {
+  return parseInput(memoInputSchema, raw) as MemoInput
 }
 
-export function parseDateEventPatch(raw: unknown): DateEventPatch {
-  return parseInput(dateEventPatchSchema, raw) as DateEventPatch
+export function parseMemoPatch(raw: unknown): MemoPatch {
+  return parseInput(memoPatchSchema, raw) as MemoPatch
 }
 
 export function parseWebsiteInput(raw: unknown): WebsiteCheckInput {

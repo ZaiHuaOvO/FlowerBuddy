@@ -127,10 +127,10 @@ export class ConfigStore {
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): PublicConfig {
     const modules = this.current.modules
     switch (moduleId) {
-      case 'dates':
+      case 'memo':
         this.current = {
           ...this.current,
-          modules: { ...modules, dates: { ...modules.dates, enabled } }
+          modules: { ...modules, memo: { ...modules.memo, enabled } }
         }
         break
       case 'gmail':
@@ -173,8 +173,8 @@ export class ConfigStore {
   isModuleEnabled(moduleId: ModuleId): boolean {
     const modules = this.current.modules
     switch (moduleId) {
-      case 'dates':
-        return modules.dates.enabled
+      case 'memo':
+        return modules.memo.enabled
       case 'gmail':
         return modules.gmail.enabled
       case 'esa':

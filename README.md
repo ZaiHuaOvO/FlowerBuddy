@@ -1,6 +1,6 @@
 # 花伴
 
-Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：桌宠外壳、日期事件、网站检测、DeepSeek 余额、阿里云 ESA 今日流量、Gmail 新邮件提醒，以及 Windows 安装包/便携版/ZIP 发布产物。
+Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：桌宠外壳、备忘录（含提醒与桌面锚点）、网站检测、DeepSeek 余额、阿里云 ESA 今日流量、Gmail 新邮件提醒，以及 Windows 安装包/便携版/ZIP 发布产物。
 
 ## 文档入口
 
@@ -25,7 +25,7 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 - 单击桌宠只播放约 520ms 的“压低—回弹—收敛”弹簧反馈（可在设置中关闭），不会打开菜单；右键桌宠打开快捷菜单。
 - 快捷菜单是透明背景上悬浮的 4 个白色图标按钮：功能、设置、隐藏桌宠、退出；鼠标移入显示棕色说明，移入“功能”按钮会在上方展开白色的模块动作按钮，移出菜单后自动收起。菜单优先出现在桌宠上方，上方空间不足时翻到下方。菜单打开时再次右键不会关闭；点击设置不会收起菜单，齿轮会显示选中反馈，移到设置窗口后菜单才按“离开菜单和桌宠约 0.8 秒”的规则关闭。
 - 独立的气泡窗口，支持 `idle` / `loading` / `success` / `empty` / `error` 五种状态、自动消失与手动关闭。
-- 设置窗口：常规页提供开机自启、始终置顶、抚摸效果、气泡停留时长（1–10 秒）与桌宠图片选择；功能管理支持拖拽排序和启用/停用；左侧导航只列出已启用模块。
+- 设置窗口：常规页提供开机自启、始终置顶、抚摸效果、气泡停留时长（1–10 秒）、桌宠图片与缩放、新建备忘录快捷键；功能管理支持拖拽排序和启用/停用；左侧导航只列出已启用模块。
 - 单张 PNG 导入：校验格式与大小（≤15 MB），复制到用户数据目录，保留宽高比。
 - 桌宠位置、尺寸和设置持久化到用户数据目录的 `config.json`，采用临时文件 + rename 原子写入并带 `schemaVersion`。
 - 多显示器与分辨率变化时自动把桌宠移回可见区域；单实例锁避免重复启动。
@@ -36,9 +36,9 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 
 ### 阶段 2 新增
 
-- 阶段 2 将配置 schema 升级到 `schemaVersion: 2`，新增五个模块的独立开关；旧配置自动迁移，迁移前与损坏/未来版本文件都会备份，恢复结果会在设置页提示。当前 schema 版本为 5，以 `src/main/storage/config-schema.ts` 为准。
+- 阶段 2 将配置 schema 升级到 `schemaVersion: 2`，新增五个模块的独立开关；旧配置自动迁移，迁移前与损坏/未来版本文件都会备份，恢复结果会在设置页提示。当前 schema 版本为 6，以 `src/main/storage/config-schema.ts` 为准。
 - 使用 Electron `safeStorage` 异步 API 的 Secret Store：密文以 Base64 写入 `secrets.enc.json`，密钥只在主进程解密；加密不可用时拒绝保存并明确提示，绝不回退明文。
-- 静态模块注册表（特殊日期、Gmail、ESA、DeepSeek、网站检测）与生命周期管理；未配置的模块不会被启动。
+- 静态模块注册表（备忘录、Gmail、ESA、DeepSeek、网站检测）与生命周期管理；未配置的模块不会被启动。
 - 统一任务调度器：同一任务不重叠、可取消、失败指数退避、系统睡眠恢复后从当前时间重新计时。
 - 统一错误类型与 IPC 输入 Zod 校验；渲染进程只收到安全的错误码、用户说明和是否可重试。
 - 脱敏日志写入用户数据目录的 `logs/app.log`，覆盖 Authorization、API Key、AccessKey、token、邮件正文等敏感字段，按大小轮转并保留 7 天。
@@ -46,13 +46,13 @@ Windows 桌面宠物与个人信息助手。第一阶段功能已全部完成：
 
 ### 阶段 3 新增
 
-- 日期事件模块：新增/编辑/删除/停用事件，支持一次性与每年重复；按本机时区计算“今天”、明天与倒计时。
-- 每年重复的 2 月 29 日在非闰年自动按 2 月 28 日处理，并在设置页与 README 中说明。
-- 快捷菜单接入真实动作：“最近日期”会在气泡中显示最近 1–3 个事件及倒计时。
+- 原“特殊日期”模块已由“备忘录”模块整体替换；旧日期数据在升级启动时删除，配置文件自动迁移模块开关与排序。
+- 备忘录支持文本与本地粘贴图片、完成/删除、提醒时间（文本自然语言或日期选择器）以及桌面锚点卡片。
 - 网站检测模块：新增/编辑/删除/停用 URL，手动检测单个或全部启用网站，显示状态码、耗时和错误类型。
 - 网站检测区分 HTTP 错误（如 404）、超时、DNS/连接失败与 TLS 证书错误，并去除敏感 query 参数后再展示最终 URL。
 - 可选定时检测默认关闭；启用后由统一调度器按 5/10/15/30 分钟执行，停用模块会立即停止对应任务。
-- 设置窗口改为“常规 / 功能 / 日期 / 网站 / 外观”分页，新增公共 Tag、Field、EmptyState 组件，全部使用设计 token。
+- 设置窗口使用左侧导航；核心页为“常规 / 功能”，其余页面按已启用模块动态出现。
+- 新增公共 Tag、Field、EmptyState 组件，全部使用设计 token。
 
 ### 阶段 4 新增
 
@@ -126,14 +126,14 @@ npm install
 src/
   main/                  # 主进程：窗口、托盘、IPC、安全策略
     ipc/                 # IPC 注册、sender 校验与 Zod 输入校验
-    modules/             # 静态模块注册表、日期/网站/DeepSeek/ESA/Gmail
-    protocol/            # 桌宠图片自定义协议
+    modules/             # 静态模块注册表、备忘录/网站/DeepSeek/ESA/Gmail
+    protocol/            # 桌宠与备忘录图片自定义协议
     scheduler/           # 统一任务调度器
     security/            # 安全窗口选项与 Secret Store
     shared/              # 统一错误类型与脱敏日志
     storage/             # 配置 schema/迁移、数据文件与图片导入
     tray/                # 系统托盘
-    windows/             # 桌宠/菜单/气泡/设置窗口与几何计算
+    windows/             # 桌宠/菜单/气泡/设置/备忘卡片窗口与几何计算
   preload/               # contextBridge 窄桥（按窗口分域）
   renderer/              # React UI（Vite 根目录，按 ?view= 分视图）
     src/components/      # 按设计规范实现的公共组件（Button 等）
@@ -153,10 +153,12 @@ release/                 # 安装包输出（不入库）
 - 双击托盘图标或通过托盘菜单可打开设置；托盘菜单可显示/隐藏桌宠或退出。
 - 设置中的“导入 PNG 图片”会把图片复制到用户数据目录，不会上传到任何外部服务。
 - 关闭设置窗口不会退出程序；必须通过托盘或快捷菜单的红色电源图标结束。
-- 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`data/`、`pets/` 与 `logs/`。显示名称已改为“花伴”，为兼容升级，数据目录继续沿用 `FlowerBuddy`。
+- 用户数据位于 Electron `userData` 目录（Windows 通常为 `%APPDATA%\FlowerBuddy`），包含 `config.json`、`secrets.enc.json`、`data/`、`pets/`、`memo-images/` 与 `logs/`。显示名称已改为“花伴”，为兼容升级，数据目录继续沿用 `FlowerBuddy`。
 - 设置中的“功能管理”可以独立启用/停用每个模块；未配置或尚未实现的模块不会发起后台请求。
-- “日期”分页管理生日、纪念日和一次性事件；“网站”分页管理 URL、超时与可选定时检测。
-- 快捷菜单鼠标移入“功能”后会列出已启用模块的可用动作，例如“最近日期”和“检测网站”，结果显示在桌宠气泡中。
+- “备忘录”分页管理文本备忘、粘贴图片与提醒时间，可把备忘锚定成桌面卡片；“网站”分页管理 URL、超时与可选定时检测。
+- 备忘录提醒到点后通过桌宠气泡提示；默认快捷键 `Alt+A` 打开设置并聚焦新建备忘录，可在常规页修改。
+- 桌面备忘卡片始终置顶，可拖动标题栏移动、拖动四角调整大小，并提供完成与取消锚点按钮。
+- 快捷菜单鼠标移入“功能”后会列出已启用模块的可用动作（例如“检测网站”），结果显示在桌宠气泡中。
 - DeepSeek/ESA 凭据只在设置中输入的瞬间经过主进程，之后以密文保存；应用不提供读取明文密钥的接口。
 - ESA 请使用只授予 `esa:DescribeSiteTimeSeriesData` 权限的 RAM 子账号，不要使用主账号 AccessKey；清除配置会同时移除 AccessKey 与 SiteId。
 - Gmail 只申请 `gmail.readonly`，仅读取邮件元数据，不读取正文；refresh token 加密保存，断开时会尽力在线撤销并删除本地 token。
@@ -181,7 +183,7 @@ release/                 # 安装包输出（不入库）
 - 主按钮另按线上 `.fl-button--solid` 组件实测对齐：背景 `#8b5a2b`、白色文字、34px 高、10px 圆角、500 字重。
 - 派生值：为适配 Windows 中文显示，在规范字体栈末尾追加了 Microsoft YaHei 回退。
 - 已实测：按钮默认/hover/按下/focus-visible/禁用、下拉框 focus、气泡 success/error、快捷菜单与设置窗口；模拟 `prefers-reduced-motion: reduce` 后弹跳动画数量为 0 且过渡降至 0.01ms；托盘图标为有效的 64×64 PNG；在 640/780/960px 宽度与 100%/125%/150%/200% 缩放下无横向溢出。
-- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[日期事件](docs/screenshots/settings-dates.png)、[网站检测](docs/screenshots/settings-websites.png)、[Gmail](docs/screenshots/settings-gmail.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
+- 截图（200% 缩放下采集，桌宠/菜单/气泡保留透明通道）：[桌宠](docs/screenshots/pet.png)、[快捷菜单](docs/screenshots/quick-menu.png)、[成功气泡](docs/screenshots/bubble-success.png)、[失败气泡](docs/screenshots/bubble-error.png)、[设置窗口](docs/screenshots/settings.png)、[网站检测](docs/screenshots/settings-websites.png)、[Gmail](docs/screenshots/settings-gmail.png)、[DeepSeek](docs/screenshots/settings-deepseek.png)、[ESA](docs/screenshots/settings-esa.png)。
 
 ## 安全设计
 
@@ -212,7 +214,8 @@ npm run dist:win
 - 真实 DeepSeek/ESA 账户数据需在应用内输入凭据后查看；仓库不包含真实凭据。
 - DeepSeek 官方没有可用的账号级每日消费接口，因此只显示余额，不显示今日花费。
 - ESA 流量可能被官方采样且存在统计延迟；接入点目前固定为国内 `esa.cn-hangzhou.aliyuncs.com`。
-- 日期事件暂未发送“到期当天”的系统通知（技术文档中的可选项，后续版本补齐）。
+- 备忘录提醒仅通过桌宠气泡展示，不发送系统通知；自然语言时间识别覆盖常见中文表达，无法识别时会要求改用日期选择器。
+- 桌面锚点卡片为只读预览，编辑需回到设置页；粘贴图片会统一转存为 PNG。
 - 网站检测只代表本机网络结果，不代表全球可用性。
 - 安装包未做代码签名，SmartScreen 可能提示未知发布者。
 - 多显示器物理验证与完全干净 Windows 环境的安装测试仍需在具备条件的环境复验。

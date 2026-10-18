@@ -41,7 +41,7 @@ describe('ModuleActionRunner', () => {
   it('shows loading then the action result and hides after the duration', async () => {
     const { runner, presenter } = createHarness()
 
-    await runner.run('dates:upcoming')
+    await runner.run('website-check:run-all')
 
     expect(presenter.showBubble).toHaveBeenNthCalledWith(
       1,
@@ -62,7 +62,7 @@ describe('ModuleActionRunner', () => {
       throw new AppError('REMOTE_SERVICE_ERROR', 'action failed')
     })
 
-    await runner.run('dates:upcoming')
+    await runner.run('website-check:run-all')
 
     expect(presenter.showBubble).toHaveBeenLastCalledWith(
       expect.objectContaining({ state: 'error', message: 'action failed' })
@@ -93,7 +93,7 @@ describe('ModuleActionRunner', () => {
         })
     )
 
-    const pending = runner.run('dates:upcoming')
+    const pending = runner.run('website-check:run-all')
     await vi.advanceTimersByTimeAsync(0)
     expect(presenter.showBubble).toHaveBeenCalledTimes(1)
 
@@ -116,7 +116,7 @@ describe('ModuleActionRunner', () => {
         })
     )
 
-    const pending = runner.run('dates:upcoming')
+    const pending = runner.run('website-check:run-all')
     await vi.advanceTimersByTimeAsync(0)
     runner.dismiss()
     expect(presenter.hideBubble).toHaveBeenCalledTimes(1)

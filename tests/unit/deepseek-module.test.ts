@@ -101,7 +101,7 @@ describe('DeepSeek module', () => {
     })
 
     configStore.setModuleRefreshInterval('deepseek', 15)
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
     expect(scheduler.getTaskIds()).toEqual(['deepseek:refresh'])
 
     configStore.setModuleRefreshInterval('deepseek', null)
@@ -121,7 +121,7 @@ describe('DeepSeek module', () => {
       configStore
     })
 
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
     expect(scheduler.getTaskIds()).toEqual([])
     module.stop()
   })

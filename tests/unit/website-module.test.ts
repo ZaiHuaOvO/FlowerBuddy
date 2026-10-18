@@ -54,7 +54,7 @@ afterEach(() => {
 describe('website check module', () => {
   it('schedules polling checks and removes them when disabled', () => {
     const { module, service, scheduler, logger, store } = createEnvironment()
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
 
     const created = service.create({
       name: '轮询站点',
@@ -75,7 +75,7 @@ describe('website check module', () => {
 
   it('does not schedule manual-only checks', () => {
     const { module, service, scheduler, logger, store } = createEnvironment()
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
 
     service.create({
       name: '手动站点',
@@ -92,7 +92,7 @@ describe('website check module', () => {
 
   it('removes schedules when a check is deleted', () => {
     const { module, service, scheduler, logger, store } = createEnvironment()
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
 
     const created = service.create({
       name: '删除站点',
@@ -112,7 +112,7 @@ describe('website check module', () => {
 
   it('stops all schedules when the module stops', () => {
     const { module, service, scheduler, logger, store } = createEnvironment()
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
     service.create({
       name: '站点',
       url: 'https://example.com',
@@ -129,7 +129,7 @@ describe('website check module', () => {
 
   it('runs all enabled checks as a menu action', async () => {
     const { module, service, scheduler, logger, store } = createEnvironment()
-    module.start({ scheduler, logger })
+    module.start({ scheduler, logger, notify: () => {} })
     service.create({
       name: '站点',
       url: 'https://example.com',

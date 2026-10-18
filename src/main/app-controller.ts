@@ -2,15 +2,18 @@ import { app, BrowserWindow, Notification, screen } from 'electron'
 import type {
   AppInfo,
   AppSettingsPatch,
-  DateEventInput,
-  DateEventPatch,
-  DateEventSummary,
   DeepSeekBalance,
   EsaCredentialsInput,
   EsaTraffic,
   GmailPollSummary,
   GmailSettingsPatch,
   GmailStateView,
+  MemoCardEdge,
+  MemoCardState,
+  MemoImageInfo,
+  MemoInput,
+  MemoPatch,
+  MemoSummary,
   MenuActionSummary,
   MenuPresentation,
   ModuleId,
@@ -24,12 +27,13 @@ import type {
   WebsiteCheckInput,
   WebsiteCheckPatch
 } from '../shared/api'
+import { IPC_CHANNELS } from '../shared/api'
 import { ModuleActionRunner } from './actions/module-action-runner'
-import type { DatesService } from './modules/dates/dates-service'
 import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import type { EsaModule } from './modules/esa/esa-module'
 import type { GmailModule } from './modules/gmail/gmail-module'
 import type { GmailMessageSummary } from './modules/gmail/types'
+import type { MemoService } from './modules/memo/memo-service'
 import type { ModuleManager } from './modules/module-manager'
 import {
   SECRET_DEEPSEEK_API_KEY,
@@ -37,11 +41,15 @@ import {
   SECRET_ESA_ACCESS_KEY_SECRET
 } from './security/secret-ids'
 import type { SecretStore } from './security/secret-store'
+import { AppError } from './shared/errors'
 import type { LoggerLike } from './shared/logger'
+import { GlobalShortcutManager } from './shortcuts/global-shortcuts'
 import { ConfigStore } from './storage/config-store'
+import { MemoImageError, type MemoImageStore } from './storage/memo-images'
 import type { WebsiteService } from './modules/website-check/website-service'
 import { AppTray } from './tray/tray'
 import { loadView } from './windows/load-view'
+import { MemoCardWindowManager } from './windows/memo-card-window-manager'
 import { OverlayWindowManager } from './windows/overlay-window-manager'
 import { PetWindowController } from './windows/pet-window-controller'
 import { createSettingsWindow } from './windows/settings-window'
@@ -50,7 +58,8 @@ export interface AppControllerOptions {
   configStore: ConfigStore
   moduleManager: ModuleManager
   secretStore: SecretStore
-  datesService: DatesService
+  memoService: MemoService
+  memoImageStore: MemoImageStore
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
@@ -67,10 +76,14 @@ export interface AppControllerOptions {
 
 export class AppController {
   private settingsWindow: BrowserWindow | null = null
+  private settingsReady = false
+  private pendingMemoComposer = false
   private tray: AppTray | null = null
   private readonly pet: PetWindowController
   private readonly overlays: OverlayWindowManager
   private readonly actions: ModuleActionRunner
+  private readonly memoCards: MemoCardWindowManager
+  private readonly shortcuts = new GlobalShortcutManager()
   private disposed = false
 
   constructor(private readonly options: AppControllerOptions) {
@@ -97,6 +110,18 @@ export class AppController {
       getBubbleDurationMs: () => this.config.app.bubbleDurationMs,
       isPetVisible: () => !this.disposed && this.pet.isVisible()
     })
+    this.memoCards = new MemoCardWindowManager({
+      preloadPath: options.preloadPath,
+      devServerUrl: options.devServerUrl,
+      rendererIndexPath: options.rendererIndexPath,
+      service: options.memoService,
+      isEnabled: () => this.config.modules.memo.enabled,
+      logger: options.logger
+    })
+    options.memoService.onChange(() => {
+      this.memoCards.sync()
+      this.notifyMemosChanged()
+    })
   }
 
   async start(): Promise<void> {
@@ -112,6 +137,12 @@ export class AppController {
     this.tray.setPetVisible(this.pet.isVisible())
 
     this.options.moduleManager.start()
+    this.memoCards.sync()
+    if (!this.shortcuts.register(this.config.app.memoShortcut, () => this.openMemoComposer())) {
+      this.options.logger.warn('global shortcut unavailable', {
+        accelerator: this.config.app.memoShortcut
+      })
+    }
 
     screen.on('display-added', this.onDisplaysChanged)
     screen.on('display-removed', this.onDisplaysChanged)
@@ -140,6 +171,12 @@ export class AppController {
   }
 
   updateAppSettings(patch: AppSettingsPatch): PublicConfig {
+    if (patch.memoShortcut !== undefined) {
+      if (!this.shortcuts.register(patch.memoShortcut, () => this.openMemoComposer())) {
+        throw new AppError('INVALID_INPUT', '快捷键不可用，可能已被其他程序占用')
+      }
+    }
+
     const next = this.options.configStore.updateApp(patch)
 
     this.pet.updateAlwaysOnTop(next.app.alwaysOnTop)
@@ -171,24 +208,84 @@ export class AppController {
     return this.options.moduleManager.getMenuActions()
   }
 
-  listDateEvents(): DateEventSummary[] {
-    return this.options.datesService.list()
+  listMemos(): MemoSummary[] {
+    return this.options.memoService.list()
   }
 
-  createDateEvent(input: DateEventInput): DateEventSummary[] {
-    return this.options.datesService.create(input)
+  createMemo(input: MemoInput): MemoSummary[] {
+    return this.options.memoService.create(input)
   }
 
-  updateDateEvent(id: string, patch: DateEventPatch): DateEventSummary[] {
-    return this.options.datesService.update(id, patch)
+  updateMemo(id: string, patch: MemoPatch): MemoSummary[] {
+    return this.options.memoService.update(id, patch)
   }
 
-  deleteDateEvent(id: string): DateEventSummary[] {
-    return this.options.datesService.remove(id)
+  deleteMemo(id: string): MemoSummary[] {
+    return this.options.memoService.remove(id)
   }
 
-  setDateEventEnabled(id: string, enabled: boolean): DateEventSummary[] {
-    return this.options.datesService.setEnabled(id, enabled)
+  completeMemo(id: string): MemoSummary[] {
+    return this.options.memoService.complete(id)
+  }
+
+  setMemoAnchored(id: string, anchored: boolean): MemoSummary[] {
+    return this.options.memoService.setAnchored(id, anchored)
+  }
+
+  addMemoImage(data: ArrayBuffer | Uint8Array): MemoImageInfo {
+    const buffer =
+      data instanceof ArrayBuffer
+        ? Buffer.from(data)
+        : Buffer.from(data.buffer, data.byteOffset, data.byteLength)
+    try {
+      return this.options.memoImageStore.save(buffer)
+    } catch (error) {
+      const code = error instanceof MemoImageError ? error.code : 'UNREADABLE'
+      const message =
+        code === 'TOO_LARGE'
+          ? '图片不能超过 10MB'
+          : code === 'NOT_PNG'
+            ? '粘贴的图片格式不受支持'
+            : '图片无法读取'
+      throw new AppError('INVALID_INPUT', message, { cause: error })
+    }
+  }
+
+  discardMemoImages(ids: string[]): void {
+    const referenced = this.options.memoService.referencedImageIds()
+    for (const id of ids) {
+      if (!referenced.has(id)) {
+        this.options.memoImageStore.remove(id)
+      }
+    }
+  }
+
+  getMemoCardState(id: string): MemoCardState {
+    return this.memoCards.getState(id)
+  }
+
+  memoCardBeginDrag(id: string): void {
+    this.memoCards.beginDrag(id)
+  }
+
+  memoCardDragMove(id: string): void {
+    this.memoCards.dragMove(id)
+  }
+
+  memoCardEndDrag(id: string): void {
+    this.memoCards.endDrag(id)
+  }
+
+  memoCardBeginResize(id: string, edge: MemoCardEdge): void {
+    this.memoCards.beginResize(id, edge)
+  }
+
+  memoCardResizeMove(id: string): void {
+    this.memoCards.resizeMove(id)
+  }
+
+  memoCardEndResize(id: string): void {
+    this.memoCards.endResize(id)
   }
 
   listWebsiteChecks(): WebsiteCheckConfig[] {
@@ -328,7 +425,40 @@ export class AppController {
   }
 
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): ModuleSummary[] {
-    return this.options.moduleManager.setEnabled(moduleId, enabled)
+    const modules = this.options.moduleManager.setEnabled(moduleId, enabled)
+    if (moduleId === 'memo') {
+      this.memoCards.sync()
+    }
+    return modules
+  }
+
+  showModuleMessage(_moduleId: ModuleId, message: string): void {
+    void this.actions.showBackground(message)
+  }
+
+  acknowledgeSettingsUiReady(): void {
+    this.settingsReady = true
+    if (this.pendingMemoComposer) {
+      this.pendingMemoComposer = false
+      // Let a dev-mode StrictMode remount finish registering its listener.
+      setTimeout(() => this.sendSettingsEvent(IPC_CHANNELS.settingsOpenMemoComposer), 0)
+    }
+  }
+
+  openMemoComposer(): void {
+    const existing = this.settingsWindow
+    if (existing && !existing.isDestroyed()) {
+      existing.show()
+      existing.focus()
+      if (this.settingsReady) {
+        this.sendSettingsEvent(IPC_CHANNELS.settingsOpenMemoComposer)
+      } else {
+        this.pendingMemoComposer = true
+      }
+      return
+    }
+    this.pendingMemoComposer = true
+    this.openSettings()
   }
 
   async getSecurityStatus(): Promise<SecurityStatus> {
@@ -390,8 +520,11 @@ export class AppController {
       iconPath: this.options.appIconPath
     })
     this.settingsWindow = window
+    this.settingsReady = false
     window.on('closed', () => {
       this.settingsWindow = null
+      this.settingsReady = false
+      this.pendingMemoComposer = false
     })
     window.once('ready-to-show', () => {
       window.show()
@@ -456,14 +589,16 @@ export class AppController {
 
   flush(): void {
     this.options.configStore.flush()
-    this.options.datesService.flush()
+    this.options.memoService.flush()
     this.options.websiteService.flush()
     this.options.gmailModule.flush()
   }
 
   dispose(): void {
     this.disposed = true
+    this.shortcuts.dispose()
     this.options.moduleManager.stop()
+    this.memoCards.dispose()
     this.actions.dispose()
     this.overlays.dispose()
     screen.removeListener('display-added', this.onDisplaysChanged)
@@ -497,6 +632,21 @@ export class AppController {
   private onDisplaysChanged = (): void => {
     this.pet.ensureVisible()
     this.overlays.reposition()
+    this.memoCards.ensureVisible()
+  }
+
+  private notifyMemosChanged(): void {
+    if (this.settingsReady) {
+      this.sendSettingsEvent(IPC_CHANNELS.memosChanged)
+    }
+  }
+
+  private sendSettingsEvent(channel: string): void {
+    const window = this.settingsWindow
+    if (!window || window.isDestroyed() || window.webContents.isDestroyed()) {
+      return
+    }
+    window.webContents.send(channel)
   }
 
   quitApp(): void {

@@ -4,6 +4,7 @@ import type { AppSettingsPatch, PetSettingsPatch, PublicConfig } from '../../../
 import { PET_BASE_HEIGHT } from '../../../../shared/pet-layout'
 import { Button } from '../../components/Button'
 import { InfoTip } from '../../components/InfoTip'
+import { ShortcutInput } from '../components/ShortcutInput'
 import {
   BUBBLE_SECONDS_MAX,
   BUBBLE_SECONDS_MIN,
@@ -141,6 +142,17 @@ export function GeneralSettingsTab({ config, onSave, onSavePet, onImportImage }:
           />
           <span className="range-value">{scaleDraft.toFixed(1)}×</span>
         </span>
+      </div>
+
+      <div className="row">
+        <span className="row-label">
+          <label>新建备忘录快捷键</label>
+          <InfoTip text="按下后打开设置并新建备忘录；点击后直接按组合键修改" align="right" />
+        </span>
+        <ShortcutInput
+          value={config.app.memoShortcut}
+          onSave={(accelerator) => onSave({ memoShortcut: accelerator })}
+        />
       </div>
 
       <div className="pet-preview">

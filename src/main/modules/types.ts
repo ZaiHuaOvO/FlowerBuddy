@@ -10,6 +10,8 @@ import type { TaskScheduler } from '../scheduler/task-scheduler'
 export interface ModuleContext {
   scheduler: TaskScheduler
   logger: LoggerLike
+  /** Shows a short background message (pet bubble) to the user. */
+  notify: (message: string) => void
 }
 
 /** Narrow view of the main-process Secret Store used by credential modules. */
@@ -29,5 +31,6 @@ export interface ModuleDefinition {
   getStatus(): ModuleStatus
   start(context: ModuleContext): void
   stop(): void
+  handleResume?(): void
   runAction?(actionId: string): Promise<ModuleActionResult>
 }

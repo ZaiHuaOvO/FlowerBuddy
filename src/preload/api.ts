@@ -5,9 +5,13 @@ import {
   type AppSettingsPatch,
   type BubbleApi,
   type BubblePayload,
-  type DateEventInput,
-  type DateEventPatch,
-  type DateEventSummary,
+  type MemoCardApi,
+  type MemoCardEdge,
+  type MemoCardState,
+  type MemoImageInfo,
+  type MemoInput,
+  type MemoPatch,
+  type MemoSummary,
   type DeepSeekBalance,
   type EsaCredentialsInput,
   type EsaTraffic,
@@ -47,7 +51,8 @@ const BRIDGE_KEYS = {
   pet: 'petApi',
   menu: 'menuApi',
   bubble: 'bubbleApi',
-  settings: 'settingsApi'
+  settings: 'settingsApi',
+  'memo-card': 'memoCardApi'
 } as const
 
 export function createBridge(view: string, ipc: IpcBridge): ExposedBridge | null {
@@ -67,6 +72,8 @@ function createApi(view: WindowView, ipc: IpcBridge): object {
       return createBubbleApi(ipc)
     case 'settings':
       return createSettingsApi(ipc)
+    case 'memo-card':
+      return createMemoCardApi(ipc)
   }
 }
 
@@ -127,6 +134,39 @@ function createBubbleApi(ipc: IpcBridge): BubbleApi {
   }
 }
 
+function createMemoCardApi(ipc: IpcBridge): MemoCardApi {
+  return {
+    getState: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.memoCardGetState, { id })) as MemoCardState,
+    onStateChanged: (callback) =>
+      ipc.on(IPC_CHANNELS.memoCardStateChanged, (payload) => callback(payload as MemoCardState)),
+    beginDrag: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardBeginDrag, { id })
+    },
+    dragMove: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardDragMove, { id })
+    },
+    endDrag: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardEndDrag, { id })
+    },
+    beginResize: async (id: string, edge: MemoCardEdge) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardBeginResize, { id, edge })
+    },
+    resizeMove: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardResizeMove, { id })
+    },
+    endResize: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardEndResize, { id })
+    },
+    complete: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memosComplete, { id })
+    },
+    unanchor: async (id: string) => {
+      await ipc.invoke(IPC_CHANNELS.memosSetAnchored, { id, anchored: false })
+    }
+  }
+}
+
 function createSettingsApi(ipc: IpcBridge): SettingsApi {
   return {
     getAppInfo: async () => (await ipc.invoke(IPC_CHANNELS.appInfo)) as AppInfo,
@@ -148,21 +188,28 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     getSecurityStatus: async () =>
       (await ipc.invoke(IPC_CHANNELS.securityStatus)) as SecurityStatus,
     getStartupNotice: async () => (await ipc.invoke(IPC_CHANNELS.startupNotice)) as string | null,
-    listDateEvents: async () => (await ipc.invoke(IPC_CHANNELS.datesList)) as DateEventSummary[],
-    createDateEvent: async (input: DateEventInput) =>
-      (await ipc.invoke(IPC_CHANNELS.datesCreate, input)) as DateEventSummary[],
-    updateDateEvent: async (id: string, patch: DateEventPatch) =>
-      (await ipc.invoke(IPC_CHANNELS.datesUpdate, {
-        id,
-        patch
-      })) as DateEventSummary[],
-    deleteDateEvent: async (id: string) =>
-      (await ipc.invoke(IPC_CHANNELS.datesDelete, { id })) as DateEventSummary[],
-    setDateEventEnabled: async (id: string, enabled: boolean) =>
-      (await ipc.invoke(IPC_CHANNELS.datesSetEnabled, {
-        id,
-        enabled
-      })) as DateEventSummary[],
+    listMemos: async () => (await ipc.invoke(IPC_CHANNELS.memosList)) as MemoSummary[],
+    createMemo: async (input: MemoInput) =>
+      (await ipc.invoke(IPC_CHANNELS.memosCreate, input)) as MemoSummary[],
+    updateMemo: async (id: string, patch: MemoPatch) =>
+      (await ipc.invoke(IPC_CHANNELS.memosUpdate, { id, patch })) as MemoSummary[],
+    deleteMemo: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.memosDelete, { id })) as MemoSummary[],
+    completeMemo: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.memosComplete, { id })) as MemoSummary[],
+    setMemoAnchored: async (id: string, anchored: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.memosSetAnchored, { id, anchored })) as MemoSummary[],
+    addMemoImage: async (data: ArrayBuffer) =>
+      (await ipc.invoke(IPC_CHANNELS.memosAddImage, { data })) as MemoImageInfo,
+    discardMemoImages: async (ids: string[]) => {
+      await ipc.invoke(IPC_CHANNELS.memosDiscardImages, { ids })
+    },
+    onMemosChanged: (callback) => ipc.on(IPC_CHANNELS.memosChanged, () => callback()),
+    onOpenMemoComposer: (callback) =>
+      ipc.on(IPC_CHANNELS.settingsOpenMemoComposer, () => callback()),
+    settingsUiReady: async () => {
+      await ipc.invoke(IPC_CHANNELS.settingsUiReady)
+    },
     listWebsiteChecks: async () =>
       (await ipc.invoke(IPC_CHANNELS.websitesList)) as WebsiteCheckConfig[],
     createWebsiteCheck: async (input: WebsiteCheckInput) =>

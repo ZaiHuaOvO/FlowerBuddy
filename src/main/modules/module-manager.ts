@@ -24,6 +24,7 @@ export interface ModuleManagerOptions {
   configStore: ConfigStore
   scheduler: TaskScheduler
   logger: LoggerLike
+  notify: (moduleId: ModuleId, message: string) => void
 }
 
 /** Owns module lifecycle: enabled && configured modules are started. */
@@ -94,6 +95,11 @@ export class ModuleManager {
 
   handleResume(): void {
     this.options.scheduler.handleResume()
+    for (const module of this.options.modules) {
+      if (this.started.has(module.id)) {
+        module.handleResume?.()
+      }
+    }
   }
 
   getMenuActions(): MenuActionSummary[] {
@@ -171,7 +177,8 @@ export class ModuleManager {
   private startModule(module: ModuleDefinition): void {
     module.start({
       scheduler: this.options.scheduler,
-      logger: this.options.logger
+      logger: this.options.logger,
+      notify: (message) => this.options.notify(module.id, message)
     })
     this.started.add(module.id)
     this.options.logger.info('module started', { module: module.id })
