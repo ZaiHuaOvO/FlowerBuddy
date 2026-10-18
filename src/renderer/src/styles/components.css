@@ -249,20 +249,13 @@
   margin: 0;
 }
 
-.tooltip-trigger {
-  position: relative;
-}
-
-.tooltip-trigger::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + var(--space-1));
-  left: 50%;
-  z-index: 20;
-  width: max-content;
+.fl-tooltip {
+  position: fixed;
+  z-index: 1000;
   max-width: 220px;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-soft);
   background: var(--color-text);
   color: var(--color-text-inverse);
   font-size: var(--font-size-xs);
@@ -270,43 +263,18 @@
   line-height: var(--line-height-normal);
   text-align: left;
   white-space: normal;
-  opacity: 0;
-  visibility: hidden;
-  transform: translate(-50%, 2px);
-  transition:
-    opacity var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard),
-    visibility var(--motion-fast) var(--ease-standard);
+  word-break: break-word;
   pointer-events: none;
+  animation: fl-tooltip-in var(--motion-fast) var(--ease-standard);
 }
 
-.tooltip-trigger:hover::after,
-.tooltip-trigger:focus-visible::after {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, 0);
-}
-
-.tooltip-left::after {
-  right: 0;
-  left: auto;
-  transform: translateY(2px);
-}
-
-.tooltip-left:hover::after,
-.tooltip-left:focus-visible::after {
-  transform: translateY(0);
-}
-
-.tooltip-right::after {
-  right: auto;
-  left: 0;
-  transform: translateY(2px);
-}
-
-.tooltip-right:hover::after,
-.tooltip-right:focus-visible::after {
-  transform: translateY(0);
+@keyframes fl-tooltip-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .info-tip {

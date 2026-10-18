@@ -85,6 +85,7 @@ describe('preload bridge surface', () => {
       'setModuleRefreshInterval',
       'setWebsiteCheckEnabled',
       'settingsUiReady',
+      'uncompleteMemo',
       'updateGmailSettings',
       'updateMemo',
       'updateWebsiteCheck'

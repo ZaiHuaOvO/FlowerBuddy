@@ -241,32 +241,41 @@ function parseChineseNumber(raw: string): number | null {
   return tens * 10 + ones
 }
 
+const RELATIVE_UNIT_MS: Record<string, number> = {
+  秒: 1000,
+  秒钟: 1000,
+  分钟: 60 * 1000,
+  分: 60 * 1000,
+  小时: 60 * 60 * 1000,
+  天: 24 * 60 * 60 * 1000,
+  周: 7 * 24 * 60 * 60 * 1000,
+  星期: 7 * 24 * 60 * 60 * 1000,
+  礼拜: 7 * 24 * 60 * 60 * 1000
+}
+
 function parseRelative(input: string, now: Date): Date | null {
   const match =
-    /((?:\d+)|(?:[一二两三四五六七八九]?十[一二三四五六七八九]?|[零一二两三四五六七八九]))(秒钟?|分钟|分|小时|天|周|星期)后/.exec(
+    /((?:\d+(?:\.\d+)?)|(?:[一二两三四五六七八九]?十[一二三四五六七八九]?|[零一二两三四五六七八九])|半)(?:个)?(秒钟?|分钟|分|小时|天|周|星期|礼拜)后/.exec(
       input
     )
   if (!match) {
     return null
   }
-  const amount = parseChineseNumber(match[1] as string)
+  const rawAmount = match[1] as string
+  const amount =
+    rawAmount === '半'
+      ? 0.5
+      : /^\d+(?:\.\d+)?$/.test(rawAmount)
+        ? Number(rawAmount)
+        : parseChineseNumber(rawAmount)
   if (amount === null || amount < 0) {
     return null
   }
-  const unit = match[2] as string
-  const at = new Date(now.getTime())
-  if (unit === '秒' || unit === '秒钟') {
-    at.setSeconds(at.getSeconds() + amount)
-  } else if (unit === '分钟' || unit === '分') {
-    at.setMinutes(at.getMinutes() + amount)
-  } else if (unit === '小时') {
-    at.setHours(at.getHours() + amount)
-  } else if (unit === '天') {
-    at.setDate(at.getDate() + amount)
-  } else {
-    at.setDate(at.getDate() + amount * 7)
+  const unitMs = RELATIVE_UNIT_MS[match[2] as string]
+  if (!unitMs) {
+    return null
   }
-  return at
+  return new Date(now.getTime() + amount * unitMs)
 }
 
 interface TimeParts {

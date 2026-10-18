@@ -122,6 +122,24 @@ describe('memo service', () => {
     expect(service.dueReminders(current)).toEqual([])
   })
 
+  it('allows reopening a completed memo', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const id = service.create({ text: 'toggle', images: [], reminderAt: null })[0]?.id as string
+
+    service.complete(id)
+    expect(service.get(id)?.completed).toBe(true)
+    expect(service.get(id)?.completedAt).not.toBeNull()
+
+    const reopened = service.uncomplete(id)
+    expect(reopened[0]?.completed).toBe(false)
+    expect(reopened[0]?.completedAt).toBeNull()
+    expect(service.get(id)?.completed).toBe(false)
+
+    // Completing an already active memo is a no-op.
+    const again = service.uncomplete(id)
+    expect(again[0]?.completed).toBe(false)
+  })
+
   it('anchors only active notes and keeps bounds', () => {
     const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
     const id = service.create({ text: 'pin me', images: [], reminderAt: null })[0]?.id as string

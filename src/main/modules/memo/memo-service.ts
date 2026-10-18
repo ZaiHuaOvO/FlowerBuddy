@@ -155,24 +155,40 @@ export class MemoService {
   }
 
   complete(id: string): MemoSummary[] {
+    return this.setCompleted(id, true)
+  }
+
+  uncomplete(id: string): MemoSummary[] {
+    return this.setCompleted(id, false)
+  }
+
+  private setCompleted(id: string, completed: boolean): MemoSummary[] {
     const memos = this.store.get().memos
     const index = memos.findIndex((memo) => memo.id === id)
     if (index === -1) {
       throw new AppError('NOT_FOUND', '未找到该备忘录')
     }
     const current = memos[index] as StoredMemo
-    if (!current.completed) {
-      const now = this.now().toISOString()
-      const updated = [...memos]
-      updated[index] = {
-        ...current,
-        completed: true,
-        completedAt: now,
-        anchored: false,
-        updatedAt: now
-      }
-      this.save(updated)
+    if (current.completed === completed) {
+      return this.list()
     }
+    const now = this.now().toISOString()
+    const updated = [...memos]
+    updated[index] = completed
+      ? {
+          ...current,
+          completed: true,
+          completedAt: now,
+          anchored: false,
+          updatedAt: now
+        }
+      : {
+          ...current,
+          completed: false,
+          completedAt: null,
+          updatedAt: now
+        }
+    this.save(updated)
     return this.list()
   }
 

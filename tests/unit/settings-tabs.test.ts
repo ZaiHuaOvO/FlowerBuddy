@@ -86,6 +86,7 @@ const memoModel = {
   removeImage: noop,
   submit: asyncNoop,
   complete: asyncNoop,
+  uncomplete: asyncNoop,
   toggleAnchor: asyncNoop,
   remove: asyncNoop
 } as unknown as ReturnType<typeof useMemoSettings>

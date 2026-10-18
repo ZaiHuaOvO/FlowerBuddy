@@ -108,6 +108,9 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.memosDelete, idInputSchema, (input) => controller.deleteMemo(input.id))
   register(IPC_CHANNELS.memosComplete, idInputSchema, (input) => controller.completeMemo(input.id))
+  register(IPC_CHANNELS.memosUncomplete, idInputSchema, (input) =>
+    controller.uncompleteMemo(input.id)
+  )
   register(IPC_CHANNELS.memosSetAnchored, memoAnchoredInputSchema, (input) =>
     controller.setMemoAnchored(input.id, input.anchored)
   )

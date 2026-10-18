@@ -331,6 +331,7 @@ export const IPC_CHANNELS = {
   memosUpdate: 'memos:update',
   memosDelete: 'memos:delete',
   memosComplete: 'memos:complete',
+  memosUncomplete: 'memos:uncomplete',
   memosSetAnchored: 'memos:set-anchored',
   memosAddImage: 'memos:add-image',
   memosDiscardImages: 'memos:discard-images',
@@ -441,6 +442,7 @@ export interface SettingsApi {
   updateMemo(id: string, patch: MemoPatch): Promise<MemoSummary[]>
   deleteMemo(id: string): Promise<MemoSummary[]>
   completeMemo(id: string): Promise<MemoSummary[]>
+  uncompleteMemo(id: string): Promise<MemoSummary[]>
   setMemoAnchored(id: string, anchored: boolean): Promise<MemoSummary[]>
   addMemoImage(data: ArrayBuffer): Promise<MemoImageInfo>
   discardMemoImages(ids: string[]): Promise<void>

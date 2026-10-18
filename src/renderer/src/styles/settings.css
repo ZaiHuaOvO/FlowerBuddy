@@ -524,10 +524,11 @@
   margin: 0;
 }
 
-.memo-header-actions {
+.memo-title-group {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .memo-editor {
@@ -676,16 +677,9 @@
   width: min(420px, 100%);
 }
 
-.memo-setting-row {
+.memo-setting-list {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.memo-setting-label {
-  color: var(--color-text);
-  font-size: var(--font-size-md);
+  flex-direction: column;
 }
 
 .memo-card {

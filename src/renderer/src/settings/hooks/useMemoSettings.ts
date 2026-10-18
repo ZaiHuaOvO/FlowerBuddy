@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import type { MemoImageInfo, MemoSummary } from '../../../../shared/api'
 import {
   formatReminderDateTime,
   parseReminderDateTime,
   parseReminderInput
 } from '../../../../shared/memo-reminder'
+import { mergeMemoOrder } from '../utils/memo-order'
 import { formatMemoDateTime, toMessage } from '../utils/formatters'
 import type { SettingsApi } from '../types'
 
@@ -23,17 +24,26 @@ export interface MemoDraft {
 interface Options {
   api: SettingsApi | undefined
   memos: MemoSummary[]
-  setMemos: (memos: MemoSummary[]) => void
+  setMemos: Dispatch<SetStateAction<MemoSummary[]>>
   flash: (message: string) => void
   setError: (message: string) => void
   composeSignal: number
+  listVisible: boolean
 }
 
 export function createMemoDraft(): MemoDraft {
   return { text: '', images: [], reminderText: '', reminderAt: null, reminderError: '' }
 }
 
-export function useMemoSettings({ api, memos, setMemos, flash, setError, composeSignal }: Options) {
+export function useMemoSettings({
+  api,
+  memos,
+  setMemos,
+  flash,
+  setError,
+  composeSignal,
+  listVisible
+}: Options) {
   const [draft, setDraft] = useState<MemoDraft>(createMemoDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -42,6 +52,17 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
   const newImageIds = useRef<Set<string>>(new Set())
   const newImageIdsSnapshot = useRef(newImageIds.current)
   const lastComposeSignal = useRef(composeSignal)
+  const wasVisible = useRef(false)
+
+  useEffect(() => {
+    if (listVisible && !wasVisible.current) {
+      void api
+        ?.listMemos()
+        .then(setMemos)
+        .catch((cause: unknown) => setError(toMessage(cause)))
+    }
+    wasVisible.current = listVisible
+  }, [api, listVisible, setError, setMemos])
 
   useEffect(() => {
     return () => {
@@ -225,11 +246,25 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
       return
     }
     try {
-      setMemos(await api.completeMemo(id))
+      const next = await api.completeMemo(id)
+      setMemos((current) => mergeMemoOrder(current, next))
       if (editingId === id) {
         cancelEdit()
       }
       flash('已完成')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function uncomplete(id: string): Promise<void> {
+    if (!api) {
+      return
+    }
+    try {
+      const next = await api.uncompleteMemo(id)
+      setMemos((current) => mergeMemoOrder(current, next))
+      flash('已取消完成')
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -240,7 +275,8 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
       return
     }
     try {
-      setMemos(await api.setMemoAnchored(id, anchored))
+      const next = await api.setMemoAnchored(id, anchored)
+      setMemos((current) => mergeMemoOrder(current, next))
       flash(anchored ? '已锚定到桌面' : '已取消锚定')
     } catch (cause) {
       setError(toMessage(cause))
@@ -252,7 +288,8 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
       return
     }
     try {
-      setMemos(await api.deleteMemo(id))
+      const next = await api.deleteMemo(id)
+      setMemos((current) => mergeMemoOrder(current, next))
       setConfirmDeleteId(null)
       if (editingId === id) {
         cancelEdit()
@@ -281,6 +318,7 @@ export function useMemoSettings({ api, memos, setMemos, flash, setError, compose
     removeImage,
     submit,
     complete,
+    uncomplete,
     toggleAnchor,
     remove
   }

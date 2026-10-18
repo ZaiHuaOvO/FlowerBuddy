@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import type {
   AppInfo,
   AppSettingsPatch,
@@ -26,6 +27,7 @@ import { useGmailSettings } from './hooks/useGmailSettings'
 import { useWebsiteSettings } from './hooks/useWebsiteSettings'
 import { CORE_TABS, MODULE_TAB_BY_ID } from './utils/constants'
 import type { SettingsTab } from './utils/constants'
+import { mergeMemoOrder } from './utils/memo-order'
 import { toMessage } from './utils/formatters'
 import type { SettingsApi } from './types'
 import '../styles/settings.css'
@@ -197,7 +199,7 @@ interface ContentProps {
   security: SecurityStatus | null
   startupNotice: string | null
   memos: MemoSummary[]
-  setMemos: (memos: MemoSummary[]) => void
+  setMemos: Dispatch<SetStateAction<MemoSummary[]>>
   websites: WebsiteCheckConfig[]
   setWebsites: (websites: WebsiteCheckConfig[]) => void
   gmailState: GmailStateView | null
@@ -320,7 +322,7 @@ function SettingsContent({
     const offMemos = api.onMemosChanged(() => {
       void api
         .listMemos()
-        .then(setMemos)
+        .then((next) => setMemos((current) => mergeMemoOrder(current, next)))
         .catch((cause: unknown) => setError(toMessage(cause)))
     })
     const offComposer = api.onOpenMemoComposer(() => {
@@ -343,7 +345,8 @@ function SettingsContent({
     setMemos,
     flash,
     setError,
-    composeSignal
+    composeSignal,
+    listVisible: activeTab === 'memo'
   })
   const websiteSettings = useWebsiteSettings({
     api,

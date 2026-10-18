@@ -197,6 +197,8 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
       (await ipc.invoke(IPC_CHANNELS.memosDelete, { id })) as MemoSummary[],
     completeMemo: async (id: string) =>
       (await ipc.invoke(IPC_CHANNELS.memosComplete, { id })) as MemoSummary[],
+    uncompleteMemo: async (id: string) =>
+      (await ipc.invoke(IPC_CHANNELS.memosUncomplete, { id })) as MemoSummary[],
     setMemoAnchored: async (id: string, anchored: boolean) =>
       (await ipc.invoke(IPC_CHANNELS.memosSetAnchored, { id, anchored })) as MemoSummary[],
     addMemoImage: async (data: ArrayBuffer) =>

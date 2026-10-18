@@ -5,6 +5,7 @@ import { formatMemoDateTime, memoExcerpt, memoTitle } from '../utils/formatters'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { IconButton } from '../../components/IconButton'
+import { InfoTip } from '../../components/InfoTip'
 import { Tag } from '../../components/Tag'
 import { ShortcutInput } from '../components/ShortcutInput'
 import type { useMemoSettings } from '../hooks/useMemoSettings'
@@ -128,6 +129,7 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
     removeImage,
     submit,
     complete,
+    uncomplete,
     toggleAnchor,
     remove
   } = model
@@ -184,8 +186,8 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
   return (
     <section className="panel memo-panel">
       <div className="memo-header">
-        <h2>备忘录</h2>
-        <div className="memo-header-actions">
+        <div className="memo-title-group">
+          <h2>备忘录</h2>
           <IconButton
             label="备忘录设置"
             aria-haspopup="dialog"
@@ -193,10 +195,10 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
           >
             <GearIcon />
           </IconButton>
-          <Button variant="secondary" onClick={startNew}>
-            新增备忘录
-          </Button>
         </div>
+        <Button variant="secondary" onClick={startNew}>
+          新增备忘录
+        </Button>
       </div>
 
       {memos.length === 0 ? (
@@ -210,7 +212,9 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
               confirmDeleteId={confirmDeleteId}
               setConfirmDeleteId={setConfirmDeleteId}
               onEdit={() => startEdit(memo)}
-              onComplete={() => void complete(memo.id)}
+              onToggleComplete={() =>
+                memo.completed ? void uncomplete(memo.id) : void complete(memo.id)
+              }
               onToggleAnchor={(anchored) => void toggleAnchor(memo.id, anchored)}
               onRemove={() => void remove(memo.id)}
             />
@@ -343,13 +347,18 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
                 <span aria-hidden="true">×</span>
               </IconButton>
             </div>
-            <div className="memo-setting-row">
-              <span className="memo-setting-label">新增快捷键</span>
-              <ShortcutInput value={memoShortcut} onSave={onSaveShortcut} />
+            <div className="memo-setting-list">
+              <div className="row">
+                <span className="row-label">
+                  <span>新增快捷键</span>
+                  <InfoTip
+                    text="按下组合键后打开设置并新建备忘录；点击右侧按钮录制，退格清除"
+                    align="right"
+                  />
+                </span>
+                <ShortcutInput value={memoShortcut} onSave={onSaveShortcut} />
+              </div>
             </div>
-            <p className="hint">
-              按下组合键后打开设置并新建备忘录；点击组合键按钮可直接录制新组合键，退格清除。
-            </p>
           </div>
         </div>
       ) : null}
@@ -362,7 +371,7 @@ interface MemoRowProps {
   confirmDeleteId: string | null
   setConfirmDeleteId: (id: string | null) => void
   onEdit: () => void
-  onComplete: () => void
+  onToggleComplete: () => void
   onToggleAnchor: (anchored: boolean) => void
   onRemove: () => void
 }
@@ -372,7 +381,7 @@ function MemoRow({
   confirmDeleteId,
   setConfirmDeleteId,
   onEdit,
-  onComplete,
+  onToggleComplete,
   onToggleAnchor,
   onRemove
 }: MemoRowProps) {
@@ -416,7 +425,12 @@ function MemoRow({
         >
           <PinIcon active={memo.anchored} />
         </IconButton>
-        <IconButton label="完成" disabled={memo.completed} onClick={onComplete}>
+        <IconButton
+          label={memo.completed ? '取消完成' : '完成'}
+          aria-pressed={memo.completed}
+          className={memo.completed ? 'is-active' : undefined}
+          onClick={onToggleComplete}
+        >
           <CheckIcon />
         </IconButton>
         {confirmDeleteId === memo.id ? (

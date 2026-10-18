@@ -228,6 +228,10 @@ export class AppController {
     return this.options.memoService.complete(id)
   }
 
+  uncompleteMemo(id: string): MemoSummary[] {
+    return this.options.memoService.uncomplete(id)
+  }
+
   setMemoAnchored(id: string, anchored: boolean): MemoSummary[] {
     return this.options.memoService.setAnchored(id, anchored)
   }

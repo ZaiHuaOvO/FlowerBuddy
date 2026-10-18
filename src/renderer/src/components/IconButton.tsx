@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useTooltip } from './Tooltip'
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   label: string
@@ -13,7 +14,8 @@ export function IconButton({
   children,
   ...rest
 }: IconButtonProps) {
-  const classes = ['icon-button', 'tooltip-trigger', 'tooltip-left']
+  const { triggerRef, handlers, layer } = useTooltip<HTMLButtonElement>(label, 'left')
+  const classes = ['icon-button']
   if (tone === 'danger') {
     classes.push('icon-button-danger')
   }
@@ -21,14 +23,18 @@ export function IconButton({
     classes.push(className)
   }
   return (
-    <button
-      {...rest}
-      type="button"
-      className={classes.join(' ')}
-      aria-label={label}
-      data-tooltip={label}
-    >
-      {children}
-    </button>
+    <>
+      <button
+        {...rest}
+        ref={triggerRef}
+        type="button"
+        className={classes.join(' ')}
+        aria-label={label}
+        {...handlers}
+      >
+        {children}
+      </button>
+      {layer}
+    </>
   )
 }

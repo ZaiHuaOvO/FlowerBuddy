@@ -62,7 +62,14 @@ describe('memo reminder parsing', () => {
   it('parses relative offsets', () => {
     expectTime('30分钟后', new Date(2026, 9, 18, 10, 30, 0))
     expectTime('两小时后', new Date(2026, 9, 18, 12, 0, 0))
+    expectTime('两个小时后', new Date(2026, 9, 18, 12, 0, 0))
+    expectTime('2 个小时后', new Date(2026, 9, 18, 12, 0, 0))
+    expectTime('1.5小时后', new Date(2026, 9, 18, 11, 30, 0))
+    expectTime('半小时后', new Date(2026, 9, 18, 10, 30, 0))
+    expectTime('半个小时后', new Date(2026, 9, 18, 10, 30, 0))
     expectTime('3天后', new Date(2026, 9, 21, 10, 0, 0))
+    expectTime('三个星期后', new Date(2026, 10, 8, 10, 0, 0))
+    expectTime('两个礼拜后', new Date(2026, 10, 1, 10, 0, 0))
   })
 
   it('moves time-only input to tomorrow when today has passed', () => {
