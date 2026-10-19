@@ -59,8 +59,31 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: Build Windows packages
-        run: npm run dist:win
+      - name: Build renderer and main
+        run: npm run build
+
+      - name: Generate licenses
+        run: npm run licenses
+
+      - name: Build NSIS and portable packages
+        shell: pwsh
+        run: |
+          npx electron-builder --win --x64 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\electron-builder.log"
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Get-Content "$env:RUNNER_TEMP\electron-builder.log" -Tail 40 | ForEach-Object { Write-Output "::error::$_" }
+            exit $code
+          }
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          node scripts/make-portable-zip.mjs 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\portable-zip.log"
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Get-Content "$env:RUNNER_TEMP\portable-zip.log" -Tail 30 | ForEach-Object { Write-Output "::error::$_" }
+            exit $code
+          }
 
       - name: Create checksums
         shell: bash
