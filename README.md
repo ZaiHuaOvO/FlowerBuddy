@@ -2,7 +2,7 @@
 
 面向 Windows 的桌面宠物与个人信息助手。桌宠常驻桌面，提供备忘录与定时提醒、网站检测，以及 DeepSeek 余额和阿里云 ESA 流量查询。
 
-> 当前版本为 `0.1.0` 测试版，尚未发布 GitHub Release，暂不提供公开下载。安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。
+> 当前版本 `0.1.0` 已发布：[GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest)。安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。
 
 ## 核心功能
 
@@ -16,10 +16,10 @@
 
 ## 获取与运行
 
-当前尚未发布公开 Release，因此没有可直接下载的安装包。正式发布后，最终用户只需运行安装程序或便携版：
+从 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 下载对应版本：
 
-- `花伴-Setup-<version>-x64.exe`：安装版，默认按当前用户安装，可选择安装目录。
-- `花伴-Portable-<version>-x64.exe`：便携版，双击运行。
+- `FlowerBuddy-Setup-<version>-x64.exe`：安装版，默认按当前用户安装，可选择安装目录。
+- `FlowerBuddy-Portable-<version>-x64.exe`：便携版，双击运行。
 
 最终用户不需要安装 Node.js、打开终端或执行任何命令。安装程序会检测旧版本安装目录并在原位置覆盖升级，用户数据不会被清空。安装与卸载都不会自动删除 `%APPDATA%\FlowerBuddy` 中的个人数据。
 
@@ -84,7 +84,7 @@ npm run dist:win
 
 ## 已知限制
 
-- 当前测试版尚未发布 GitHub Release，安装包未签名，SmartScreen 可能提示未知发布者。
+- 安装包未签名，SmartScreen 可能提示未知发布者。
 - DeepSeek 只显示余额；官方未提供账号级每日消费接口，因此不显示“今日花费”。
 - ESA 数据可能被采样并存在统计延迟，接入点目前固定为国内 `esa.cn-hangzhou.aliyuncs.com`。
 - 备忘录与定时提醒仅通过桌宠气泡展示，不发送 Windows 系统通知。

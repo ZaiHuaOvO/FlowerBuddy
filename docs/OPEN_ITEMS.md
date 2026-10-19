@@ -26,12 +26,12 @@
 - [x] Gmail 功能移除：删除主进程模块、IPC、设置页、测试、Google 依赖和当前文档；配置 schema v9 清理残留模块与顺序，启动时删除旧凭据和 `gmail-state.json`（2026-10-18）。
 - [x] 长期运行收口：定时提醒使用稳定气泡 ID 去重；同时锚定的桌面备忘卡片上限设为 20 张，旧数据加载时自动取消超出部分（2026-10-18）。
 - [x] 许可与发布文档：采用专有许可并新增 `LICENSE`；README 补充安装包体积口径、GitHub Release 步骤、未签名提示与素材权利说明（2026-10-18）。
+- [x] 正式 GitHub Release：`v0.1.0` 已通过标签工作流构建并发布，附 Setup、Portable、ZIP 与 SHA256SUMS；后续版本按 [发布流程](development/release-process.md) 推送新标签（2026-10-19）。
 
 ## 仍需用户参与或外部条件
 
 - [ ] **功能与样式详细测试**：自动化检查已于 2026-10-18 通过（见 `docs/regression-report.md` 新增记录）；Windows 实机功能/视觉验收仍需按 `docs/testing/manual-test-plan.md` 执行，不能把历史回归报告或自动化结果当作 Windows 实机结果。
 - [ ] **视觉基线截图更新**：设置页左侧导航、常规页、功能管理、备忘录页、定时提醒页、桌面备忘卡片、多气泡堆叠与常驻提醒、桌宠点击反馈、快捷菜单结构与应用图标已变化，`docs/screenshots/` 仍是改造前基线；需在 Windows 视觉验收后统一更新并记录版本/commit。
-- [ ] **正式 GitHub Release**：已配置 `v*` 标签触发的 Release workflow（校验版本、运行检查、构建 Setup/Portable/ZIP + SHA256SUMS，并创建草稿 Release）；首次发布仍需按 [发布流程](development/release-process.md) 由维护者选择版本、推送标签并审核发布；GitHub Actions 临时 Artifact 默认 14 天过期，不能作为下载来源。
 - [ ] **托盘单击行为确认**：代码只注册了双击打开设置和右键菜单；README 已改为“双击托盘图标或托盘菜单”，仍需在真实 Windows 通知区域确认单击的默认表现并记录。
 - [ ] **真实 DeepSeek/ESA 账户数据验证**：需用户在应用设置内输入自己的凭据后查看；仓库与测试中只有占位数据。
 - [ ] **完全干净的 Windows 环境安装验收**：本次已用移除 Node 路径的便携版做启动验证，仍建议在无开发工具的干净虚拟机完成一次安装/卸载验收。
