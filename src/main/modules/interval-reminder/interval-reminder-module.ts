@@ -8,7 +8,7 @@ interface Plan {
   fingerprint: string
 }
 
-const TICK_MS = 30 * 1000
+const TICK_MS = 5 * 1000
 
 export class IntervalReminderModule implements ModuleDefinition {
   readonly id = 'interval-reminder' as const
@@ -97,6 +97,7 @@ export class IntervalReminderModule implements ModuleDefinition {
       }
       if (isWithinRanges(new Date(now), reminder.ranges)) {
         plan.nextAt = computeNextDue(now, reminder, this.random)
+        context.logger.info('interval reminder fired', { id: reminder.id })
         context.notify(reminder.text, {
           persistent: true,
           id: `interval-reminder:${reminder.id}`

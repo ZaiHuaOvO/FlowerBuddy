@@ -161,6 +161,10 @@ const esaModel = {
 } as unknown as ReturnType<typeof useEsaSettings>
 
 describe('settings tabs render', () => {
+  it('creates new interval reminders with all-day ranges', () => {
+    expect(createReminderForm().ranges).toEqual([])
+  })
+
   it('renders every tab without a DOM', () => {
     const config = makeConfig()
     const render = (element: ReactElement): string => renderToStaticMarkup(element)

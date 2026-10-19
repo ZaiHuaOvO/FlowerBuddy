@@ -116,7 +116,16 @@ const memoImageBytesSchema = z
 
 const memoAnchorNewInputSchema = z.object({ enabled: z.boolean() }).strict()
 
-const bubbleDismissInputSchema = z.object({ id: z.string().uuid() }).strict()
+const bubbleDismissInputSchema = z
+  .object({
+    id: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .regex(/^[A-Za-z0-9:_-]+$/)
+  })
+  .strict()
 const bubbleHeightInputSchema = z.object({ height: z.number().min(0).max(2000) }).strict()
 
 const reminderTimeSchema = z.string().regex(/^([01]?\d|2[0-3]):([0-5]\d)$/, '时间格式应为 HH:mm')

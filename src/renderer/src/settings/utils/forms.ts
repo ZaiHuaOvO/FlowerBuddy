@@ -1,8 +1,7 @@
 import type { IntervalReminderSummary, ReminderRange } from '../../../../shared/api'
 import {
   DEFAULT_REMINDER_INTERVAL_MINUTES,
-  DEFAULT_REMINDER_JITTER_MINUTES,
-  defaultReminderRanges
+  DEFAULT_REMINDER_JITTER_MINUTES
 } from '../../../../shared/interval-reminder'
 
 export interface WebsiteFormState {
@@ -33,7 +32,7 @@ export function createReminderForm(reminder?: IntervalReminderSummary): Reminder
       text: '',
       intervalValue: DEFAULT_REMINDER_INTERVAL_MINUTES,
       intervalUnit: 'minutes',
-      ranges: defaultReminderRanges(),
+      ranges: [],
       randomEnabled: true,
       randomJitterMinutes: DEFAULT_REMINDER_JITTER_MINUTES
     }

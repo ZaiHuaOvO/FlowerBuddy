@@ -30,6 +30,10 @@
   animation: fl-fade-in var(--motion-fast) var(--ease-standard);
 }
 
+.bubble-persistent {
+  box-shadow: none;
+}
+
 .bubble-text {
   flex: 1 1 auto;
   min-width: 0;

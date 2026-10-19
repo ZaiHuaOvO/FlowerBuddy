@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   appSettingsPatchSchema,
+  bubbleDismissInputSchema,
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   esaDisplayRangesSchema,
@@ -96,6 +97,16 @@ describe('IPC input schemas', () => {
     expect(() =>
       parseInput(petRenameInputSchema, { assetId: imageId, name: 'x'.repeat(21) })
     ).toThrow(AppError)
+  })
+
+  it('validates bubble dismiss ids', () => {
+    const reminderId = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+    expect(parseInput(bubbleDismissInputSchema, { id: reminderId })).toEqual({ id: reminderId })
+    expect(parseInput(bubbleDismissInputSchema, { id: `interval-reminder:${reminderId}` })).toEqual(
+      { id: `interval-reminder:${reminderId}` }
+    )
+    expect(() => parseInput(bubbleDismissInputSchema, { id: '../secret' })).toThrow(AppError)
+    expect(() => parseInput(bubbleDismissInputSchema, { id: '' })).toThrow(AppError)
   })
 
   it('accepts only known module ids', () => {

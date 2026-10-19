@@ -103,7 +103,9 @@ export default function BubbleView() {
         {bubbles.map((bubble) => (
           <div
             key={bubble.id}
-            className={`bubble bubble-${bubble.state}`}
+            className={`bubble bubble-${bubble.state}${
+              bubble.persistent ? ' bubble-persistent' : ''
+            }`}
             role="status"
             data-state={bubble.state}
           >
