@@ -49,10 +49,10 @@ nsis:
   displayLanguageSelector: false
   include: installer.nsh
   deleteAppDataOnUninstall: false
-  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+  artifactName: FlowerBuddy-Setup-${version}-${arch}.${ext}
 
 portable:
-  artifactName: ${productName}-Portable-${version}-${arch}.${ext}
+  artifactName: FlowerBuddy-Portable-${version}-${arch}.${ext}
   unpackDirName: 花伴
 
 extraResources:
