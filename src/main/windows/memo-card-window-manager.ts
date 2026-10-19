@@ -59,8 +59,23 @@ export interface MemoCardWindowManagerOptions {
 export class MemoCardWindowManager {
   private readonly cards = new Map<string, ManagedCard>()
   private disposed = false
+  private visible = true
 
   constructor(private readonly options: MemoCardWindowManagerOptions) {}
+
+  setVisible(visible: boolean): void {
+    this.visible = visible
+    for (const card of this.cards.values()) {
+      if (card.window.isDestroyed()) {
+        continue
+      }
+      if (visible) {
+        card.window.showInactive()
+      } else {
+        card.window.hide()
+      }
+    }
+  }
 
   sync(): void {
     if (this.disposed) {
@@ -258,7 +273,9 @@ export class MemoCardWindowManager {
       return
     }
     this.pushState(id, card)
-    window.showInactive()
+    if (this.visible) {
+      window.showInactive()
+    }
   }
 
   private pushState(id: string, card: ManagedCard): void {

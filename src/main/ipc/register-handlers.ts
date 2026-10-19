@@ -39,6 +39,9 @@ import {
   menuActionSchema,
   moduleEnabledInputSchema,
   parseInput,
+  petAssetSelectionSchema,
+  petImageIdSchema,
+  petRenameInputSchema,
   petSettingsPatchSchema,
   refreshIntervalInputSchema,
   websiteInputSchema,
@@ -97,6 +100,16 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     controller.updatePetSettings(patch as PetSettingsPatch)
   )
   register(IPC_CHANNELS.settingsImportPet, null, () => controller.importPetImage())
+  register(IPC_CHANNELS.settingsListPetImages, null, () => controller.listPetImages())
+  register(IPC_CHANNELS.settingsSelectPetAsset, petAssetSelectionSchema, (input) =>
+    controller.selectPetAsset(input.assetId)
+  )
+  register(IPC_CHANNELS.settingsDeletePetImage, petImageIdSchema, (input) =>
+    controller.deletePetImage(input.assetId)
+  )
+  register(IPC_CHANNELS.settingsRenamePetImage, petRenameInputSchema, (input) =>
+    controller.renamePetImage(input.assetId, input.name)
+  )
   register(IPC_CHANNELS.settingsResetPosition, null, () => controller.resetPetPosition())
 
   register(IPC_CHANNELS.modulesList, null, () => controller.getModules())

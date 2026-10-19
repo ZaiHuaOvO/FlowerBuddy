@@ -251,6 +251,7 @@ export class OverlayWindowManager {
       if (!window.isVisible()) {
         window.showInactive()
       }
+      window.moveTop()
     }
   }
 
@@ -286,6 +287,7 @@ export class OverlayWindowManager {
     if (!window.isVisible()) {
       window.showInactive()
     }
+    window.moveTop()
   }
 
   setBubbleHeight(height: number): void {

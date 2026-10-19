@@ -17,6 +17,9 @@ import {
   parseInput,
   parseModuleId,
   parsePetSettingsPatch,
+  petAssetSelectionSchema,
+  petImageIdSchema,
+  petRenameInputSchema,
   petSettingsPatchSchema,
   refreshIntervalInputSchema,
   websiteInputSchema,
@@ -39,6 +42,10 @@ describe('IPC input schemas', () => {
     })
     expect(parseAppSettingsPatch({ bubbleDurationMs: 1000 })).toEqual({ bubbleDurationMs: 1000 })
     expect(parsePetSettingsPatch({ scale: 1.5 })).toEqual({ scale: 1.5 })
+    expect(parseAppSettingsPatch({ bossShortcut: 'Alt+Z' })).toEqual({
+      bossShortcut: 'Alt+Z'
+    })
+    expect(parseAppSettingsPatch({ bossShortcut: '' })).toEqual({ bossShortcut: '' })
   })
 
   it('rejects invalid ranges and unknown keys', () => {
@@ -48,6 +55,47 @@ describe('IPC input schemas', () => {
     expect(() => parseAppSettingsPatch({ unexpected: true })).toThrow(AppError)
     expect(() => parsePetSettingsPatch({ scale: 3 })).toThrow(AppError)
     expect(() => parsePetSettingsPatch({ assetId: '../x' })).toThrow(AppError)
+    expect(() => parseAppSettingsPatch({ bossShortcut: 'x'.repeat(65) })).toThrow(AppError)
+  })
+
+  it('validates pet asset selections and image deletion ids', () => {
+    const imageId = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+
+    expect(parseInput(petAssetSelectionSchema, { assetId: 'preset-cat-pair' })).toEqual({
+      assetId: 'preset-cat-pair'
+    })
+    expect(parseInput(petAssetSelectionSchema, { assetId: imageId })).toEqual({
+      assetId: imageId
+    })
+    expect(() => parseInput(petAssetSelectionSchema, { assetId: 'preset-missing' })).toThrow(
+      AppError
+    )
+    expect(() => parseInput(petAssetSelectionSchema, { assetId: '../x' })).toThrow(AppError)
+    expect(() => parseInput(petAssetSelectionSchema, { assetId: 'default', extra: true })).toThrow(
+      AppError
+    )
+
+    expect(parseInput(petImageIdSchema, { assetId: imageId })).toEqual({ assetId: imageId })
+    expect(() => parseInput(petImageIdSchema, { assetId: 'default' })).toThrow(AppError)
+  })
+
+  it('validates pet image rename payloads', () => {
+    const imageId = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+
+    expect(parseInput(petRenameInputSchema, { assetId: imageId, name: '  小棕  ' })).toEqual({
+      assetId: imageId,
+      name: '小棕'
+    })
+    expect(parseInput(petRenameInputSchema, { assetId: imageId, name: '' })).toEqual({
+      assetId: imageId,
+      name: ''
+    })
+    expect(() => parseInput(petRenameInputSchema, { assetId: 'default', name: '小棕' })).toThrow(
+      AppError
+    )
+    expect(() =>
+      parseInput(petRenameInputSchema, { assetId: imageId, name: 'x'.repeat(21) })
+    ).toThrow(AppError)
   })
 
   it('accepts only known module ids', () => {

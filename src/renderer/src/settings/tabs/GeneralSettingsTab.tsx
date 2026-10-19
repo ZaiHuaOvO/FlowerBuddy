@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
 import { petAssetUrl } from '../../../../shared/api'
-import type { AppSettingsPatch, PetSettingsPatch, PublicConfig } from '../../../../shared/api'
+import type {
+  AppSettingsPatch,
+  PetSettingsPatch,
+  PetUserImage,
+  PublicConfig
+} from '../../../../shared/api'
 import { PET_BASE_HEIGHT } from '../../../../shared/pet-layout'
 import { Button } from '../../components/Button'
 import { InfoTip } from '../../components/InfoTip'
+import { ShortcutInput } from '../components/ShortcutInput'
+import { PetGallery } from '../components/PetGallery'
 import {
   BUBBLE_SECONDS_MAX,
   BUBBLE_SECONDS_MIN,
@@ -14,12 +21,25 @@ import {
 
 interface Props {
   config: PublicConfig
+  userImages: PetUserImage[]
   onSave: (patch: AppSettingsPatch) => void
   onSavePet: (patch: PetSettingsPatch) => void
   onImportImage: () => void
+  onSelectAsset: (assetId: string) => Promise<void>
+  onDeleteImage: (assetId: string) => Promise<void>
+  onRenameImage: (assetId: string, name: string) => Promise<void>
 }
 
-export function GeneralSettingsTab({ config, onSave, onSavePet, onImportImage }: Props) {
+export function GeneralSettingsTab({
+  config,
+  userImages,
+  onSave,
+  onSavePet,
+  onImportImage,
+  onSelectAsset,
+  onDeleteImage,
+  onRenameImage
+}: Props) {
   const bubbleSeconds = Math.min(
     BUBBLE_SECONDS_MAX,
     Math.max(BUBBLE_SECONDS_MIN, Math.round(config.app.bubbleDurationMs / 1000))
@@ -93,6 +113,18 @@ export function GeneralSettingsTab({ config, onSave, onSavePet, onImportImage }:
 
       <div className="row">
         <span className="row-label">
+          <span>老板键</span>
+          <InfoTip text="按下后隐藏桌宠和托盘图标，再按一次恢复" align="right" />
+        </span>
+        <ShortcutInput
+          value={config.app.bossShortcut}
+          label="修改老板键"
+          onSave={(accelerator) => onSave({ bossShortcut: accelerator })}
+        />
+      </div>
+
+      <div className="row">
+        <span className="row-label">
           <label htmlFor="setting-bubble-duration">气泡停留时长</label>
           <InfoTip text="控制各类信息气泡的展示时间" align="right" />
         </span>
@@ -115,7 +147,7 @@ export function GeneralSettingsTab({ config, onSave, onSavePet, onImportImage }:
       <div className="row">
         <span className="row-label">
           <span>桌宠图片选择</span>
-          <InfoTip text="推荐上传 15MB 内的透明底 png 图片" align="right" />
+          <InfoTip text="支持 15MB 内的 PNG/JPEG 图片，透明底 PNG 效果最佳" align="right" />
         </span>
         <Button variant="secondary" onClick={onImportImage}>
           选择图片
@@ -142,6 +174,14 @@ export function GeneralSettingsTab({ config, onSave, onSavePet, onImportImage }:
           <span className="range-value">{scaleDraft.toFixed(1)}×</span>
         </span>
       </div>
+
+      <PetGallery
+        currentAssetId={config.pet.assetId}
+        userImages={userImages}
+        onSelect={onSelectAsset}
+        onDelete={onDeleteImage}
+        onRename={onRenameImage}
+      />
 
       <div className="pet-preview">
         <img

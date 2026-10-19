@@ -1,28 +1,42 @@
 const { app, BrowserWindow } = require('electron')
 const { mkdirSync, readFileSync, writeFileSync } = require('node:fs')
-const { dirname, join } = require('node:path')
+const { dirname, extname, join } = require('node:path')
 
 const ROOT = join(__dirname, '..')
-const SOURCE = join(ROOT, 'assets', 'pet-source.webp')
-const OUTPUT = join(ROOT, 'assets', 'default-pet', 'flower.png')
 const MAX_SIZE = 512
 
-async function convert() {
-  const sourceBuffer = readFileSync(SOURCE)
-  const sourceDataUrl = `data:image/webp;base64,${sourceBuffer.toString('base64')}`
+const JOBS = [
+  {
+    source: join(ROOT, 'assets', 'pet-source.webp'),
+    output: join(ROOT, 'assets', 'default-pet', 'flower.png')
+  },
+  {
+    source: join(ROOT, 'assets', 'pet-preset-source', 'flower-cat.png'),
+    output: join(ROOT, 'assets', 'pet-presets', 'flower-cat.png')
+  },
+  {
+    source: join(ROOT, 'assets', 'pet-preset-source', 'cat-pair.webp'),
+    output: join(ROOT, 'assets', 'pet-presets', 'cat-pair.png')
+  },
+  {
+    source: join(ROOT, 'assets', 'pet-preset-source', 'schoolgirl.webp'),
+    output: join(ROOT, 'assets', 'pet-presets', 'schoolgirl.png')
+  }
+]
 
-  const window = new BrowserWindow({
-    show: false,
-    width: 200,
-    height: 200,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true
-    }
-  })
+const MIME_TYPES = {
+  '.png': 'image/png',
+  '.webp': 'image/webp'
+}
 
-  await window.loadURL('about:blank')
+async function convert(window, job) {
+  const mime = MIME_TYPES[extname(job.source).toLowerCase()]
+  if (!mime) {
+    throw new Error(`unsupported source format: ${job.source}`)
+  }
+
+  const sourceBuffer = readFileSync(job.source)
+  const sourceDataUrl = `data:${mime};base64,${sourceBuffer.toString('base64')}`
 
   const result = await window.webContents.executeJavaScript(`(async () => {
     const image = new Image()
@@ -75,7 +89,11 @@ async function convert() {
 
     const cropWidth = maxX - minX + 1
     const cropHeight = maxY - minY + 1
-    const scale = Math.min(${MAX_SIZE} / cropWidth, ${MAX_SIZE} / cropHeight)
+    const scale = Math.min(
+      ${MAX_SIZE} / cropWidth,
+      ${MAX_SIZE} / cropHeight,
+      1
+    )
     const width = Math.max(1, Math.round(cropWidth * scale))
     const height = Math.max(1, Math.round(cropHeight * scale))
 
@@ -107,17 +125,37 @@ async function convert() {
   })()`)
 
   const base64 = result.dataUrl.replace(/^data:image\/png;base64,/, '')
-  mkdirSync(dirname(OUTPUT), { recursive: true })
-  writeFileSync(OUTPUT, Buffer.from(base64, 'base64'))
+  mkdirSync(dirname(job.output), { recursive: true })
+  writeFileSync(job.output, Buffer.from(base64, 'base64'))
 
   const report = { ...result }
   delete report.dataUrl
-  console.log(JSON.stringify({ ...report, outputPath: OUTPUT }, null, 2))
+  return { ...report, sourcePath: job.source, outputPath: job.output }
+}
+
+async function convertAll() {
+  const window = new BrowserWindow({
+    show: false,
+    width: 200,
+    height: 200,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
+    }
+  })
+
+  await window.loadURL('about:blank')
+
+  for (const job of JOBS) {
+    const report = await convert(window, job)
+    console.log(JSON.stringify(report, null, 2))
+  }
 }
 
 app
   .whenReady()
-  .then(convert)
+  .then(convertAll)
   .catch((error) => {
     console.error(error)
     process.exitCode = 1

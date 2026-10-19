@@ -30,13 +30,15 @@ const V1_CONFIG = {
 }
 
 describe('config schema', () => {
-  it('creates version 9 defaults with startup options', () => {
+  it('creates current-version defaults with startup options', () => {
     const config = createDefaultConfig()
 
-    expect(config.schemaVersion).toBe(9)
+    expect(config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
+    expect(config.pet.names).toEqual({})
     expect(config.app.launchAtLogin).toBe(false)
     expect(config.app.showPetOnStartup).toBe(true)
     expect(config.app.memoShortcut).toBe('Alt+A')
+    expect(config.app.bossShortcut).toBe('Alt+Z')
     expect(config.modules.memo.enabled).toBe(true)
     expect(config.modules.memo.anchorNewMemos).toBe(false)
     expect(config.modules.intervalReminder.enabled).toBe(true)
@@ -56,7 +58,16 @@ describe('config schema', () => {
     const config = parseConfig({
       schemaVersion: 3,
       app: { alwaysOnTop: 'yes', bounceAnimation: false, bubbleDurationMs: 999999 },
-      pet: { assetId: '../escape', scale: 42, position: { x: 'left', y: 2 } },
+      pet: {
+        assetId: '../escape',
+        scale: 42,
+        position: { x: 'left', y: 2 },
+        names: {
+          '3f1c2a56-8b9d-4a1e-9f0c-123456789abc': '  小棕  ',
+          'not-a-uuid': '无效',
+          '9a8b7c6d-5e4f-4321-8765-123456789abc': 42
+        }
+      },
       modules: {
         esa: { siteId: 42, refreshIntervalMinutes: 999 },
         deepseek: { refreshIntervalMinutes: 'often' }
@@ -70,6 +81,9 @@ describe('config schema', () => {
     expect(config.pet.assetId).toBe('default')
     expect(config.pet.scale).toBe(2)
     expect(config.pet.position).toBeNull()
+    expect(config.pet.names).toEqual({
+      '3f1c2a56-8b9d-4a1e-9f0c-123456789abc': '小棕'
+    })
     expect(config.modules.esa.siteId).toBe('')
     expect(config.modules.esa.refreshIntervalMinutes).toBe(60)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
@@ -83,7 +97,7 @@ describe('config schema', () => {
     expect(result.fromVersion).toBe(1)
     expect(result.migrated).toBe(true)
     expect(result.futureVersion).toBe(false)
-    expect(result.config.schemaVersion).toBe(9)
+    expect(result.config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
     expect(result.config.app.alwaysOnTop).toBe(false)
     expect(result.config.pet.scale).toBe(1.5)
     expect(result.config.modules.memo.enabled).toBe(true)
@@ -106,7 +120,7 @@ describe('config schema', () => {
 
     expect(result.fromVersion).toBe(2)
     expect(result.migrated).toBe(true)
-    expect(result.config.schemaVersion).toBe(9)
+    expect(result.config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
     expect(result.config.modules.esa.siteId).toBe('site-1')
     expect(result.config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(result.config.modules.deepseek.refreshIntervalMinutes).toBeNull()
@@ -152,7 +166,7 @@ describe('config schema', () => {
 
     expect(result.fromVersion).toBe(8)
     expect(result.migrated).toBe(true)
-    expect(result.config.schemaVersion).toBe(9)
+    expect(result.config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
     expect(result.config.modules).not.toHaveProperty('gmail')
     expect(result.config.app.moduleOrder).toEqual(['memo', 'interval-reminder', 'esa', 'deepseek'])
   })
@@ -250,7 +264,7 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(9)
+    expect(config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
     expect(config.modules.esa.siteId).toBe('kept-site')
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(readdirSync(directory).some((name) => name.startsWith('config.json.v2-'))).toBe(true)
@@ -277,7 +291,7 @@ describe('config store', () => {
 
     const config = new ConfigStore(filePath).load()
 
-    expect(config.schemaVersion).toBe(9)
+    expect(config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
     expect(config.app.launchAtLogin).toBe(false)
     expect(config.app.showPetOnStartup).toBe(true)
     expect(readdirSync(directory).some((name) => name.startsWith('config.json.v3-'))).toBe(true)

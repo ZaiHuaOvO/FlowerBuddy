@@ -50,6 +50,7 @@ const rendererIndexPath = join(__dirname, '../renderer/index.html')
 const preloadPath = join(__dirname, '../preload/index.js')
 const appRoot = app.getAppPath()
 const defaultPetPath = join(appRoot, 'assets', 'default-pet', 'flower.png')
+const petPresetsDirectory = join(appRoot, 'assets', 'pet-presets')
 const trayIconPath = app.isPackaged
   ? join(process.resourcesPath, 'assets', 'tray-icon.png')
   : join(appRoot, 'assets', 'tray-icon.png')
@@ -186,6 +187,7 @@ async function bootstrap(): Promise<void> {
     rendererIndexPath,
     preloadPath,
     defaultPetPath,
+    petPresetsDirectory,
     trayIconPath,
     appIconPath,
     petsDirectory: join(userDataPath, 'pets')

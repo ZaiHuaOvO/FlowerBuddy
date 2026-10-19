@@ -58,6 +58,7 @@ describe('preload bridge surface', () => {
       'createWebsiteCheck',
       'deleteIntervalReminder',
       'deleteMemo',
+      'deletePetImage',
       'deleteWebsiteCheck',
       'discardMemoImages',
       'fetchDeepSeekBalance',
@@ -70,14 +71,17 @@ describe('preload bridge surface', () => {
       'importPetImage',
       'listIntervalReminders',
       'listMemos',
+      'listPetImages',
       'listWebsiteChecks',
       'onMemosChanged',
       'onOpenMemoComposer',
+      'renamePetImage',
       'resetPetPosition',
       'saveAppSettings',
       'saveDeepSeekKey',
       'saveEsaCredentials',
       'savePetSettings',
+      'selectPetAsset',
       'setEsaDisplayRanges',
       'setIntervalReminderEnabled',
       'setMemoAnchorNew',
@@ -161,6 +165,33 @@ describe('preload bridge surface', () => {
     await settings.saveAppSettings({ alwaysOnTop: true })
     expect(invocations).toEqual([
       { channel: IPC_CHANNELS.settingsSaveApp, args: [{ alwaysOnTop: true }] }
+    ])
+  })
+
+  it('passes pet image list, selection and deletion through fixed channels', async () => {
+    const { bridge, invocations } = createFakeBridge()
+    const settings = createBridge('settings', bridge)?.value as {
+      listPetImages(): Promise<unknown>
+      selectPetAsset(assetId: string): Promise<unknown>
+      deletePetImage(assetId: string): Promise<unknown>
+      renamePetImage(assetId: string, name: string): Promise<unknown>
+    }
+    const assetId = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+
+    await settings.listPetImages()
+    await settings.selectPetAsset('preset-cat-pair')
+    await settings.selectPetAsset(assetId)
+    await settings.deletePetImage(assetId)
+    await settings.renamePetImage(assetId, '小棕')
+    expect(invocations).toEqual([
+      { channel: IPC_CHANNELS.settingsListPetImages, args: [] },
+      {
+        channel: IPC_CHANNELS.settingsSelectPetAsset,
+        args: [{ assetId: 'preset-cat-pair' }]
+      },
+      { channel: IPC_CHANNELS.settingsSelectPetAsset, args: [{ assetId }] },
+      { channel: IPC_CHANNELS.settingsDeletePetImage, args: [{ assetId }] },
+      { channel: IPC_CHANNELS.settingsRenamePetImage, args: [{ assetId, name: '小棕' }] }
     ])
   })
 

@@ -26,6 +26,7 @@ import {
   type ModuleSummary,
   type PetApi,
   type PetSettingsPatch,
+  type PetUserImage,
   type PetViewState,
   type PublicConfig,
   type RefreshableModuleId,
@@ -184,6 +185,17 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
       (await ipc.invoke(IPC_CHANNELS.settingsSavePet, patch)) as PublicConfig,
     importPetImage: async () =>
       (await ipc.invoke(IPC_CHANNELS.settingsImportPet)) as PublicConfig | null,
+    listPetImages: async () =>
+      (await ipc.invoke(IPC_CHANNELS.settingsListPetImages)) as PetUserImage[],
+    selectPetAsset: async (assetId: string) =>
+      (await ipc.invoke(IPC_CHANNELS.settingsSelectPetAsset, { assetId })) as PublicConfig,
+    deletePetImage: async (assetId: string) =>
+      (await ipc.invoke(IPC_CHANNELS.settingsDeletePetImage, { assetId })) as PublicConfig,
+    renamePetImage: async (assetId: string, name: string) =>
+      (await ipc.invoke(IPC_CHANNELS.settingsRenamePetImage, {
+        assetId,
+        name
+      })) as PetUserImage[],
     resetPetPosition: async () =>
       (await ipc.invoke(IPC_CHANNELS.settingsResetPosition)) as PublicConfig,
     getModules: async () => (await ipc.invoke(IPC_CHANNELS.modulesList)) as ModuleSummary[],

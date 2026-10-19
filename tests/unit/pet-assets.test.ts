@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   PetAssetError,
+  deletePetImageFile,
+  importPetBuffer,
   importPetFile,
+  listPetImageIds,
   readPngInfo,
   resolvePetAssetPath
 } from '../../src/main/storage/pet-assets'
@@ -104,6 +107,26 @@ describe('pet asset import', () => {
   })
 })
 
+describe('pet image buffer import', () => {
+  it('stores a converted PNG buffer', () => {
+    const directory = createTemporaryDirectory()
+    const petsDirectory = join(directory, 'pets')
+
+    const imported = importPetBuffer(pngHeader(320, 240), petsDirectory)
+    expect(imported.info).toEqual({ width: 320, height: 240 })
+    expect(existsSync(imported.filePath)).toBe(true)
+  })
+
+  it('rejects empty, oversized and non-PNG buffers', () => {
+    const directory = createTemporaryDirectory()
+    const petsDirectory = join(directory, 'pets')
+
+    expect(() => importPetBuffer(Buffer.alloc(0), petsDirectory)).toThrow(PetAssetError)
+    expect(() => importPetBuffer(Buffer.from('not an image'), petsDirectory)).toThrow(PetAssetError)
+    expect(() => importPetBuffer(pngHeader(10, 10), petsDirectory, 5)).toThrow(PetAssetError)
+  })
+})
+
 describe('pet asset paths', () => {
   it('resolves the bundled default asset', () => {
     const directory = createTemporaryDirectory()
@@ -114,6 +137,7 @@ describe('pet asset paths', () => {
       resolvePetAssetPath({
         assetId: 'default',
         petsDirectory: join(directory, 'pets'),
+        presetsDirectory: join(directory, 'presets'),
         defaultAssetPath
       })
     ).toBe(defaultAssetPath)
@@ -127,9 +151,21 @@ describe('pet asset paths', () => {
     const filePath = join(petsDirectory, `${assetId}.png`)
     writeFileSync(filePath, pngHeader(10, 10))
 
-    expect(resolvePetAssetPath({ assetId, petsDirectory, defaultAssetPath: '' })).toBe(filePath)
     expect(
-      resolvePetAssetPath({ assetId: randomUUID(), petsDirectory, defaultAssetPath: '' })
+      resolvePetAssetPath({
+        assetId,
+        petsDirectory,
+        presetsDirectory: join(directory, 'presets'),
+        defaultAssetPath: ''
+      })
+    ).toBe(filePath)
+    expect(
+      resolvePetAssetPath({
+        assetId: randomUUID(),
+        petsDirectory,
+        presetsDirectory: join(directory, 'presets'),
+        defaultAssetPath: ''
+      })
     ).toBeNull()
   })
 
@@ -138,7 +174,70 @@ describe('pet asset paths', () => {
     const petsDirectory = join(directory, 'pets')
 
     for (const assetId of ['../secret', '..%2Fsecret', 'CON', 'x/y', '']) {
-      expect(resolvePetAssetPath({ assetId, petsDirectory, defaultAssetPath: '' })).toBeNull()
+      expect(
+        resolvePetAssetPath({
+          assetId,
+          petsDirectory,
+          presetsDirectory: join(directory, 'presets'),
+          defaultAssetPath: ''
+        })
+      ).toBeNull()
     }
+  })
+
+  it('resolves known preset ids and refuses unknown or malformed ones', () => {
+    const directory = createTemporaryDirectory()
+    const presetsDirectory = join(directory, 'presets')
+    mkdirSync(presetsDirectory, { recursive: true })
+    const filePath = join(presetsDirectory, 'flower-cat.png')
+    writeFileSync(filePath, pngHeader(10, 10))
+
+    const resolve = (assetId: string): string | null =>
+      resolvePetAssetPath({
+        assetId,
+        petsDirectory: join(directory, 'pets'),
+        presetsDirectory,
+        defaultAssetPath: ''
+      })
+
+    expect(resolve('preset-flower-cat')).toBe(filePath)
+    expect(resolve('preset-unknown')).toBeNull()
+    expect(resolve('preset-flower-cat/../secret')).toBeNull()
+  })
+})
+
+describe('user pet image listing and deletion', () => {
+  it('lists UUID png files oldest first and ignores unrelated files', () => {
+    const directory = createTemporaryDirectory()
+    const petsDirectory = join(directory, 'pets')
+    mkdirSync(petsDirectory, { recursive: true })
+
+    const olderId = randomUUID()
+    const newerId = randomUUID()
+    const olderPath = join(petsDirectory, `${olderId}.png`)
+    const newerPath = join(petsDirectory, `${newerId}.png`)
+    writeFileSync(olderPath, pngHeader(10, 10))
+    writeFileSync(newerPath, pngHeader(10, 10))
+    utimesSync(olderPath, new Date(1000), new Date(1000))
+    utimesSync(newerPath, new Date(2000), new Date(2000))
+    writeFileSync(join(petsDirectory, 'note.txt'), 'not a pet')
+    writeFileSync(join(petsDirectory, 'not-a-uuid.png'), pngHeader(10, 10))
+
+    expect(listPetImageIds(petsDirectory)).toEqual([olderId, newerId])
+    expect(listPetImageIds(join(directory, 'missing'))).toEqual([])
+  })
+
+  it('deletes only valid user image files', () => {
+    const directory = createTemporaryDirectory()
+    const petsDirectory = join(directory, 'pets')
+    mkdirSync(petsDirectory, { recursive: true })
+    const assetId = randomUUID()
+    const filePath = join(petsDirectory, `${assetId}.png`)
+    writeFileSync(filePath, pngHeader(10, 10))
+
+    expect(deletePetImageFile('../secret', petsDirectory)).toBe(false)
+    expect(deletePetImageFile(assetId, petsDirectory)).toBe(true)
+    expect(existsSync(filePath)).toBe(false)
+    expect(deletePetImageFile(assetId, petsDirectory)).toBe(false)
   })
 })

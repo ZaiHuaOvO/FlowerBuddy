@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MAX_PET_NAME_LENGTH } from '../../shared/api'
 import type {
   AppSettingsPatch,
   IntervalReminderInput,
@@ -10,6 +11,7 @@ import type {
   WebsiteCheckInput,
   WebsiteCheckPatch
 } from '../../shared/api'
+import { PET_PRESET_IDS } from '../../shared/pet-presets'
 import { isHttpUrl } from '../modules/website-check/website-types'
 import { AppError } from '../shared/errors'
 
@@ -24,6 +26,7 @@ export const moduleIdSchema = z.enum([
 export const appSettingsPatchSchema = z
   .object({
     alwaysOnTop: z.boolean().optional(),
+    bossShortcut: z.string().trim().max(64).optional(),
     bounceAnimation: z.boolean().optional(),
     bubbleDurationMs: z.number().int().min(1000).max(30000).optional(),
     launchAtLogin: z.boolean().optional(),
@@ -36,6 +39,25 @@ export const appSettingsPatchSchema = z
 export const petSettingsPatchSchema = z
   .object({
     scale: z.number().min(0.5).max(2).optional()
+  })
+  .strict()
+
+export const petAssetSelectionSchema = z
+  .object({
+    assetId: z.union([z.enum(PET_PRESET_IDS), z.string().uuid()])
+  })
+  .strict()
+
+export const petImageIdSchema = z
+  .object({
+    assetId: z.string().uuid()
+  })
+  .strict()
+
+export const petRenameInputSchema = z
+  .object({
+    assetId: z.string().uuid(),
+    name: z.string().trim().max(MAX_PET_NAME_LENGTH)
   })
   .strict()
 

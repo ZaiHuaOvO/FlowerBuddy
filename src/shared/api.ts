@@ -41,6 +41,7 @@ export interface AppInfo {
 
 export interface AppSettings {
   alwaysOnTop: boolean
+  bossShortcut: string
   bounceAnimation: boolean
   bubbleDurationMs: number
   launchAtLogin: boolean
@@ -51,6 +52,7 @@ export interface AppSettings {
 
 export interface AppSettingsPatch {
   alwaysOnTop?: boolean
+  bossShortcut?: string
   bounceAnimation?: boolean
   bubbleDurationMs?: number
   launchAtLogin?: boolean
@@ -61,6 +63,7 @@ export interface AppSettingsPatch {
 
 export interface PetSettings {
   assetId: string
+  names: Record<string, string>
   scale: number
   position: { x: number; y: number } | null
 }
@@ -339,6 +342,13 @@ export interface PetAssetInfo {
   url: string
 }
 
+export interface PetUserImage {
+  assetId: string
+  name: string | null
+}
+
+export const MAX_PET_NAME_LENGTH = 20
+
 export interface PetViewState {
   asset: PetAssetInfo
   bounceAnimation: boolean
@@ -377,6 +387,10 @@ export const IPC_CHANNELS = {
   settingsSaveApp: 'settings:save-app',
   settingsSavePet: 'settings:save-pet',
   settingsImportPet: 'settings:import-pet',
+  settingsListPetImages: 'settings:list-pet-images',
+  settingsSelectPetAsset: 'settings:select-pet-asset',
+  settingsDeletePetImage: 'settings:delete-pet-image',
+  settingsRenamePetImage: 'settings:rename-pet-image',
   settingsResetPosition: 'settings:reset-position',
   modulesList: 'modules:list',
   modulesSetEnabled: 'modules:set-enabled',
@@ -492,6 +506,10 @@ export interface SettingsApi {
   saveAppSettings(patch: AppSettingsPatch): Promise<PublicConfig>
   savePetSettings(patch: PetSettingsPatch): Promise<PublicConfig>
   importPetImage(): Promise<PublicConfig | null>
+  listPetImages(): Promise<PetUserImage[]>
+  selectPetAsset(assetId: string): Promise<PublicConfig>
+  deletePetImage(assetId: string): Promise<PublicConfig>
+  renamePetImage(assetId: string, name: string): Promise<PetUserImage[]>
   resetPetPosition(): Promise<PublicConfig>
   getModules(): Promise<ModuleSummary[]>
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): Promise<ModuleSummary[]>

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../../components/Button'
+import { useAnchoredPopover } from '../../components/useAnchoredPopover'
 
 interface Props {
   value: string | null
@@ -49,9 +50,10 @@ export function MemoReminderPicker({ value, onSelect, onClear }: Props) {
   const [hours, setHours] = useState(9)
   const [minutes, setMinutes] = useState(0)
   const [seconds, setSeconds] = useState(0)
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const popoverRef = useRef<HTMLDivElement | null>(null)
+  const { triggerRef, popoverRef, position } = useAnchoredPopover({
+    open,
+    onClose: () => setOpen(false)
+  })
 
   function loadValue(): void {
     const date = value ? new Date(value) : new Date()
@@ -69,52 +71,6 @@ export function MemoReminderPicker({ value, onSelect, onClear }: Props) {
     loadValue()
     setOpen(true)
   }
-
-  useEffect(() => {
-    if (!open) {
-      setPosition(null)
-      return
-    }
-    const measure = (): void => {
-      const trigger = triggerRef.current
-      const popover = popoverRef.current
-      if (!trigger || !popover) {
-        return
-      }
-      const rect = trigger.getBoundingClientRect()
-      const size = popover.getBoundingClientRect()
-      const margin = 8
-      const gap = 6
-      let left = rect.right - size.width
-      left = Math.max(margin, Math.min(left, window.innerWidth - size.width - margin))
-      let top = rect.bottom + gap
-      if (top + size.height > window.innerHeight - margin) {
-        top = Math.max(margin, rect.top - size.height - gap)
-      }
-      setPosition({ top, left })
-    }
-    measure()
-    const onPointerDown = (event: PointerEvent): void => {
-      const target = event.target as Node
-      if (triggerRef.current?.contains(target) || popoverRef.current?.contains(target)) {
-        return
-      }
-      setOpen(false)
-    }
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        setOpen(false)
-      }
-    }
-    window.addEventListener('pointerdown', onPointerDown)
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('resize', measure)
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown)
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('resize', measure)
-    }
-  }, [open])
 
   function changeMonth(delta: number): void {
     const next = new Date(viewYear, viewMonth + delta, 1)

@@ -20,6 +20,7 @@ import type {
   ModuleId,
   ModuleSummary,
   PetSettingsPatch,
+  PetUserImage,
   PetViewState,
   PublicConfig,
   RefreshableModuleId,
@@ -70,6 +71,7 @@ export interface AppControllerOptions {
   preloadPath: string
   appIconPath: string
   defaultPetPath: string
+  petPresetsDirectory: string
   trayIconPath: string
   petsDirectory: string
 }
@@ -84,6 +86,9 @@ export class AppController {
   private readonly actions: ModuleActionRunner
   private readonly memoCards: MemoCardWindowManager
   private readonly shortcuts = new GlobalShortcutManager()
+  private readonly bossShortcuts = new GlobalShortcutManager()
+  private bossHidden = false
+  private settingsHiddenByBoss = false
   private disposed = false
 
   constructor(private readonly options: AppControllerOptions) {
@@ -102,6 +107,7 @@ export class AppController {
       devServerUrl: options.devServerUrl,
       rendererIndexPath: options.rendererIndexPath,
       defaultPetPath: options.defaultPetPath,
+      petPresetsDirectory: options.petPresetsDirectory,
       petsDirectory: options.petsDirectory,
       getDialogParent: () => this.activeDialogParent(),
       onBoundsChanged: () => this.overlays.reposition()
@@ -144,6 +150,11 @@ export class AppController {
         accelerator: this.config.app.memoShortcut
       })
     }
+    if (!this.bossShortcuts.register(this.config.app.bossShortcut, () => this.toggleBossMode())) {
+      this.options.logger.warn('global shortcut unavailable', {
+        accelerator: this.config.app.bossShortcut
+      })
+    }
 
     screen.on('display-added', this.onDisplaysChanged)
     screen.on('display-removed', this.onDisplaysChanged)
@@ -174,6 +185,11 @@ export class AppController {
   updateAppSettings(patch: AppSettingsPatch): PublicConfig {
     if (patch.memoShortcut !== undefined) {
       if (!this.shortcuts.register(patch.memoShortcut, () => this.openMemoComposer())) {
+        throw new AppError('INVALID_INPUT', '快捷键不可用，可能已被其他程序占用')
+      }
+    }
+    if (patch.bossShortcut !== undefined) {
+      if (!this.bossShortcuts.register(patch.bossShortcut, () => this.toggleBossMode())) {
         throw new AppError('INVALID_INPUT', '快捷键不可用，可能已被其他程序占用')
       }
     }
@@ -459,6 +475,22 @@ export class AppController {
     return this.pet.importImage()
   }
 
+  selectPetAsset(assetId: string): PublicConfig {
+    return this.pet.selectAsset(assetId)
+  }
+
+  listPetImages(): PetUserImage[] {
+    return this.pet.listUserImages()
+  }
+
+  deletePetImage(assetId: string): PublicConfig {
+    return this.pet.deleteUserImage(assetId)
+  }
+
+  renamePetImage(assetId: string, name: string): PetUserImage[] {
+    return this.pet.renameUserImage(assetId, name)
+  }
+
   resetPetPosition(): PublicConfig {
     return this.pet.resetPosition()
   }
@@ -546,9 +578,42 @@ export class AppController {
     if (!this.pet.getWindow()) {
       return
     }
+    const leavingBossMode = this.bossHidden
+    this.bossHidden = false
     this.pet.show()
     this.tray?.setPetVisible(true)
+    this.tray?.create()
     this.overlays.showBubbleStack()
+    if (leavingBossMode) {
+      this.memoCards.setVisible(true)
+      if (this.settingsHiddenByBoss) {
+        this.settingsHiddenByBoss = false
+        const settings = this.settingsWindow
+        if (settings && !settings.isDestroyed()) {
+          settings.show()
+        }
+      }
+    }
+  }
+
+  private enterBossMode(): void {
+    this.bossHidden = true
+    const settings = this.settingsWindow
+    this.settingsHiddenByBoss = Boolean(settings && !settings.isDestroyed() && settings.isVisible())
+    if (this.settingsHiddenByBoss) {
+      settings?.hide()
+    }
+    this.memoCards.setVisible(false)
+    this.hidePet()
+    this.tray?.destroy()
+  }
+
+  private toggleBossMode(): void {
+    if (this.bossHidden) {
+      this.showPet()
+      return
+    }
+    this.enterBossMode()
   }
 
   handleSecondInstance(): void {
@@ -584,6 +649,7 @@ export class AppController {
   dispose(): void {
     this.disposed = true
     this.shortcuts.dispose()
+    this.bossShortcuts.dispose()
     this.options.moduleManager.stop()
     this.memoCards.dispose()
     this.actions.dispose()

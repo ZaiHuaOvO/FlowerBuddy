@@ -111,7 +111,9 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
   const reminderTip =
     draft.reminderError ||
     (draft.reminderAt ? `提醒时间：${formatMemoDateTime(draft.reminderAt)}` : '')
-  const reminderTooltip = useTooltip<HTMLInputElement>(reminderTip, 'right')
+  const reminderTooltip = useTooltip<HTMLInputElement>(reminderTip, 'right', {
+    persistent: Boolean(draft.reminderAt)
+  })
 
   useEffect(() => {
     if (editorOpen) {
@@ -311,7 +313,11 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
                     align="right"
                   />
                 </span>
-                <ShortcutInput value={memoShortcut} onSave={onSaveShortcut} />
+                <ShortcutInput
+                  value={memoShortcut}
+                  onSave={onSaveShortcut}
+                  label="修改新建备忘录快捷键"
+                />
               </div>
             </div>
           </div>

@@ -3,15 +3,24 @@ import { createPortal } from 'react-dom'
 
 export type TooltipAlign = 'center' | 'left' | 'right'
 
+export interface TooltipOptions {
+  persistent?: boolean
+}
+
 /**
  * Renders the tooltip in a body portal so settings panels and modals with
  * `overflow` cannot clip it.
  */
-export function useTooltip<T extends HTMLElement>(text: string, align: TooltipAlign = 'center') {
+export function useTooltip<T extends HTMLElement>(
+  text: string,
+  align: TooltipAlign = 'center',
+  options: TooltipOptions = {}
+) {
   const triggerRef = useRef<T | null>(null)
   const layerRef = useRef<HTMLDivElement | null>(null)
-  const [open, setOpen] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+  const open = hovered || Boolean(options.persistent)
 
   const measure = useCallback(() => {
     const trigger = triggerRef.current
@@ -54,10 +63,10 @@ export function useTooltip<T extends HTMLElement>(text: string, align: TooltipAl
   }, [measure, open, text])
 
   const handlers = {
-    onMouseEnter: () => setOpen(true),
-    onMouseLeave: () => setOpen(false),
-    onFocus: () => setOpen(true),
-    onBlur: () => setOpen(false)
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+    onFocus: () => setHovered(true),
+    onBlur: () => setHovered(false)
   }
 
   const layer =

@@ -1,12 +1,18 @@
-import { readFileSync } from 'node:fs'
-import { BrowserWindow, dialog, screen } from 'electron'
+import { readFileSync, statSync } from 'node:fs'
+import { BrowserWindow, dialog, nativeImage, screen } from 'electron'
 import type { OpenDialogOptions } from 'electron'
-import { IPC_CHANNELS, petAssetUrl } from '../../shared/api'
-import type { PetAssetInfo, PetViewState, PublicConfig } from '../../shared/api'
+import { IPC_CHANNELS, MAX_PET_NAME_LENGTH, petAssetUrl } from '../../shared/api'
+import type { PetAssetInfo, PetUserImage, PetViewState, PublicConfig } from '../../shared/api'
+import { AppError } from '../shared/errors'
 import type { ConfigStore } from '../storage/config-store'
 import {
+  MAX_PET_BYTES,
+  MAX_PET_DIMENSION,
   PetAssetError,
-  importPetFile,
+  deletePetImageFile,
+  importPetBuffer,
+  isUserPetImageId,
+  listPetImageIds,
   readPngInfo,
   resolvePetAssetPath
 } from '../storage/pet-assets'
@@ -28,6 +34,7 @@ export interface PetWindowControllerOptions {
   devServerUrl: string | undefined
   rendererIndexPath: string
   defaultPetPath: string
+  petPresetsDirectory: string
   petsDirectory: string
   getDialogParent: () => BrowserWindow | null
   onBoundsChanged: () => void
@@ -190,7 +197,7 @@ export class PetWindowController {
     const dialogOptions: OpenDialogOptions = {
       title: '选择桌宠图片',
       properties: ['openFile'],
-      filters: [{ name: 'PNG 图片', extensions: ['png'] }]
+      filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg'] }]
     }
 
     const result = parent
@@ -206,7 +213,8 @@ export class PetWindowController {
     }
 
     try {
-      const imported = importPetFile(sourcePath, this.options.petsDirectory)
+      const pngBuffer = this.readImageAsPng(sourcePath)
+      const imported = importPetBuffer(pngBuffer, this.options.petsDirectory)
       this.options.configStore.updatePet({ assetId: imported.assetId })
       this.asset = {
         assetId: imported.assetId,
@@ -218,17 +226,86 @@ export class PetWindowController {
       this.pushState()
       return this.config
     } catch (error) {
-      throw new Error(this.describeImportError(error), { cause: error })
+      throw new AppError('INVALID_INPUT', this.describeImportError(error), { cause: error })
     }
   }
 
-  resolveAssetPath(assetId: string): string | null {
-    if (assetId !== this.config.pet.assetId) {
-      return null
+  selectAsset(assetId: string): PublicConfig {
+    if (!this.resolvePath(assetId)) {
+      throw new AppError('INVALID_INPUT', '桌宠图片不存在')
     }
+    this.applyAsset(assetId)
+    return this.config
+  }
+
+  listUserImages(): PetUserImage[] {
+    const names = this.config.pet.names
+    return listPetImageIds(this.options.petsDirectory).map((assetId) => ({
+      assetId,
+      name: names[assetId] ?? null
+    }))
+  }
+
+  renameUserImage(assetId: string, name: string): PetUserImage[] {
+    if (!isUserPetImageId(assetId) || !this.resolvePath(assetId)) {
+      throw new AppError('INVALID_INPUT', '桌宠图片不存在')
+    }
+
+    const trimmed = name.trim().slice(0, MAX_PET_NAME_LENGTH)
+    const names = { ...this.config.pet.names }
+    if (trimmed) {
+      names[assetId] = trimmed
+    } else {
+      delete names[assetId]
+    }
+    this.options.configStore.updatePet({ names })
+    return this.listUserImages()
+  }
+
+  deleteUserImage(assetId: string): PublicConfig {
+    if (!deletePetImageFile(assetId, this.options.petsDirectory)) {
+      throw new AppError('INVALID_INPUT', '桌宠图片不存在')
+    }
+    const names = { ...this.config.pet.names }
+    delete names[assetId]
+    this.options.configStore.updatePet({ names })
+    if (this.config.pet.assetId === assetId) {
+      this.applyAsset('default')
+    }
+    return this.config
+  }
+
+  resolveAssetPath(assetId: string): string | null {
+    return this.resolvePath(assetId)
+  }
+
+  private applyAsset(assetId: string): void {
+    const filePath = this.resolvePath(assetId)
+    let width = FALLBACK_PET_DIMENSION
+    let height = FALLBACK_PET_DIMENSION
+    if (filePath) {
+      try {
+        const info = readPngInfo(readFileSync(filePath))
+        if (info) {
+          width = info.width
+          height = info.height
+        }
+      } catch {
+        // Keep the fallback dimensions; the image still loads through the protocol.
+      }
+    }
+
+    this.options.configStore.updatePet({ assetId })
+    this.asset = { assetId, width, height, url: petAssetUrl(assetId) }
+    this.resize()
+    this.pushState()
+  }
+
+  private resolvePath(assetId: string): string | null {
     return resolvePetAssetPath({
       assetId,
       petsDirectory: this.options.petsDirectory,
+      presetsDirectory: this.options.petPresetsDirectory,
       defaultAssetPath: this.options.defaultPetPath
     })
   }
@@ -239,20 +316,12 @@ export class PetWindowController {
 
   private loadAsset(): PetAssetInfo {
     let assetId = this.config.pet.assetId
-    let filePath = resolvePetAssetPath({
-      assetId,
-      petsDirectory: this.options.petsDirectory,
-      defaultAssetPath: this.options.defaultPetPath
-    })
+    let filePath = this.resolvePath(assetId)
 
     if (!filePath && assetId !== 'default') {
       assetId = 'default'
       this.options.configStore.updatePet({ assetId })
-      filePath = resolvePetAssetPath({
-        assetId,
-        petsDirectory: this.options.petsDirectory,
-        defaultAssetPath: this.options.defaultPetPath
-      })
+      filePath = this.resolvePath(assetId)
     }
 
     let width = FALLBACK_PET_DIMENSION
@@ -314,11 +383,61 @@ export class PetWindowController {
     return computePetWindowSize(this.asset.width, this.asset.height, this.config.pet.scale)
   }
 
+  private readImageAsPng(sourcePath: string): Buffer {
+    let size: number
+    try {
+      size = statSync(sourcePath).size
+    } catch {
+      throw new PetAssetError('UNREADABLE')
+    }
+    if (size > MAX_PET_BYTES) {
+      throw new PetAssetError('TOO_LARGE')
+    }
+
+    let buffer: Buffer
+    try {
+      buffer = readFileSync(sourcePath)
+    } catch {
+      throw new PetAssetError('UNREADABLE')
+    }
+
+    if (readPngInfo(buffer)) {
+      return buffer
+    }
+
+    let image
+    try {
+      image = nativeImage.createFromBuffer(buffer)
+    } catch {
+      throw new AppError('INVALID_INPUT', '图片格式不受支持，请选择 PNG 或 JPEG 图片')
+    }
+    if (image.isEmpty()) {
+      throw new AppError('INVALID_INPUT', '图片格式不受支持，请选择 PNG 或 JPEG 图片')
+    }
+
+    const { width, height } = image.getSize()
+    if (width < 1 || height < 1) {
+      throw new AppError('INVALID_INPUT', '无法读取这张图片')
+    }
+    if (width > MAX_PET_DIMENSION || height > MAX_PET_DIMENSION) {
+      throw new AppError('INVALID_INPUT', `图片尺寸不能超过 ${MAX_PET_DIMENSION} 像素`)
+    }
+
+    const png = image.toPNG()
+    if (png.length === 0) {
+      throw new AppError('INVALID_INPUT', '无法读取这张图片')
+    }
+    return png
+  }
+
   private describeImportError(error: unknown): string {
+    if (error instanceof AppError) {
+      return error.message
+    }
     if (error instanceof PetAssetError) {
       switch (error.code) {
         case 'NOT_PNG':
-          return '所选文件不是有效的 PNG 图片'
+          return '图片格式不受支持，请选择 PNG 或 JPEG 图片'
         case 'TOO_LARGE':
           return '图片超过 15 MB 限制'
         case 'UNREADABLE':

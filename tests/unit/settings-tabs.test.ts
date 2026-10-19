@@ -22,17 +22,18 @@ const asyncNoop = async (): Promise<void> => {}
 
 function makeConfig(): PublicConfig {
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     app: {
       alwaysOnTop: true,
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
+      bossShortcut: 'Alt+Z',
       memoShortcut: 'Alt+A',
       moduleOrder: ['memo', 'interval-reminder'],
       showPetOnStartup: true
     },
-    pet: { assetId: 'default', scale: 1, position: null },
+    pet: { assetId: 'default', names: {}, scale: 1, position: null },
     modules: {
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
@@ -164,16 +165,22 @@ describe('settings tabs render', () => {
     const config = makeConfig()
     const render = (element: ReactElement): string => renderToStaticMarkup(element)
 
-    expect(
-      render(
-        createElement(GeneralSettingsTab, {
-          config,
-          onSave: noop,
-          onSavePet: noop,
-          onImportImage: noop
-        })
-      )
-    ).toContain('<h2>常规</h2>')
+    const general = render(
+      createElement(GeneralSettingsTab, {
+        config,
+        userImages: [{ assetId: '3f1c2a56-8b9d-4a1e-9f0c-123456789abc', name: '小棕' }],
+        onSave: noop,
+        onSavePet: noop,
+        onImportImage: noop,
+        onSelectAsset: asyncNoop,
+        onDeleteImage: asyncNoop,
+        onRenameImage: asyncNoop
+      })
+    )
+    expect(general).toContain('<h2>常规</h2>')
+    expect(general).toContain('pet-gallery')
+    expect(general).toContain('再花猫猫头')
+    expect(general).toContain('小棕')
     expect(
       render(
         createElement(ModulesSettingsTab, {

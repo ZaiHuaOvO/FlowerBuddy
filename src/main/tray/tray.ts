@@ -19,6 +19,10 @@ export class AppTray {
   ) {}
 
   create(): void {
+    if (this.tray) {
+      return
+    }
+
     const image = nativeImage.createFromPath(this.iconPath)
     const icon = image.isEmpty()
       ? nativeImage.createFromBuffer(Buffer.from(FALLBACK_ICON, 'base64'))

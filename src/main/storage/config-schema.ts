@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { MAX_PET_NAME_LENGTH } from '../../shared/api'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 import { DEFAULT_ESA_DISPLAY_RANGES } from '../../shared/esa'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 9
+export const CURRENT_CONFIG_SCHEMA_VERSION = 10
 
 export const MODULE_ID_VALUES = [
   'memo',
@@ -124,6 +125,7 @@ const positionSchema = z
 
 const appSchema = z.object({
   alwaysOnTop: booleanField(true),
+  bossShortcut: stringField(64, 'Alt+Z'),
   bounceAnimation: booleanField(true),
   bubbleDurationMs: integerField(1000, 30000, 5000),
   launchAtLogin: booleanField(false),
@@ -132,11 +134,34 @@ const appSchema = z.object({
   showPetOnStartup: booleanField(true)
 })
 
+const USER_PET_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
+function petNamesField() {
+  return z
+    .record(z.string(), z.unknown())
+    .catch({})
+    .default({})
+    .transform((names) => {
+      const result: Record<string, string> = {}
+      for (const [assetId, name] of Object.entries(names)) {
+        if (!USER_PET_ID_PATTERN.test(assetId) || typeof name !== 'string') {
+          continue
+        }
+        const trimmed = name.trim().slice(0, MAX_PET_NAME_LENGTH)
+        if (trimmed) {
+          result[assetId] = trimmed
+        }
+      }
+      return result
+    })
+}
+
 const petSchema = z.object({
   assetId: z
     .string()
     .regex(/^[A-Za-z0-9-]{1,64}$/)
     .catch('default'),
+  names: petNamesField(),
   scale: numberField(0.5, 2, 1),
   position: positionSchema
 })
@@ -228,6 +253,7 @@ const configSchema = z
     schemaVersion: z.number().catch(CURRENT_CONFIG_SCHEMA_VERSION),
     app: appSchema.default({
       alwaysOnTop: true,
+      bossShortcut: 'Alt+Z',
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
@@ -235,7 +261,7 @@ const configSchema = z
       moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     }),
-    pet: petSchema.default({ assetId: 'default', scale: 1, position: null }),
+    pet: petSchema.default({ assetId: 'default', names: {}, scale: 1, position: null }),
     modules: modulesSchema.default({
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
@@ -253,6 +279,7 @@ const configSchema = z
     schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
     app: {
       alwaysOnTop: true,
+      bossShortcut: 'Alt+Z',
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
@@ -260,7 +287,7 @@ const configSchema = z
       moduleOrder: [...defaultModuleOrder],
       showPetOnStartup: true
     },
-    pet: { assetId: 'default', scale: 1, position: null },
+    pet: { assetId: 'default', names: {}, scale: 1, position: null },
     modules: {
       memo: { enabled: true, anchorNewMemos: false },
       intervalReminder: { enabled: true },
@@ -295,6 +322,7 @@ export function createDefaultConfig(): PublicConfig {
     schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
     app: {
       alwaysOnTop: true,
+      bossShortcut: 'Alt+Z',
       bounceAnimation: true,
       bubbleDurationMs: 5000,
       launchAtLogin: false,
@@ -304,6 +332,7 @@ export function createDefaultConfig(): PublicConfig {
     },
     pet: {
       assetId: 'default',
+      names: {},
       scale: 1,
       position: null
     },

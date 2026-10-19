@@ -9,11 +9,13 @@ import type {
   ModuleId,
   ModuleSummary,
   PetSettingsPatch,
+  PetUserImage,
   PublicConfig,
   RefreshableModuleId,
   SecurityStatus,
   WebsiteCheckConfig
 } from '../../../shared/api'
+import { petPresetLabel } from '../../../shared/pet-presets'
 import { MemoSettingsTab } from './tabs/MemoSettingsTab'
 import { IntervalReminderSettingsTab } from './tabs/IntervalReminderSettingsTab'
 import { DeepSeekSettingsTab } from './tabs/DeepSeekSettingsTab'
@@ -43,6 +45,7 @@ export default function SettingsApp() {
   const [memos, setMemos] = useState<MemoSummary[]>([])
   const [intervalReminders, setIntervalReminders] = useState<IntervalReminderSummary[]>([])
   const [websites, setWebsites] = useState<WebsiteCheckConfig[]>([])
+  const [petImages, setPetImages] = useState<PetUserImage[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -60,6 +63,19 @@ export default function SettingsApp() {
       .then((next) => {
         if (active) {
           setConfig(next)
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(toMessage(cause))
+        }
+      })
+
+    void api
+      .listPetImages()
+      .then((next) => {
+        if (active) {
+          setPetImages(next)
         }
       })
       .catch((cause: unknown) => {
@@ -188,6 +204,8 @@ export default function SettingsApp() {
       setIntervalReminders={setIntervalReminders}
       websites={websites}
       setWebsites={setWebsites}
+      petImages={petImages}
+      setPetImages={setPetImages}
       error={error}
       setError={setError}
     />
@@ -209,6 +227,8 @@ interface ContentProps {
   setIntervalReminders: (reminders: IntervalReminderSummary[]) => void
   websites: WebsiteCheckConfig[]
   setWebsites: (websites: WebsiteCheckConfig[]) => void
+  petImages: PetUserImage[]
+  setPetImages: Dispatch<SetStateAction<PetUserImage[]>>
   error: string
   setError: (message: string) => void
 }
@@ -228,6 +248,8 @@ function SettingsContent({
   setIntervalReminders,
   websites,
   setWebsites,
+  petImages,
+  setPetImages,
   error,
   setError
 }: ContentProps) {
@@ -309,8 +331,40 @@ function SettingsContent({
       const next = await api.importPetImage()
       if (next) {
         setConfig(next)
+        setPetImages(await api.listPetImages())
         flash('已导入新形象')
       }
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function selectPetAsset(assetId: string): Promise<void> {
+    setError('')
+    try {
+      setConfig(await api.selectPetAsset(assetId))
+      flash(`已切换为${petPresetLabel(assetId) ?? '自定义形象'}`)
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function deletePetImage(assetId: string): Promise<void> {
+    setError('')
+    try {
+      setConfig(await api.deletePetImage(assetId))
+      setPetImages(await api.listPetImages())
+      flash('已删除该形象')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  async function renamePetImage(assetId: string, name: string): Promise<void> {
+    setError('')
+    try {
+      setPetImages(await api.renamePetImage(assetId, name))
+      flash(name ? '名称已保存' : '已恢复默认名称')
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -489,9 +543,13 @@ function SettingsContent({
           {activeTab === 'general' ? (
             <GeneralSettingsTab
               config={config}
+              userImages={petImages}
               onSave={(patch) => void saveApp(patch)}
               onSavePet={(patch) => void savePet(patch)}
               onImportImage={() => void importPetImage()}
+              onSelectAsset={selectPetAsset}
+              onDeleteImage={deletePetImage}
+              onRenameImage={renamePetImage}
             />
           ) : null}
           {activeTab === 'modules' ? (

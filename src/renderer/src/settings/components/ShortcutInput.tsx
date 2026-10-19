@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 interface ShortcutInputProps {
   value: string
   onSave: (accelerator: string) => void
+  label?: string
 }
 
 const KEY_NAMES: Record<string, string> = {
@@ -54,7 +55,7 @@ function toAccelerator(event: KeyboardEvent): string | null {
   return parts.join('+')
 }
 
-export function ShortcutInput({ value, onSave }: ShortcutInputProps) {
+export function ShortcutInput({ value, onSave, label = '修改快捷键' }: ShortcutInputProps) {
   const [recording, setRecording] = useState(false)
   const buttonRef = useRef<HTMLButtonElement | null>(null)
 
@@ -102,7 +103,7 @@ export function ShortcutInput({ value, onSave }: ShortcutInputProps) {
         ref={buttonRef}
         type="button"
         className={`shortcut-value${recording ? ' is-recording' : ''}`}
-        aria-label="修改新建备忘录快捷键"
+        aria-label={label}
         onClick={() => {
           setRecording(true)
           buttonRef.current?.focus()

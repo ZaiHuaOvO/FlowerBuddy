@@ -3,8 +3,9 @@ import { protocol } from 'electron'
 import { PET_ASSET_SCHEME } from '../../shared/api'
 
 /**
- * Serves pet images to the renderers. The resolver only knows the configured
- * asset and the bundled default, so arbitrary file reads are impossible.
+ * Serves pet images to the renderers. The resolver only accepts bundled preset
+ * ids and UUID-named files inside the user's pets directory, so arbitrary file
+ * reads are impossible.
  */
 export function handlePetAssetRequests(resolveAssetPath: (assetId: string) => string | null): void {
   protocol.handle(PET_ASSET_SCHEME, async (request) => {

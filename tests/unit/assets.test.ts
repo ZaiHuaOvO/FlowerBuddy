@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { PET_PRESETS } from '../../src/shared/pet-presets'
 import { readPngInfo } from '../../src/main/storage/pet-assets'
 
 function readAsset(...segments: string[]): Buffer {
@@ -20,6 +21,22 @@ describe('bundled assets', () => {
     expect(info.width).toBe(512)
     expect(info.height).toBeGreaterThan(300)
     expect(info.height).toBeLessThan(512)
+  })
+
+  it('ships every preset pet as a cropped PNG', () => {
+    for (const preset of PET_PRESETS) {
+      if (preset.id === 'default') {
+        continue
+      }
+      const fileName = `${preset.id.replace(/^preset-/, '')}.png`
+      const info = readPngInfo(readAsset('pet-presets', fileName))
+      if (!info) {
+        throw new Error(`${fileName} is not a valid PNG`)
+      }
+      expect(info.width).toBeGreaterThan(0)
+      expect(info.height).toBeGreaterThan(0)
+      expect(Math.max(info.width, info.height)).toBeLessThanOrEqual(512)
+    }
   })
 
   it('builds the application icon with every Windows size', () => {
