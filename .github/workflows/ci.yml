@@ -46,6 +46,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Ensure Electron binary
+        run: node node_modules/electron/install.js
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
         with:
