@@ -378,6 +378,7 @@ flowchart LR
 - main 构建额外把 `bufferutil` / `utf-8-validate` 标记为 Rollup external：阿里云 ESA SDK 的 `ws` 依赖会可选加载这两个原生模块，未安装时 `ws` 自动回退到纯 JS；直接打包会在解析阶段失败。
 - 开发 CSP 允许 React Refresh 内联脚本和本地 HMR WebSocket；生产 CSP 为 `default-src 'none'`、`script-src 'self'`。
 - `electron-builder.yml`：`asar: true`，打包 `out/**/*`、`package.json`、`assets/default-pet/**/*`、`assets/pet-presets/**/*`，输出到 `release/`；Windows x64 生成 NSIS 和 portable。
+- NSIS 安装程序使用 `assets/installer/sidebar.bmp`（164×314）和 `header.bmp`（150×57）作为品牌侧边栏与顶部图，由 `scripts/generate-installer-assets.ps1` 生成；`assets/installer.nsh` 增加中文欢迎页，并在 `Software\<APP_GUID>` 缺失时从卸载注册表恢复旧安装目录。electron-builder 本身会读取 `InstallLocation`、先运行旧卸载程序再覆盖安装；`deleteAppDataOnUninstall: false` 保证 `%APPDATA%\FlowerBuddy` 中的设置、凭据、备忘录和桌宠图片不被删除。
 - `extraResources` 带入第三方许可证和托盘图标。
 - `scripts/make-portable-zip.mjs` 在 `dist:win` 末尾生成便携 ZIP。
 - CI（`.github/workflows/ci.yml`）在 `windows-latest` 运行 typecheck、lint、format:check、test、build；tag 或手动触发时额外打包并上传产物。

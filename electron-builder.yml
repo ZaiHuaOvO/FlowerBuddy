@@ -38,6 +38,17 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: 花伴
   uninstallDisplayName: ${productName} ${version}
+  installerIcon: app-icon.ico
+  uninstallerIcon: app-icon.ico
+  installerHeader: installer/header.bmp
+  installerSidebar: installer/sidebar.bmp
+  uninstallerSidebar: installer/sidebar.bmp
+  installerLanguages:
+    - zh_CN
+  language: '2052'
+  displayLanguageSelector: false
+  include: installer.nsh
+  deleteAppDataOnUninstall: false
   artifactName: ${productName}-Setup-${version}-${arch}.${ext}
 
 portable:

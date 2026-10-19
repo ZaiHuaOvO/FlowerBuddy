@@ -26,7 +26,8 @@
     "build": "npm run typecheck && electron-vite build",
     "icons": "electron scripts/generate-icon.cjs",
     "pets": "electron scripts/convert-pets.cjs",
-    "assets": "npm run icons && npm run pets",
+    "installer-assets": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-installer-assets.ps1",
+    "assets": "npm run icons && npm run pets && npm run installer-assets",
     "licenses": "node scripts/generate-licenses.mjs",
     "dist:win": "npm run build && npm run licenses && electron-builder --win --x64 && node scripts/make-portable-zip.mjs",
     "dist:win:dir": "npm run build && electron-builder --win --x64 --dir"

@@ -109,7 +109,8 @@ npm install
 | `npm run build`                           | 类型检查 + 生产构建到 `out/`                                                          |
 | `npm run icons`                           | 重新生成应用图标与托盘图标                                                            |
 | `npm run pets`                            | 从 `assets/pet-source.webp` 与 `assets/pet-preset-source/` 重新生成默认桌宠和预设 PNG |
-| `npm run assets`                          | 依次生成图标与默认桌宠图片                                                            |
+| `npm run installer-assets`                | 重新生成安装向导的品牌侧边栏与顶部图片                                                |
+| `npm run assets`                          | 依次生成图标、桌宠与安装向导图片                                                      |
 | `npm run licenses`                        | 生成 `licenses/THIRD_PARTY_LICENSES.md`                                               |
 | `npm run dist:win`                        | 构建并打包 Windows x64 NSIS 安装版与便携版到 `release/`                               |
 | `npm run dist:win:dir`                    | 只生成未打包的应用目录，便于排查打包问题                                              |
@@ -190,9 +191,11 @@ npm run dist:win
 
 产物（`release/`）：
 
-- `花伴-Setup-<version>-x64.exe`：NSIS 安装程序，默认按当前用户安装，可选择安装目录。
+- `花伴-Setup-<version>-x64.exe`：NSIS 安装程序，默认按当前用户安装，可选择安装目录；安装向导使用花伴配色、桌宠侧边栏/顶部图与中文界面。
 - `花伴-Portable-<version>-x64.exe`：便携版，双击运行。
 - `花伴-<version>-x64.zip`：便携版 + 使用说明 + 项目许可 + 第三方许可证清单。
+
+安装程序会读取旧版本的安装位置（包括仅剩卸载注册信息的旧安装），自动把目标目录设为原目录并在安装前静默卸载旧版本，因此升级会覆盖原目录而不会产生第二份安装；`config.json`、`secrets.enc.json`、`data/`、`pets/` 和 `logs/` 均保留。安装向导侧边栏与顶部图由 `npm run installer-assets` 生成，源文件位于 `assets/installer/`。
 
 用户数据将保存在 Electron `userData` 目录，升级不会覆盖；不会写入安装目录。隐私与删除方式见 [PRIVACY.md](PRIVACY.md)。
 
