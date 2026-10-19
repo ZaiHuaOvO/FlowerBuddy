@@ -68,7 +68,7 @@ jobs:
       - name: Build NSIS and portable packages
         shell: pwsh
         run: |
-          npx electron-builder --win --x64 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\electron-builder.log"
+          npx electron-builder --win --x64 --publish never 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\electron-builder.log"
           $code = $LASTEXITCODE
           if ($code -ne 0) {
             Get-Content "$env:RUNNER_TEMP\electron-builder.log" -Tail 40 | ForEach-Object { Write-Output "::error::$_" }

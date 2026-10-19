@@ -29,8 +29,8 @@
     "installer-assets": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-installer-assets.ps1",
     "assets": "npm run icons && npm run pets && npm run installer-assets",
     "licenses": "node scripts/generate-licenses.mjs",
-    "dist:win": "npm run build && npm run licenses && electron-builder --win --x64 && node scripts/make-portable-zip.mjs",
-    "dist:win:dir": "npm run build && electron-builder --win --x64 --dir"
+    "dist:win": "npm run build && npm run licenses && electron-builder --win --x64 --publish never && node scripts/make-portable-zip.mjs",
+    "dist:win:dir": "npm run build && electron-builder --win --x64 --publish never --dir"
   },
   "dependencies": {
     "@alicloud/esa20240910": "3.14.2",

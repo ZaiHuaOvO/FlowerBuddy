@@ -67,4 +67,4 @@ git push --follow-tags origin main
 - 压缩包：`花伴-<version>-x64.zip`
 - 校验文件：`SHA256SUMS.txt`
 
-安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。当前不提供自动更新；`blockmap` 不作为 Release 下载项。GitHub Actions 的临时 Artifact 默认只保留 14 天，不能替代 Release 附件。
+安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。当前不提供自动更新；`blockmap` 不作为 Release 下载项。GitHub Actions 的临时 Artifact 默认只保留 14 天，不能替代 Release 附件。electron-builder 使用 `--publish never`，Release 附件由 `gh release create` 单独上传，避免标签构建时触发隐式发布。
