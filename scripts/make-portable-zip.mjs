@@ -21,13 +21,15 @@ const portablePath = join(releaseDir, portableName)
 const readmePath = join(root, 'docs', 'README-使用说明.txt')
 const licensesPath = join(root, 'licenses', 'THIRD_PARTY_LICENSES.md')
 const licensePath = join(root, 'LICENSE')
+const assetsLicensePath = join(root, 'ASSETS-LICENSE.md')
 const outputPath = join(releaseDir, `${artifactBase}-${version}-x64.zip`)
 
 for (const [label, filePath] of [
   ['portable executable', portablePath],
   ['usage readme', readmePath],
   ['third-party licenses', licensesPath],
-  ['project license', licensePath]
+  ['project license', licensePath],
+  ['assets license', assetsLicensePath]
 ]) {
   if (!existsSync(filePath)) {
     console.error(`Missing ${label}: ${filePath}`)
@@ -41,6 +43,7 @@ try {
   copyFileSync(readmePath, join(staging, 'README-使用说明.txt'))
   copyFileSync(licensesPath, join(staging, 'THIRD_PARTY_LICENSES.md'))
   copyFileSync(licensePath, join(staging, 'LICENSE.txt'))
+  copyFileSync(assetsLicensePath, join(staging, 'ASSETS-LICENSE.txt'))
 
   const destination = outputPath.replace(/'/g, "''")
   const source = join(staging, '*').replace(/'/g, "''")

@@ -7,7 +7,7 @@
   "author": {
     "name": "花伴"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "engines": {
     "node": ">=22.12.0"

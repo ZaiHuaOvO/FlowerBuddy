@@ -25,7 +25,7 @@
 - [x] 首版发布前安全收口：两个自定义 scheme 合并为一次 `registerSchemesAsPrivileged()` 调用；所有应用窗口通过 `security/navigation-guards.ts` 拒绝新窗口、外部顶层导航与重定向（2026-10-18）。
 - [x] Gmail 功能移除：删除主进程模块、IPC、设置页、测试、Google 依赖和当前文档；配置 schema v9 清理残留模块与顺序，启动时删除旧凭据和 `gmail-state.json`（2026-10-18）。
 - [x] 长期运行收口：定时提醒使用稳定气泡 ID 去重；同时锚定的桌面备忘卡片上限设为 20 张，旧数据加载时自动取消超出部分（2026-10-18）。
-- [x] 许可与发布文档：采用专有许可并新增 `LICENSE`；README 补充安装包体积口径、GitHub Release 步骤、未签名提示与素材权利说明（2026-10-18）。
+- [x] 许可与发布文档：源代码采用 MIT 许可，美术素材单独保留权利并新增 `ASSETS-LICENSE.md`；README 补充安装包体积口径、GitHub Release 步骤、未签名提示与素材权利说明（2026-10-19）。
 - [x] 正式 GitHub Release：`v0.1.0` 已通过标签工作流构建并发布，附 Setup、Portable、ZIP 与 SHA256SUMS；后续版本按 [发布流程](development/release-process.md) 推送新标签（2026-10-19）。
 
 ## 仍需用户参与或外部条件
