@@ -70,11 +70,17 @@ npm run dist:win
 
 `.github/workflows/ci.yml`：
 
-- 触发：推送到 `main`、`v*` tag、Pull Request、手动触发。
+- 触发：推送到 `main`、Pull Request、手动触发。
 - `check` job（`windows-latest`）：`npm ci` → `typecheck` → `lint` → `format:check` → `test` → `build`。
-- `package` job：仅在 tag 或手动触发时运行，执行 `dist:win` 并上传 `.exe`、`.zip`、`.blockmap`。
+- `package` job：仅手动触发时运行，执行 `dist:win` 并上传 `.exe`、`.zip`、`.blockmap` 作为短期 Artifact。
 
-CI 不能替代真实账户、真实显示器、原生对话框、系统托盘和安装/卸载的人工验收。
+`.github/workflows/release.yml`：
+
+- 触发：推送 `v*` 标签。
+- 校验标签与 `package.json` 版本一致，运行同一组检查并执行 `dist:win`。
+- 生成 `SHA256SUMS.txt`，创建或更新草稿 GitHub Release，附上 Setup、Portable、ZIP 与校验文件；维护者审核后手动发布。
+
+CI 不能替代真实账户、真实显示器、原生对话框、系统托盘和安装/卸载的人工验收。发布流程见 [release-process.md](../development/release-process.md)。
 
 ## 5. 单元测试约定
 

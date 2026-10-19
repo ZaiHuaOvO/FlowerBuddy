@@ -381,7 +381,8 @@ flowchart LR
 - NSIS 安装程序使用 `assets/installer/sidebar.bmp`（164×314）和 `header.bmp`（150×57）作为品牌侧边栏与顶部图，由 `scripts/generate-installer-assets.ps1` 生成；`assets/installer.nsh` 增加中文欢迎页，并在 `Software\<APP_GUID>` 缺失时从卸载注册表恢复旧安装目录。electron-builder 本身会读取 `InstallLocation`、先运行旧卸载程序再覆盖安装；`deleteAppDataOnUninstall: false` 保证 `%APPDATA%\FlowerBuddy` 中的设置、凭据、备忘录和桌宠图片不被删除。
 - `extraResources` 带入第三方许可证和托盘图标。
 - `scripts/make-portable-zip.mjs` 在 `dist:win` 末尾生成便携 ZIP。
-- CI（`.github/workflows/ci.yml`）在 `windows-latest` 运行 typecheck、lint、format:check、test、build；tag 或手动触发时额外打包并上传产物。
+- `ci.yml` 在 `windows-latest` 对 `main`、Pull Request 和手动触发运行 typecheck、lint、format:check、test、build；手动触发时额外打包并上传短期 Artifact。
+- `release.yml` 在推送 `v*` 标签时校验标签与 `package.json` 版本一致，运行同一组检查并执行 `dist:win`，生成 `SHA256SUMS.txt` 后创建或更新草稿 GitHub Release，附上 Setup、Portable 与 ZIP；维护者审核 Release notes 和附件后手动发布。发布步骤见 [development/release-process.md](../development/release-process.md)。
 
 ## 10. 依赖方向与禁止的反向依赖
 

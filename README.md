@@ -67,12 +67,15 @@ npm run dist:win
 
 产物输出到 `release/`。仅生成未打包目录用于排查问题时，使用 `npm run dist:win:dir`。
 
+正式发布通过版本标签触发 `Release` 工作流，版本号由维护者在本地决定；步骤见 [docs/development/release-process.md](docs/development/release-process.md)。
+
 ## 文档
 
 - [AGENTS.md](AGENTS.md)：Agent 与贡献者的操作规则
 - [docs/README.md](docs/README.md)：文档索引、权威来源与改动影响矩阵
 - [docs/architecture/overview.md](docs/architecture/overview.md)：架构、进程边界与数据流
 - [docs/development/coding-guidelines.md](docs/development/coding-guidelines.md)：编码与模块约定
+- [docs/development/release-process.md](docs/development/release-process.md)：版本发布与自动打包流程
 - [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)：设计 token、组件与视觉规范
 - [docs/testing/strategy.md](docs/testing/strategy.md)：测试分层与运行方式
 - [docs/testing/manual-test-plan.md](docs/testing/manual-test-plan.md)：手动功能与视觉验收清单

@@ -1,6 +1,6 @@
 # 未完成事项与已知限制
 
-> 最后更新：2026-10-18
+> 最后更新：2026-10-19
 > 维护规则：每阶段验收时更新；已完成项移入“已完成”，不要只记在对话里。
 
 ## 已完成
@@ -31,7 +31,7 @@
 
 - [ ] **功能与样式详细测试**：自动化检查已于 2026-10-18 通过（见 `docs/regression-report.md` 新增记录）；Windows 实机功能/视觉验收仍需按 `docs/testing/manual-test-plan.md` 执行，不能把历史回归报告或自动化结果当作 Windows 实机结果。
 - [ ] **视觉基线截图更新**：设置页左侧导航、常规页、功能管理、备忘录页、定时提醒页、桌面备忘卡片、多气泡堆叠与常驻提醒、桌宠点击反馈、快捷菜单结构与应用图标已变化，`docs/screenshots/` 仍是改造前基线；需在 Windows 视觉验收后统一更新并记录版本/commit。
-- [ ] **正式 GitHub Release**：需要在 Windows 上生成当前版本 Setup/Portable/ZIP，记录实际大小与 SHA-256，并按 README 的发布步骤创建 Release；GitHub Actions 工件 14 天后过期，不能作为首版下载来源。
+- [ ] **正式 GitHub Release**：已配置 `v*` 标签触发的 Release workflow（校验版本、运行检查、构建 Setup/Portable/ZIP + SHA256SUMS，并创建草稿 Release）；首次发布仍需按 [发布流程](development/release-process.md) 由维护者选择版本、推送标签并审核发布；GitHub Actions 临时 Artifact 默认 14 天过期，不能作为下载来源。
 - [ ] **托盘单击行为确认**：代码只注册了双击打开设置和右键菜单；README 已改为“双击托盘图标或托盘菜单”，仍需在真实 Windows 通知区域确认单击的默认表现并记录。
 - [ ] **真实 DeepSeek/ESA 账户数据验证**：需用户在应用设置内输入自己的凭据后查看；仓库与测试中只有占位数据。
 - [ ] **完全干净的 Windows 环境安装验收**：本次已用移除 Node 路径的便携版做启动验证，仍建议在无开发工具的干净虚拟机完成一次安装/卸载验收。
