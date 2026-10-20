@@ -402,7 +402,7 @@ flowchart LR
 - `scripts/make-portable-zip.mjs` 在 `dist:win` 末尾生成便携 ZIP。
 - `ci.yml` 在 `windows-latest` 对 `main`、Pull Request 和手动触发运行 typecheck、lint、format:check、test、build；手动触发时额外打包并上传短期 Artifact。
 - `release.yml` 在推送 `v*` 标签时校验标签与 `package.json` 版本一致，运行同一组检查并执行 `dist:win`，生成 `SHA256SUMS.txt` 后创建或更新草稿 GitHub Release，附上 Setup、Portable 与 ZIP；维护者审核 Release notes 和附件后手动发布。发布步骤见 [development/release-process.md](../development/release-process.md)。
-- `website/` 是独立 VitePress 站点，`base` 固定为 `/flowerbuddy/`，不参与 Electron 打包；`.github/workflows/website.yml` 在 `website/**` 变化时构建，部署 job 由仓库变量 `WEBSITE_DEPLOY_ENABLED=true` 控制。生产访问地址为 `https://tool.flowersink.com/flowerbuddy/`，服务器负责前缀映射。
+- `website/` 是独立 VitePress 站点，`base` 固定为 `/FlowerBuddy/`，不参与 Electron 打包；`.github/workflows/website.yml` 在 `website/**` 变化时构建，部署 job 由仓库变量 `WEBSITE_DEPLOY_ENABLED=true` 或手动触发控制。生产访问地址为 `https://zaihuaovo.github.io/FlowerBuddy/`，由 GitHub Pages 直接提供。
 
 ## 10. 依赖方向与禁止的反向依赖
 

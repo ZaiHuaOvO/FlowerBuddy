@@ -250,10 +250,10 @@
 ### 2.18 官网（VitePress）
 
 - [ ] **WEB-01 本地构建**：在 `website/` 运行 `npm ci && npm run build` 通过，产物位于 `website/docs/.vitepress/dist`；构建过程不依赖远端字体或大型动画库。
-- [ ] **WEB-02 base 与路由**：构建后的 HTML 中所有静态资源和内部链接均以 `/flowerbuddy/` 开头；首页、使用指南、安装、功能、使用、FAQ、隐私、安全、更新日志均返回 200；不存在 `/flowerbuddy/flowerbuddy/` 双重前缀。
+- [ ] **WEB-02 base 与路由**：构建后的 HTML 中所有静态资源和内部链接均以 `/FlowerBuddy/` 开头；首页、使用指南、安装、功能、使用、FAQ、隐私、安全、更新日志均返回 200；不存在 `/FlowerBuddy/FlowerBuddy/` 双重前缀。
 - [ ] **WEB-03 官方素材与动效**：首页只使用官方 app-icon 与文字排版，不出现带文字的完整 Logo；开启“减少动态效果”后首屏图标不再浮动。
 - [ ] **WEB-04 下载与外部链接**：下载按钮指向真实 GitHub Releases 最新版页面；GitHub、隐私、Issue 等外部链接有效；站内不出现虚构版本或虚构下载文件。
-- [ ] **WEB-05 服务器映射**：在 `https://tool.flowersink.com/flowerbuddy/` 访问时，服务器把 `/flowerbuddy/*` 正确映射到站点根目录或反向代理到 Pages；刷新深链接不 404；启用 `WEBSITE_DEPLOY_ENABLED=true` 后 GitHub Pages 部署成功。
+- [ ] **WEB-05 GitHub Pages 部署**：仓库 Pages 来源为 GitHub Actions，`WEBSITE_DEPLOY_ENABLED=true` 时 `Website` 工作流完成构建与部署；在 `https://zaihuaovo.github.io/FlowerBuddy/` 访问首页与深链接，刷新不 404，静态资源与 favicon 正常加载。
 
 ### 2.19 应用更新（安装版）
 

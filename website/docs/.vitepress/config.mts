@@ -4,12 +4,12 @@ const repository = 'https://github.com/ZaiHuaOvO/FlowerBuddy'
 const releases = `${repository}/releases/latest`
 
 export default defineConfig({
-  base: '/flowerbuddy/',
+  base: '/FlowerBuddy/',
   lang: 'zh-CN',
   title: '花伴',
   description: '花伴 — Windows 桌面宠物与个人信息助手',
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/flowerbuddy/app-icon.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/FlowerBuddy/app-icon.png' }],
     ['meta', { name: 'theme-color', content: '#8b5a2b' }]
   ],
   lastUpdated: true,
