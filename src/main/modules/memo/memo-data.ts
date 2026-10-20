@@ -91,17 +91,16 @@ export function sanitizeMemoLineTasks(raw: unknown): MemoLineTask[] {
   return tasks
 }
 
-/** Keeps state for lines whose text still exists, in the current line order. */
+/** Keeps completion state by line position; text edits do not move check marks. */
 export function reconcileLineTasks(text: string, existing: MemoLineTask[]): MemoLineTask[] {
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
-  const remaining = existing.slice()
-  return lines.slice(0, MEMO_LINE_TASKS_MAX).map((line) => {
-    const index = remaining.findIndex((task) => task.text === line)
-    if (index >= 0) {
-      const [task] = remaining.splice(index, 1)
-      return task as MemoLineTask
+  return lines.slice(0, MEMO_LINE_TASKS_MAX).map((line, index) => {
+    const current = existing[index]
+    return {
+      id: current?.id ?? randomUUID(),
+      text: line,
+      completed: current?.completed ?? false
     }
-    return { id: randomUUID(), text: line, completed: false }
   })
 }
 

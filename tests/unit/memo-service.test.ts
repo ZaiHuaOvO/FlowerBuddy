@@ -154,7 +154,7 @@ describe('memo service', () => {
     expect(legacy.memos[0]?.locked).toBe(false)
   })
 
-  it('reconciles line tasks and preserves completion by exact text', () => {
+  it('reconciles line tasks by line position instead of text', () => {
     const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
     const created = service.create({
       text: 'first\n\nsecond\nthird',
@@ -170,12 +170,31 @@ describe('memo service', () => {
     service.setLineCompleted(id, second?.id as string, true)
     expect(service.get(id)?.lineTasks.find((task) => task.text === 'second')?.completed).toBe(true)
 
-    service.update(id, { text: 'first\nsecond\nfourth' })
+    service.update(id, { text: 'first\nsecond renamed\nfourth' })
     const updated = service.get(id)?.lineTasks ?? []
-    expect(updated.map((task) => task.text)).toEqual(['first', 'second', 'fourth'])
-    expect(updated.find((task) => task.text === 'second')?.completed).toBe(true)
-    expect(updated.find((task) => task.text === 'fourth')?.completed).toBe(false)
-    expect(updated.find((task) => task.text === 'second')?.id).toBe(second?.id)
+    expect(updated.map((task) => task.text)).toEqual(['first', 'second renamed', 'fourth'])
+    expect(updated[1]?.completed).toBe(true)
+    expect(updated[1]?.id).toBe(second?.id)
+    expect(updated[2]?.completed).toBe(false)
+  })
+
+  it('shifts completed states with line numbers when lines are inserted', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const created = service.create({
+      text: 'first\nsecond',
+      images: [],
+      reminderAt: null
+    })
+    const id = created[0]?.id as string
+    const first = service.get(id)?.lineTasks[0]
+    service.setLineCompleted(id, first?.id as string, true)
+
+    service.update(id, { text: 'new first\nfirst\nsecond' })
+    const updated = service.get(id)?.lineTasks ?? []
+    expect(updated.map((task) => task.text)).toEqual(['new first', 'first', 'second'])
+    expect(updated[0]?.completed).toBe(true)
+    expect(updated[1]?.completed).toBe(false)
+    expect(updated[2]?.completed).toBe(false)
   })
 
   it('stores line task display per memo and updates it through the memo patch', () => {

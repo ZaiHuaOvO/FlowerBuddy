@@ -11,6 +11,7 @@ import { formatReminderDateTime } from '../../../shared/memo-reminder'
 import '../styles/memo-card.css'
 
 const RESIZE_EDGES: MemoCardEdge[] = ['nw', 'ne', 'sw', 'se']
+const EDITOR_EXIT_MS = 160
 
 export default function MemoCardView() {
   const api = window.memoCardApi
@@ -19,6 +20,7 @@ export default function MemoCardView() {
   const [dragging, setDragging] = useState(false)
   const [resizing, setResizing] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [editorClosing, setEditorClosing] = useState(false)
   const [draft, setDraft] = useState('')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const dragFrame = useRef<number | null>(null)
@@ -28,6 +30,7 @@ export default function MemoCardView() {
   const lockButtonRef = useRef<HTMLButtonElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const saveTimer = useRef<number | null>(null)
+  const closeTimer = useRef<number | null>(null)
   const lastSaved = useRef('')
   const editingRef = useRef(false)
   const finishingRef = useRef(false)
@@ -73,6 +76,10 @@ export default function MemoCardView() {
       if (saveTimer.current !== null) {
         window.clearTimeout(saveTimer.current)
         saveTimer.current = null
+      }
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current)
+        closeTimer.current = null
       }
     }
   }, [api, memoId])
@@ -233,7 +240,12 @@ export default function MemoCardView() {
     setDraft(state.text)
     lastSaved.current = state.text
     setSaveState('idle')
+    setEditorClosing(false)
     finishingRef.current = false
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
     setEditing(true)
     requestAnimationFrame(() => {
       textareaRef.current?.focus()
@@ -299,9 +311,14 @@ export default function MemoCardView() {
         return
       }
     }
-    setEditing(false)
-    finishingRef.current = false
-    requestAnimationFrame(measureContent)
+    setEditorClosing(true)
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null
+      setEditing(false)
+      setEditorClosing(false)
+      finishingRef.current = false
+      requestAnimationFrame(measureContent)
+    }, EDITOR_EXIT_MS)
   }
 
   function handleEditorKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
@@ -389,7 +406,7 @@ export default function MemoCardView() {
       <div className="memo-card-body" onContextMenu={handleContextMenu}>
         <div className="memo-card-content" ref={contentRef}>
           {editing ? (
-            <div className="memo-card-editor">
+            <div className={`memo-card-editor${editorClosing ? ' is-closing' : ''}`}>
               <textarea
                 ref={textareaRef}
                 className="memo-card-textarea"
@@ -401,24 +418,9 @@ export default function MemoCardView() {
                 onKeyDown={handleEditorKeyDown}
                 onBlur={() => void finishEditing()}
               />
-              <div className={`memo-card-editor-status${saveState === 'error' ? ' is-error' : ''}`}>
-                <span>
-                  {saveState === 'saving'
-                    ? '保存中…'
-                    : saveState === 'error'
-                      ? '保存失败，请重试'
-                      : saveState === 'saved'
-                        ? '已自动保存'
-                        : '编辑中…'}
-                </span>
-                <button
-                  type="button"
-                  className="memo-card-editor-done"
-                  onClick={() => void finishEditing()}
-                >
-                  完成
-                </button>
-              </div>
+              <p className={`memo-card-editor-hint${saveState === 'error' ? ' is-error' : ''}`}>
+                {saveState === 'error' ? '保存失败，点击空白处重试' : '点击空白处保存'}
+              </p>
             </div>
           ) : state.lineTasksEnabled && state.lineTasks.length > 0 ? (
             <div className="memo-card-lines">
