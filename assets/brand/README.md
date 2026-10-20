@@ -4,7 +4,7 @@
 
 ## 文件
 
-- `app-icon/flowerbuddy-icon-transparent-*.png`：透明底图标，16–1024 px，用于界面、托盘、安装器与网页。
+- `app-icon/flowerbuddy-icon-transparent-*.png`：透明底图标，16–1024 px，用于界面、托盘、安装器与网页；画布按图形内容居中裁切，四边保留约 3% 安全边距，避免任务栏和窗口标题栏中显得过小。
 - `app-icon/flowerbuddy-icon-white-*.png`：白色背景图标，用于需要实体底色的场景。
 - `app-icon/FlowerBuddy.ico`：Windows 多尺寸图标（16–256）。
 

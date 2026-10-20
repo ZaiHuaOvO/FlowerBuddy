@@ -16,6 +16,10 @@ const OUTPUTS = [
   {
     source: join(SOURCE, 'flowerbuddy-icon-transparent-64.png'),
     target: join(ROOT, 'assets', 'tray-icon.png')
+  },
+  {
+    source: join(SOURCE, 'flowerbuddy-icon-transparent-256.png'),
+    target: join(ROOT, 'src', 'renderer', 'src', 'assets', 'app-icon-256.png')
   }
 ]
 
