@@ -12,7 +12,7 @@
 ## 已知限制
 
 - 安装包未签名，SmartScreen 可能提示未知发布者。
-- v0.2.0 安装版计划仅通过 GitHub Releases 提供应用内更新；便携版手动下载，仍需真实 Windows 双版本升级验证。
+- v0.2.0 安装版已在 `main` 上实现仅通过 GitHub Releases 提供应用内更新；便携版手动下载；尚未发布，且仍需真实 Windows 双版本升级验证。
 - ESA 接入点固定为国内 `esa.cn-hangzhou.aliyuncs.com`。
 - 备忘录和定时提醒通过桌宠气泡展示，不发送 Windows 系统通知。
 - 不提供 macOS/Linux 版本、云端同步或通用插件加载。

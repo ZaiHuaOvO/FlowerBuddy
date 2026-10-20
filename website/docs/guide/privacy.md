@@ -17,11 +17,12 @@
 
 ## 网络访问
 
-应用只在相应模块已启用并配置时访问外部服务：
+应用只在相应模块已启用并配置，或用户主动检查更新时访问外部服务：
 
 - DeepSeek：`https://api.deepseek.com/user/balance`，用于查询余额。
-- 阿里云 ESA：通过官方 SDK 访问 `esa.cn-hangzhou.aliyuncs.com`，查询站点流量。
+- 阿里云 ESA：通过官方 SDK 访问 `esa.cn-hangzhou.aliyuncs.com`，查询过去 24 小时、7 天和 30 天的滚动流量。
 - 网站检测：访问你自行添加的 URL，仅从本机网络发起。
+- 应用更新：仅打包的 Windows 安装版会在用户于“关于”页手动检查、下载时访问 GitHub Releases；开发环境和便携版不发起更新请求。发布包当前未做代码签名，更新依赖 `latest.yml` 中的 sha512 校验。
 
 ## 凭据与日志
 
@@ -32,6 +33,6 @@
 
 ## 删除数据
 
-退出花伴后，删除 `%APPDATA%\FlowerBuddy` 即可清除全部本地配置、凭据、备忘录、图片和日志。卸载程序不会自动删除该目录。
+退出花伴后，删除 `%APPDATA%\FlowerBuddy` 即可清除全部本地配置、凭据、备忘录、图片和日志。卸载程序不会自动删除该目录；自动更新下载缓存可能位于 `%LOCALAPPDATA%`，需要单独清理。
 
 完整说明以仓库中的 [PRIVACY.md](https://github.com/ZaiHuaOvO/FlowerBuddy/blob/main/PRIVACY.md) 为准。

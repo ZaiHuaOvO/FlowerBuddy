@@ -21,7 +21,7 @@
 
 ## 获取与运行
 
-官网与使用说明：<https://zaihuaovo.github.io/FlowerBuddy/>（站点位于独立 `website/` 目录，部署配置见 [website/README.md](website/README.md)）。
+官网与使用说明：<https://zaihuaovo.github.io/FlowerBuddy/>（站点位于独立 `website/` 目录，部署配置见 [website/README.md](website/README.md)）。自定义域名 `https://tool.flowersink.com/flowerbuddy/` 需要服务器按该文档同时转发 `/flowerbuddy/` 与 `/FlowerBuddy/` 后才能正常显示样式和导航。
 
 从 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 下载对应版本：
 
@@ -35,9 +35,9 @@
 - 应用没有账号体系，也没有遥测；不会上传用户数据用于分析或广告。
 - 设置、备忘录、定时提醒、网站检测配置与结果、粘贴图片、导入的桌宠图片和日志保存在 `%APPDATA%\FlowerBuddy`。
 - API Key、AccessKey 等凭据只在主进程中处理，并通过 Electron `safeStorage`（Windows DPAPI）加密保存为 `secrets.enc.json`。
-- 仅在相应模块已启用并配置后访问外部服务：DeepSeek 余额接口、阿里云 ESA API，以及你自行添加的网站 URL。
+- 仅在相应模块已启用并配置后访问外部服务：DeepSeek 余额接口、阿里云 ESA API，以及你自行添加的网站 URL；安装版在用户手动检查更新时访问 GitHub Releases。
 - 渲染进程启用沙箱、上下文隔离和严格 CSP；IPC 请求经过发送方校验与 Zod 输入校验。
-- 退出应用后删除 `%APPDATA%\FlowerBuddy` 即可清除全部本地数据。卸载程序不会自动删除该目录。
+- 退出应用后删除 `%APPDATA%\FlowerBuddy` 即可清除全部本地数据；自动更新下载缓存可能位于 `%LOCALAPPDATA%`，需要单独清理。卸载程序不会自动删除这些目录。
 
 详细说明见 [PRIVACY.md](PRIVACY.md)。
 

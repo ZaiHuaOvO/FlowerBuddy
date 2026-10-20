@@ -1,6 +1,6 @@
 # 花伴 架构概览
 
-> 状态：**当前事实**。本文按源码记录 2026-10-17、提交 `a635bb9` 的实际架构。
+> 状态：**当前事实**。本文按源码记录 2026-10-20 的实际架构。
 > 代码变化后必须同步本文；无法从源码确认的内容会标为“待核实”。
 > 原始产品规划见 [docs/archive/Windows_桌宠个人助手_技术开发文档.md](../archive/Windows_桌宠个人助手_技术开发文档.md)，该文档已归档，不是当前实现清单。
 
@@ -331,7 +331,8 @@ interface ModuleDefinition {
 - 默认使用 GitHub provider（`ZaiHuaOvO/FlowerBuddy`）的稳定通道；设置环境变量 `FLOWERBUDDY_UPDATE_URL` 时可改用 generic provider（仅接受 HTTPS，或本地回环地址的 HTTP，便于隔离测试源），可用于评估国内对象存储/CDN 镜像，无需改更新逻辑。
 - `autoDownload=false`、`autoInstallOnAppQuit=false`、`allowPrerelease=false`、`allowDowngrade=false`；由用户在关于页手动检查、下载并确认重启安装。
 - 状态为 `idle / checking / available / not-available / downloading / downloaded / error / unsupported`；下载进度通过 `updates:changed` 推送到设置窗口。错误只向 UI 展示通用重试提示，原始错误写入脱敏日志，并提供 Release 手动下载入口。
-- Release 工作流上传 `latest.yml` 与 blockmap；在真实签名的 Windows 安装包完成至少两个版本升级验证前，此功能按计划标记为实验/待验证，不宣称发布级完成。
+- Release 工作流上传 `latest.yml` 与 blockmap；在真实 Windows 安装包完成至少两个版本升级验证前，此功能按计划标记为实验/待验证，不宣称发布级完成。
+- 已发布的 `v0.1.0` 附件缺少 `latest.yml`/blockmap，且该版本没有应用内更新器，不能作为更新基线；首次应用内升级验证从包含更新元数据的版本开始。
 
 ## 7. 数据、凭据与日志
 
@@ -366,12 +367,12 @@ interface ModuleDefinition {
 
 ## 8. 外部网络访问
 
-| 服务       | 目标                                                                   | 触发条件                                               | 超时/限制                                                               |
-| ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| DeepSeek   | `GET https://api.deepseek.com/user/balance`                            | 模块启用且已配置 API Key，用户手动查询或设置了刷新间隔 | 15 秒；401/402/429/5xx 映射为 `AppError`                                |
-| 阿里云 ESA | 官方 SDK `@alicloud/esa20240910`，端点 `esa.cn-hangzhou.aliyuncs.com`  | 模块启用、AccessKey 与 SiteId 已配置                   | 连接 5 秒、读取 15 秒；本地自然日 00:00 到现在转 UTC；`Traffic` / `ALL` |
-| 网站检测   | 用户自行添加的 HTTP(S) URL                                             | 用户手动检测或启用定时检测                             | 3–30 秒；手动跟随最多 5 次重定向；不读取响应正文                        |
-| 应用更新   | GitHub Releases（默认）或 `FLOWERBUDDY_UPDATE_URL` 指定的 generic feed | 用户在关于页手动检查/下载更新；仅打包 Windows 安装版   | 使用 electron-updater 默认超时；便携版与开发环境不发起请求              |
+| 服务       | 目标                                                                   | 触发条件                                               | 超时/限制                                                                       |
+| ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| DeepSeek   | `GET https://api.deepseek.com/user/balance`                            | 模块启用且已配置 API Key，用户手动查询或设置了刷新间隔 | 15 秒；401/402/429/5xx 映射为 `AppError`                                        |
+| 阿里云 ESA | 官方 SDK `@alicloud/esa20240910`，端点 `esa.cn-hangzhou.aliyuncs.com`  | 模块启用、AccessKey 与 SiteId 已配置                   | 连接 5 秒、读取 15 秒；查询过去 24 小时/7 天/30 天的滚动窗口；`Traffic` / `ALL` |
+| 网站检测   | 用户自行添加的 HTTP(S) URL                                             | 用户手动检测或启用定时检测                             | 3–30 秒；手动跟随最多 5 次重定向；不读取响应正文                                |
+| 应用更新   | GitHub Releases（默认）或 `FLOWERBUDDY_UPDATE_URL` 指定的 generic feed | 用户在关于页手动检查/下载更新；仅打包 Windows 安装版   | 使用 electron-updater 默认超时；便携版与开发环境不发起请求                      |
 
 ## 9. 构建与打包数据流
 

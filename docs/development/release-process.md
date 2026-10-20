@@ -8,9 +8,9 @@
 发布由推送 `v*` 标签触发，例如 `v0.1.1`。`.github/workflows/release.yml` 会：
 
 1. 校验标签版本与 `package.json` 的 `version` 完全一致；
-2. 运行 `typecheck`、`lint`、`format:check`、单元测试与 `dist:win`；
+2. 运行 `typecheck`、`lint`、`format:check`、单元测试、生产构建与许可证生成，再构建 Windows 安装版、便携版和 ZIP；
 3. 生成 `release/SHA256SUMS.txt`；
-4. 创建或更新**草稿** GitHub Release，附上 Setup、Portable、ZIP 与校验文件；
+4. 创建或更新**草稿** GitHub Release，附上 Setup、Portable、ZIP、`latest.yml`、blockmap 与校验文件；
 5. 由维护者在 GitHub 上审核 Release notes 和附件后手动发布。
 
 工作流不会自动提交版本号，也不会自动发布 Release。`ci.yml` 仍负责 `main` 分支和 Pull Request 的日常检查。
@@ -48,7 +48,7 @@ git push --follow-tags origin main
 标签推送后，在 GitHub Actions 的 `Release` 工作流中等待构建完成。成功后：
 
 1. 打开仓库的 Draft Release；
-2. 检查 Setup、Portable、ZIP 和 `SHA256SUMS.txt` 是否齐全；
+2. 检查 Setup、Portable、ZIP、`latest.yml`、blockmap 和 `SHA256SUMS.txt` 是否齐全；缺少更新元数据时应用内更新无法工作。
 3. 在自动生成的提交列表上方补充本次更新的摘要、升级注意事项和已知问题；
 4. 确认版本号、标题和附件无误后点击 Publish release。
 
@@ -65,6 +65,9 @@ git push --follow-tags origin main
 - 安装版：`FlowerBuddy-Setup-<version>-x64.exe`
 - 便携版：`FlowerBuddy-Portable-<version>-x64.exe`
 - 压缩包：`FlowerBuddy-<version>-x64.zip`
+- 更新元数据：`latest.yml` 与安装版 `.blockmap`（供 electron-updater 使用，不作为用户下载项）
 - 校验文件：`SHA256SUMS.txt`
 
-安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。安装版通过 GitHub Releases 的 `latest.yml` 与 blockmap 支持应用内更新；便携版保持手动下载。`latest.yml` 与 blockmap 随 Release 上传，但不作为用户下载项。真实签名的 Windows 安装包完成至少两个版本升级验证前，自动更新仍属待验证。GitHub Actions 的临时 Artifact 默认只保留 14 天，不能替代 Release 附件。electron-builder 使用 `--publish never`，Release 附件由 `gh release create` 单独上传，避免标签构建时触发隐式发布。
+已发布的 `v0.1.0` 附件没有 `latest.yml`/blockmap，且该版本没有应用内更新器，不能作为更新基线；从包含更新元数据的版本开始验证双版本升级。
+
+安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。安装版通过 GitHub Releases 的 `latest.yml` 与 blockmap 支持应用内更新；便携版保持手动下载。`latest.yml` 与 blockmap 随 Release 上传，但不作为用户下载项。真实 Windows 安装包完成至少两个版本升级验证前，自动更新仍属待验证。GitHub Actions 的临时 Artifact 默认只保留 14 天，不能替代 Release 附件。electron-builder 使用 `--publish never`，Release 附件由 `gh release create` 单独上传，避免标签构建时触发隐式发布。

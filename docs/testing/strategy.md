@@ -1,6 +1,6 @@
 # 测试策略
 
-> 状态：**操作规范**。依据 2026-10-17（提交 `a635bb9`）的 `package.json`、`vitest.config.ts`、`tsconfig.json`、`src/renderer/tsconfig.json`、`.github/workflows/ci.yml` 与 `tests/unit/` 实际内容整理。
+> 状态：**操作规范**。依据 2026-10-20 的 `package.json`、`vitest.config.ts`、`tsconfig.json`、`src/renderer/tsconfig.json`、`.github/workflows/ci.yml` 与 `tests/unit/` 实际内容整理。
 > 本文只说明测试分层和方法；本轮没有重新执行测试，不代表任何测试结果。
 > 手动验收清单见 [manual-test-plan.md](manual-test-plan.md)。
 
@@ -65,7 +65,7 @@ npm run build
 | 备忘录     | `memo-service.test.ts`、`memo-reminder.test.ts`、`memo-module.test.ts`、`memo-images.test.ts`、`memo-order.test.ts`                                                       | 排序/完成/锚点、中文时间解析、到点提醒去重、图片校验与清理、列表顺序保持       |
 | 网站检测   | `website-check.test.ts`、`website-service.test.ts`、`website-module.test.ts`                                                                                              | HTTP 状态、超时、DNS/TLS 分类、URL 清洗、定时任务重建                          |
 | DeepSeek   | `deepseek-service.test.ts`、`deepseek-module.test.ts`                                                                                                                     | 响应结构、多币种、错误码、余额格式化                                           |
-| ESA        | `esa-service.test.ts`、`esa-module.test.ts`                                                                                                                               | 本地自然日转 UTC、Traffic 聚合、采样率、错误映射                               |
+| ESA        | `esa-service.test.ts`、`esa-module.test.ts`                                                                                                                               | 滚动 24 小时/7 天/30 天窗口、Traffic 聚合、采样率、错误映射                    |
 | 调度       | `task-scheduler.test.ts`                                                                                                                                                  | 间隔、重叠跳过、退避、停止、恢复重新计时                                       |
 | 模块管理   | `module-manager.test.ts`、`module-action-runner.test.ts`、`menu-actions.test.ts`                                                                                          | enabled/configured 生命周期、动作校验、请求失效、超时、快捷新建动作            |
 | 配置与存储 | `config-store.test.ts`、`pet-assets.test.ts`、`memo-images.test.ts`、`assets.test.ts`                                                                                     | 迁移/损坏修复、原子写入、PNG 校验、图片目录清理                                |

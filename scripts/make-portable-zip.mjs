@@ -6,7 +6,8 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  statSync
+  statSync,
+  writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -40,7 +41,8 @@ for (const [label, filePath] of [
 const staging = mkdtempSync(join(tmpdir(), 'flowerbuddy-zip-'))
 try {
   copyFileSync(portablePath, join(staging, portableName))
-  copyFileSync(readmePath, join(staging, 'README-使用说明.txt'))
+  const usageReadme = readFileSync(readmePath, 'utf8').replaceAll('{{version}}', version)
+  writeFileSync(join(staging, 'README-使用说明.txt'), usageReadme, 'utf8')
   copyFileSync(licensesPath, join(staging, 'THIRD_PARTY_LICENSES.md'))
   copyFileSync(licensePath, join(staging, 'LICENSE.txt'))
   copyFileSync(assetsLicensePath, join(staging, 'ASSETS-LICENSE.txt'))
