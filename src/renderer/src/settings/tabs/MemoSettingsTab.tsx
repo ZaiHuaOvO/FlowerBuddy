@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { MemoSummary } from '../../../../shared/api'
 import { memoImageUrl } from '../../../../shared/api'
 import { formatMemoDateTime, memoExcerpt, memoTitle } from '../utils/formatters'
@@ -192,117 +193,120 @@ export function MemoSettingsTab({ model, onOpenSettings }: Props) {
         </div>
       )}
 
-      {editorOpen ? (
-        <div
-          className="memo-modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              cancelEdit()
-            }
-          }}
-        >
-          <div
-            className="memo-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="memo-editor-title"
-          >
-            <div className="memo-modal-header">
-              <h3 id="memo-editor-title">{editingId ? '编辑备忘录' : '新建备忘录'}</h3>
-              <IconButton label="关闭" onClick={cancelEdit}>
-                <span aria-hidden="true">×</span>
-              </IconButton>
-            </div>
+      {editorOpen
+        ? createPortal(
+            <div
+              className="memo-modal-backdrop"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                  cancelEdit()
+                }
+              }}
+            >
+              <div
+                className="memo-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="memo-editor-title"
+              >
+                <div className="memo-modal-header">
+                  <h3 id="memo-editor-title">{editingId ? '编辑备忘录' : '新建备忘录'}</h3>
+                  <IconButton label="关闭" onClick={cancelEdit}>
+                    <span aria-hidden="true">×</span>
+                  </IconButton>
+                </div>
 
-            <form className="memo-editor" onSubmit={(event) => void submit(event)}>
-              <textarea
-                ref={textareaRef}
-                className="fl-input memo-textarea"
-                value={draft.text}
-                maxLength={20000}
-                rows={6}
-                placeholder="写点什么……可直接粘贴图片"
-                onChange={(event) => setDraft({ ...draft, text: event.target.value })}
-                onPaste={handlePaste}
-              />
+                <form className="memo-editor" onSubmit={(event) => void submit(event)}>
+                  <textarea
+                    ref={textareaRef}
+                    className="fl-input memo-textarea"
+                    value={draft.text}
+                    maxLength={20000}
+                    rows={6}
+                    placeholder="写点什么……可直接粘贴图片"
+                    onChange={(event) => setDraft({ ...draft, text: event.target.value })}
+                    onPaste={handlePaste}
+                  />
 
-              {draft.images.length > 0 ? (
-                <div className="memo-attachments">
-                  {draft.images.map((image) => (
-                    <div className="memo-attachment" key={image.id}>
-                      <img
-                        src={memoImageUrl(image.id)}
-                        alt="备忘录图片"
-                        width={image.width}
-                        height={image.height}
-                        loading="lazy"
-                      />
-                      <button
-                        type="button"
-                        className="memo-attachment-remove"
-                        aria-label="移除图片"
-                        onClick={() => removeImage(image.id)}
-                      >
-                        ×
-                      </button>
+                  {draft.images.length > 0 ? (
+                    <div className="memo-attachments">
+                      {draft.images.map((image) => (
+                        <div className="memo-attachment" key={image.id}>
+                          <img
+                            src={memoImageUrl(image.id)}
+                            alt="备忘录图片"
+                            width={image.width}
+                            height={image.height}
+                            loading="lazy"
+                          />
+                          <button
+                            type="button"
+                            className="memo-attachment-remove"
+                            aria-label="移除图片"
+                            onClick={() => removeImage(image.id)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="memo-reminder-field">
-                <input
-                  ref={reminderTooltip.triggerRef}
-                  {...reminderTooltip.handlers}
-                  className={`fl-input memo-reminder-input${draft.reminderError ? ' is-invalid' : ''}`}
-                  value={draft.reminderText}
-                  placeholder="提醒时间，例如：下周五 3 点 / 2026-10-20 15:30"
-                  onChange={(event) => updateReminderText(event.target.value)}
-                />
-                {reminderTooltip.layer}
-                <MemoReminderPicker
-                  value={draft.reminderAt}
-                  onSelect={setReminderFromPicker}
-                  onClear={() => updateReminderText('')}
-                />
-              </div>
-
-              <div className="memo-editor-footer">
-                <div className="memo-editor-switches">
-                  {!editingId ? (
-                    <label className="fl-switch memo-anchor-switch">
-                      <input
-                        type="checkbox"
-                        checked={draft.anchor}
-                        onChange={(event) => toggleAnchorNew(event.target.checked)}
-                      />
-                      <span className="fl-switch-track" aria-hidden="true" />
-                      <span className="fl-switch-label">创建后锚定到桌面</span>
-                    </label>
                   ) : null}
-                  <label className="fl-switch memo-anchor-switch">
+
+                  <div className="memo-reminder-field">
                     <input
-                      type="checkbox"
-                      checked={draft.lineTasks}
-                      onChange={(event) => toggleDraftLineTasks(event.target.checked)}
+                      ref={reminderTooltip.triggerRef}
+                      {...reminderTooltip.handlers}
+                      className={`fl-input memo-reminder-input${draft.reminderError ? ' is-invalid' : ''}`}
+                      value={draft.reminderText}
+                      placeholder="提醒时间，例如：下周五 3 点 / 2026-10-20 15:30"
+                      onChange={(event) => updateReminderText(event.target.value)}
                     />
-                    <span className="fl-switch-track" aria-hidden="true" />
-                    <span className="fl-switch-label">逐行打勾</span>
-                  </label>
-                </div>
-                <div className="form-actions memo-form-actions">
-                  <Button variant="primary" type="submit" disabled={busy}>
-                    {editingId ? '保存修改' : '添加备忘录'}
-                  </Button>
-                  <Button variant="ghost" onClick={cancelEdit} disabled={busy}>
-                    取消
-                  </Button>
-                </div>
+                    {reminderTooltip.layer}
+                    <MemoReminderPicker
+                      value={draft.reminderAt}
+                      onSelect={setReminderFromPicker}
+                      onClear={() => updateReminderText('')}
+                    />
+                  </div>
+
+                  <div className="memo-editor-footer">
+                    <div className="memo-editor-switches">
+                      {!editingId ? (
+                        <label className="fl-switch memo-anchor-switch">
+                          <input
+                            type="checkbox"
+                            checked={draft.anchor}
+                            onChange={(event) => toggleAnchorNew(event.target.checked)}
+                          />
+                          <span className="fl-switch-track" aria-hidden="true" />
+                          <span className="fl-switch-label">创建后锚定到桌面</span>
+                        </label>
+                      ) : null}
+                      <label className="fl-switch memo-anchor-switch">
+                        <input
+                          type="checkbox"
+                          checked={draft.lineTasks}
+                          onChange={(event) => toggleDraftLineTasks(event.target.checked)}
+                        />
+                        <span className="fl-switch-track" aria-hidden="true" />
+                        <span className="fl-switch-label">逐行打勾</span>
+                      </label>
+                    </div>
+                    <div className="form-actions memo-form-actions">
+                      <Button variant="primary" type="submit" disabled={busy}>
+                        {editingId ? '保存修改' : '添加备忘录'}
+                      </Button>
+                      <Button variant="ghost" onClick={cancelEdit} disabled={busy}>
+                        取消
+                      </Button>
+                    </div>
+                  </div>
+                </form>
               </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </section>
   )
 }
@@ -340,7 +344,10 @@ function MemoRow({
       >
         <span className="memo-card-title">{memoTitle(memo.text)}</span>
         {excerpt ? <span className="memo-card-excerpt">{excerpt}</span> : null}
-        <span className="memo-card-meta">
+        <span
+          className="memo-card-meta"
+          key={`${memo.reminderAt ?? 'none'}-${memo.images.length}-${memo.completed ? 'done' : 'active'}`}
+        >
           {memo.reminderAt ? (
             <Tag tone="warning">提醒 · {formatMemoDateTime(memo.reminderAt)}</Tag>
           ) : (

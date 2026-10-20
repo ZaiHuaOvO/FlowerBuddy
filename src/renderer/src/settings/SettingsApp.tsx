@@ -661,7 +661,12 @@ function SettingsContent({
 
       {state.tab === 'about' ? (
         <div className="settings-body">
-          <section className="settings-content is-first" role="tabpanel" aria-label="关于">
+          <section
+            key="about"
+            className="settings-content is-first"
+            role="tabpanel"
+            aria-label="关于"
+          >
             <AboutPane
               appInfo={appInfo}
               updateStatus={updateStatus}
@@ -708,6 +713,7 @@ function SettingsContent({
             )}
           </nav>
           <section
+            key={`function-${state.moduleId}`}
             id="function-tabpanel"
             className="settings-content is-first"
             role="tabpanel"
@@ -759,6 +765,7 @@ function SettingsContent({
             ))}
           </nav>
           <section
+            key={`settings-${state.settingsSection}`}
             id="settings-tabpanel"
             className="settings-content is-first"
             role="tabpanel"
