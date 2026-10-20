@@ -31,6 +31,41 @@ features:
     details: 无账号、无遥测；配置、备忘录、图片和日志保存在本机。
 ---
 
-::: tip 当前下载版本
-公开下载版为 **v0.1.0**；本站部分界面描述包含 v0.2.0 开发中的改动，功能与界面以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 的说明为准。
+::: tip 当前公开版本
+公开下载版为 **v0.1.0**。本站部分界面描述包含 v0.2.0 开发中的改动，功能与界面以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 的说明为准。
 :::
+
+## 下载与安装
+
+花伴提供安装版、便携版和 ZIP 三种形式，均从 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 下载：
+
+| 形式                                     | 适合场景         | 说明                                                       |
+| ---------------------------------------- | ---------------- | ---------------------------------------------------------- |
+| `FlowerBuddy-Setup-<version>-x64.exe`    | 长期使用         | 按当前用户安装，可选择安装目录，创建开始菜单和桌面快捷方式 |
+| `FlowerBuddy-Portable-<version>-x64.exe` | 试用或移动使用   | 双击运行，无需安装；更新时手动下载新版本                   |
+| `FlowerBuddy-<version>-x64.zip`          | 需要手动管理文件 | 包含便携版、使用说明、项目许可证和第三方许可证             |
+
+系统要求为 **Windows x64**。最终用户不需要安装 Node.js、打开终端或执行命令。
+
+安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”；请只从官方 GitHub Releases 下载。安装与卸载都不会自动删除 `%APPDATA%\FlowerBuddy` 中的个人数据。
+
+## 数据与隐私
+
+- 应用没有账号体系，也没有遥测；不会上传用户数据用于分析或广告。
+- 配置、备忘录、定时提醒、网站检测结果、粘贴图片、导入的桌宠图片和日志保存在本机。
+- API Key、AccessKey 等凭据只在主进程中处理，并通过 Electron `safeStorage` 加密保存。
+- 仅在相应模块启用并配置后访问外部服务：DeepSeek 余额接口、阿里云 ESA API，以及你自行添加的网站 URL。
+
+完整说明见[隐私文档](/guide/privacy)和 [PRIVACY.md](https://github.com/ZaiHuaOvO/FlowerBuddy/blob/main/PRIVACY.md)。
+
+## 常见问题
+
+- **会自动更新吗？** 当前公开版 v0.1.0 需要手动下载新版本；v0.2.0 起安装版计划支持 GitHub Releases 源的应用内更新，仍需真实 Windows 双版本验证。
+- **数据放在哪里？** 默认在 `%APPDATA%\FlowerBuddy`；升级和卸载不会清空。
+- **为什么提示未知发布者？** 当前安装包未做代码签名，这是预期行为。
+
+更多问题见[常见问题](/guide/faq)，安装与升级细节见[安装与升级](/guide/install)。
+
+## 反馈与参与
+
+花伴目前由个人维护。问题反馈、功能建议和文档修正可以通过 [GitHub Issues](https://github.com/ZaiHuaOvO/FlowerBuddy/issues) 提交；源代码采用 MIT 许可证，美术素材保留所有权利，详见[仓库](https://github.com/ZaiHuaOvO/FlowerBuddy)。
