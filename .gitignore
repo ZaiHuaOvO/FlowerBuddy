@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+website/node_modules/
 
 # Build output
 out/
@@ -8,6 +9,8 @@ release-*/
 licenses/
 coverage/
 .regression/
+website/docs/.vitepress/dist/
+website/docs/.vitepress/cache/
 *.tsbuildinfo
 
 # Local environment and secrets (never commit)

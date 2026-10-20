@@ -1,0 +1,35 @@
+:root {
+  --vp-c-brand-1: #8b5a2b;
+  --vp-c-brand-2: #7a4d23;
+  --vp-c-brand-3: #6a411d;
+  --vp-c-brand-soft: rgba(139, 90, 43, 0.14);
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-bg: #8b5a2b;
+  --vp-button-brand-hover-bg: #7a4d23;
+  --vp-button-brand-active-bg: #6a411d;
+  --vp-home-hero-name-color: #8b5a2b;
+  --vp-home-hero-image-background-image: none;
+  --vp-home-hero-image-filter: none;
+}
+
+.VPHero .VPImage {
+  border-radius: 18px;
+  animation: fb-float 6s ease-in-out infinite;
+}
+
+@keyframes fb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPHero .VPImage {
+    animation: none;
+  }
+}

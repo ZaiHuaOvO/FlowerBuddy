@@ -4,6 +4,8 @@ release/
 licenses/
 coverage/
 package-lock.json
+website/docs/.vitepress/dist/
+website/docs/.vitepress/cache/
 docs/archive/
 GIT_WORKFLOW.md
 DESIGN_SYSTEM.md

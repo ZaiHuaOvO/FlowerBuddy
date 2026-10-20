@@ -244,6 +244,14 @@
 - [ ] **SEC-02 新窗口与导航拦截**：在 renderer 开发者工具中执行 `window.open('https://example.com')`，不创建新窗口；执行 `location.href = 'https://example.com'`、`file:///...`、`javascript:` 或 `data:` 导航，均被阻止并停留在应用页面。
 - [ ] **SEC-03 允许列表**：开发环境只允许 Vite dev server 根页面；生产环境只允许打包后的本地 renderer 页面，查询参数和 hash 不影响正常加载。
 
+### 2.18 官网（VitePress）
+
+- [ ] **WEB-01 本地构建**：在 `website/` 运行 `npm ci && npm run build` 通过，产物位于 `website/docs/.vitepress/dist`；构建过程不依赖远端字体或大型动画库。
+- [ ] **WEB-02 base 与路由**：构建后的 HTML 中所有静态资源和内部链接均以 `/flowerbuddy/` 开头；首页、使用指南、安装、功能、使用、FAQ、隐私、安全、更新日志均返回 200；不存在 `/flowerbuddy/flowerbuddy/` 双重前缀。
+- [ ] **WEB-03 官方素材与动效**：首页只使用官方 app-icon 与文字排版，不出现带文字的完整 Logo；开启“减少动态效果”后首屏图标不再浮动。
+- [ ] **WEB-04 下载与外部链接**：下载按钮指向真实 GitHub Releases 最新版页面；GitHub、隐私、Issue 等外部链接有效；站内不出现虚构版本或虚构下载文件。
+- [ ] **WEB-05 服务器映射**：在 `https://tool.flowersink.com/flowerbuddy/` 访问时，服务器把 `/flowerbuddy/*` 正确映射到站点根目录或反向代理到 Pages；刷新深链接不 404；启用 `WEBSITE_DEPLOY_ENABLED=true` 后 GitHub Pages 部署成功。
+
 ## 3. 视觉检查清单
 
 ### 3.1 桌宠

@@ -38,6 +38,16 @@ npm run dist:win:dir
 npm run dist:win
 ```
 
+涉及官网时：
+
+```bash
+cd website
+npm ci
+npm run build
+```
+
+官网构建产物位于 `website/docs/.vitepress/dist`；构建后检查所有 `/flowerbuddy/` 内部链接和静态资源是否存在。线上代理、DNS 与 GitHub Pages 配置不能由本地构建证明。
+
 说明：
 
 - `npm run typecheck` = `typecheck:node` + `typecheck:web`。

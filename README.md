@@ -22,6 +22,8 @@
 
 ## 获取与运行
 
+官网与使用说明：<https://tool.flowersink.com/flowerbuddy/>（站点位于独立 `website/` 目录，部署配置见 [website/README.md](website/README.md)）。
+
 从 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 下载对应版本：
 
 - `FlowerBuddy-Setup-<version>-x64.exe`：安装版，默认按当前用户安装，可选择安装目录。

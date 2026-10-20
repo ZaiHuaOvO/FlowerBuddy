@@ -1,0 +1,26 @@
+# 更新日志
+
+## v0.1.0（2026-10-19）
+
+首个公开版本，包含：
+
+- 透明桌宠窗口、快捷菜单、气泡与托盘。
+- 备忘录、提醒、桌面锚定卡片。
+- 定时提醒、网站检测、DeepSeek 余额与阿里云 ESA 流量。
+- 桌宠画廊、老板键与模块管理。
+- Windows 安装版、便携版与 ZIP 发布产物。
+
+下载与校验文件见 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases)。
+
+## v0.2.0（开发中，尚未发布）
+
+以下改动正在开发，尚未发布；请以实际 Release 说明为准：
+
+- 系统页“功能 / 设置 / 关于”拆分与关于页。
+- 官方 app-icon 接入应用、托盘与安装器。
+- 桌面卡片加号、锁、完成、关闭操作与锁定持久化。
+- 快捷菜单“新建备忘录”动作。
+
+## 说明
+
+版本号、下载产物和校验文件以 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases) 为准。不要从非官方来源下载安装包。
