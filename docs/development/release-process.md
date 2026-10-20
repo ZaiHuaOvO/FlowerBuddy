@@ -67,4 +67,4 @@ git push --follow-tags origin main
 - 压缩包：`FlowerBuddy-<version>-x64.zip`
 - 校验文件：`SHA256SUMS.txt`
 
-安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。当前不提供自动更新；`blockmap` 不作为 Release 下载项。GitHub Actions 的临时 Artifact 默认只保留 14 天，不能替代 Release 附件。electron-builder 使用 `--publish never`，Release 附件由 `gh release create` 单独上传，避免标签构建时触发隐式发布。
+安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。安装版通过 GitHub Releases 的 `latest.yml` 与 blockmap 支持应用内更新；便携版保持手动下载。`latest.yml` 与 blockmap 随 Release 上传，但不作为用户下载项。真实签名的 Windows 安装包完成至少两个版本升级验证前，自动更新仍属待验证。GitHub Actions 的临时 Artifact 默认只保留 14 天，不能替代 Release 附件。electron-builder 使用 `--publish never`，Release 附件由 `gh release create` 单独上传，避免标签构建时触发隐式发布。

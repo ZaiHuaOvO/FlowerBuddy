@@ -15,6 +15,7 @@ import type {
   RefreshableModuleId,
   SecurityStatus,
   SystemNavigation,
+  UpdateStatus,
   WebsiteCheckConfig
 } from '../../../shared/api'
 import { petPresetLabel } from '../../../shared/pet-presets'
@@ -260,6 +261,7 @@ function SettingsContent({
 }: ContentProps) {
   const [status, setStatus] = useState('')
   const [systemState, setSystemState] = useState<SystemState>(DEFAULT_SYSTEM_STATE)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const statusTimer = useRef<number | null>(null)
 
   const modulesById = new Map(modules.map((module) => [module.id, module]))
@@ -286,6 +288,14 @@ function SettingsContent({
       }
     }
   }, [])
+
+  useEffect(() => {
+    void api
+      .getUpdateStatus()
+      .then(setUpdateStatus)
+      .catch(() => {})
+    return api.onUpdateStatus(setUpdateStatus)
+  }, [api])
 
   function flash(message: string): void {
     setStatus(message)
@@ -639,7 +649,26 @@ function SettingsContent({
       {state.tab === 'about' ? (
         <div className="settings-body">
           <section className="settings-content is-first" role="tabpanel" aria-label="关于">
-            <AboutPane appInfo={appInfo} onOpenExternal={openExternal} />
+            <AboutPane
+              appInfo={appInfo}
+              updateStatus={updateStatus}
+              onOpenExternal={openExternal}
+              onCheckForUpdates={() =>
+                void api
+                  .checkForUpdates()
+                  .then(setUpdateStatus)
+                  .catch((cause: unknown) => setError(toMessage(cause)))
+              }
+              onDownloadUpdate={() =>
+                void api
+                  .downloadUpdate()
+                  .then(setUpdateStatus)
+                  .catch((cause: unknown) => setError(toMessage(cause)))
+              }
+              onInstallUpdate={() =>
+                void api.installUpdate().catch((cause: unknown) => setError(toMessage(cause)))
+              }
+            />
           </section>
         </div>
       ) : state.tab === 'function' ? (

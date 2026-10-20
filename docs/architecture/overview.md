@@ -130,7 +130,7 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 | `pet`       | `windows/pet-window.ts`       | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
 | `menu`      | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
 | `bubble`    | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
-| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 顶部 功能/设置/关于；功能页左侧模块导航显示业务内容，设置页左侧常规/功能/模块设置；关于页显示版本、作者、仓库与反馈               |
+| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 顶部 功能/设置/关于；功能页左侧模块导航显示业务内容，设置页左侧常规/功能/模块设置；关于页显示版本、作者、仓库、反馈与应用更新状态 |
 | `memo-card` | `windows/memo-card-window.ts` | 每条锚定备忘录一个窗口             | 透明无边框、始终置顶、可聚焦；标题栏拖动、四角自定义缩放、完成与取消锚点；内容由 `memo-card:state-changed` 同步                   |
 
 加载规则（`windows/load-view.ts`）：
@@ -207,6 +207,7 @@ preload 的 `unwrapResult` 把 `IpcResult` 解包；失败时抛出一个可序�
 - `memos:changed` → 设置窗口（备忘录数据变化，触发重新拉取）。
 - `settings:open-memo-composer` → 设置窗口（快捷键请求新建备忘录；渲染进程通过 `settings:ui-ready` 握手后才会收到）。
 - `settings:navigate` → 设置窗口（打开功能/设置/关于 tab，或定位到指定模块/设置分区）。
+- `updates:changed` → 设置窗口（应用更新状态变化）。
 
 `menu` 视图在挂载时通过 `menu:ready` 握手获取当前表现状态，避免首次打开时推送早于订阅。菜单窗口只在首次打开时创建并 `show()` 一次，之后不再隐藏：关闭时把面板动画到完全透明，并让窗口忽略鼠标事件、释放焦点；重开时只切换面板内容，renderer 通过 `menu:opened` 确认新面板已提交后主进程才重新接收鼠标事件。这样可以避开 Windows 对工具窗口的显示过渡——隐藏后再次 `show()` 时系统会先呈现上一次缓存的画面，看起来就像菜单连续加载了两次。菜单窗口在打开时按“展开动作列表”的高度一次性定位并显示；之后展开/收起只由 renderer 切换内容，不再改变窗口尺寸，因此可见窗口不会因 resize 闪烁。面板只在首次打开时挂载，之后保持挂载并在每次关闭/重开时复用，不会重新加载内容；每次打开（含重开）都由根节点从关闭态切回打开态重新触发表格的错峰入场动画，关闭时播放退场动画（执行动作等需要立即隐藏的场景除外）。主进程在菜单打开期间轮询指针位置：只有指针同时离开菜单窗口和桌宠窗口超过 `MENU_IDLE_CLOSE_MS` 才播放退场并隐藏内容；再次右键不会关闭菜单。
 
@@ -214,7 +215,7 @@ renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程
 
 ### 5.4 通道定义
 
-所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`memos:`、`memo-card:`、`interval-reminders:`、`websites:`、`deepseek:`、`esa:`、`menu:`、`pet:`、`bubble:`。关于页外链使用 `app:open-external`，只接受 `author` / `repository` / `issues` 三个固定 ID；菜单“功能”通过 `menu:open-functions` 打开系统页功能 tab。
+所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`updates:`、`memos:`、`memo-card:`、`interval-reminders:`、`websites:`、`deepseek:`、`esa:`、`menu:`、`pet:`、`bubble:`。关于页外链使用 `app:open-external`，只接受 `author` / `repository` / `issues` / `releases` 四个固定 ID；菜单“功能”通过 `menu:open-functions` 打开系统页功能 tab。
 
 新增 IPC 的最小改动面：
 
@@ -319,6 +320,14 @@ interface ModuleDefinition {
 - `IntervalReminderModule` 每 5 秒检查一次：为每个启用提醒计算下次时间；到期且处于生效时段时通过 `ModuleContext.notify(text, { persistent: true, id })` 显示常驻气泡并记录 `lastFiredAt`，其中 `id` 为 `interval-reminder:<reminderId>`；同一提醒重复触发会更新原气泡，不会无限新增相同条目。到期但不在时段内时顺延到下一个时段开始；系统恢复时立即补查。新建提醒默认不设置生效时段（全天生效），避免用户未注意默认时段导致提醒不触发。
 - 生效时段为本地 `HH:mm`，支持跨午夜范围；时段为空表示全天生效。提醒不经过 `TaskScheduler`，避免分钟级间隔被调度器的指数退避/重叠策略影响。
 
+### 6.8 应用更新
+
+- `UpdateService`（`updates/update-service.ts`）包装 `electron-updater`，只在打包的 Windows 安装版启用；开发环境和便携版（检测 `PORTABLE_EXECUTABLE_DIR` / `PORTABLE_EXECUTABLE_FILE`）返回 `unsupported`，不会发起网络请求。
+- 默认使用 GitHub provider（`ZaiHuaOvO/FlowerBuddy`）的稳定通道；设置环境变量 `FLOWERBUDDY_UPDATE_URL` 时改用 generic provider，便于后续切换到国内对象存储/CDN 镜像，无需改更新逻辑。
+- `autoDownload=false`、`autoInstallOnAppQuit=false`、`allowPrerelease=false`、`allowDowngrade=false`；由用户在关于页手动检查、下载并确认重启安装。
+- 状态为 `idle / checking / available / not-available / downloading / downloaded / error / unsupported`；下载进度通过 `updates:changed` 推送到设置窗口。错误只向 UI 展示通用重试提示，原始错误写入脱敏日志，并提供 Release 手动下载入口。
+- Release 工作流上传 `latest.yml` 与 blockmap；在真实签名的 Windows 安装包完成至少两个版本升级验证前，此功能按计划标记为实验/待验证，不宣称发布级完成。
+
 ## 7. 数据、凭据与日志
 
 所有可变数据写入 `app.getPath('userData')`，不写入安装目录：
@@ -352,11 +361,12 @@ interface ModuleDefinition {
 
 ## 8. 外部网络访问
 
-| 服务       | 目标                                                                  | 触发条件                                               | 超时/限制                                                               |
-| ---------- | --------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| DeepSeek   | `GET https://api.deepseek.com/user/balance`                           | 模块启用且已配置 API Key，用户手动查询或设置了刷新间隔 | 15 秒；401/402/429/5xx 映射为 `AppError`                                |
-| 阿里云 ESA | 官方 SDK `@alicloud/esa20240910`，端点 `esa.cn-hangzhou.aliyuncs.com` | 模块启用、AccessKey 与 SiteId 已配置                   | 连接 5 秒、读取 15 秒；本地自然日 00:00 到现在转 UTC；`Traffic` / `ALL` |
-| 网站检测   | 用户自行添加的 HTTP(S) URL                                            | 用户手动检测或启用定时检测                             | 3–30 秒；手动跟随最多 5 次重定向；不读取响应正文                        |
+| 服务       | 目标                                                                   | 触发条件                                               | 超时/限制                                                               |
+| ---------- | ---------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| DeepSeek   | `GET https://api.deepseek.com/user/balance`                            | 模块启用且已配置 API Key，用户手动查询或设置了刷新间隔 | 15 秒；401/402/429/5xx 映射为 `AppError`                                |
+| 阿里云 ESA | 官方 SDK `@alicloud/esa20240910`，端点 `esa.cn-hangzhou.aliyuncs.com`  | 模块启用、AccessKey 与 SiteId 已配置                   | 连接 5 秒、读取 15 秒；本地自然日 00:00 到现在转 UTC；`Traffic` / `ALL` |
+| 网站检测   | 用户自行添加的 HTTP(S) URL                                             | 用户手动检测或启用定时检测                             | 3–30 秒；手动跟随最多 5 次重定向；不读取响应正文                        |
+| 应用更新   | GitHub Releases（默认）或 `FLOWERBUDDY_UPDATE_URL` 指定的 generic feed | 用户在关于页手动检查/下载更新；仅打包 Windows 安装版   | 使用 electron-updater 默认超时；便携版与开发环境不发起请求              |
 
 ## 9. 构建与打包数据流
 

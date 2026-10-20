@@ -92,6 +92,13 @@ jobs:
           sha256sum *.exe *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: Require update metadata
+        shell: bash
+        run: |
+          test -f release/latest.yml
+          ls release/*.blockmap >/dev/null
+          echo "latest.yml and blockmap are present"
+
       - name: Create or update draft release
         shell: bash
         env:
@@ -106,6 +113,8 @@ jobs:
             gh release upload "$GITHUB_REF_NAME" \
               release/*.exe \
               release/*.zip \
+              release/latest.yml \
+              release/*.blockmap \
               release/SHA256SUMS.txt \
               --clobber
           else
@@ -115,5 +124,7 @@ jobs:
               --generate-notes \
               release/*.exe \
               release/*.zip \
+              release/latest.yml \
+              release/*.blockmap \
               release/SHA256SUMS.txt
           fi

@@ -34,6 +34,8 @@ import { ConfigStore } from './storage/config-store'
 import { JsonStore } from './storage/json-store'
 import { MemoImageStore } from './storage/memo-images'
 import { installNavigationGuards } from './security/navigation-guards'
+import { createElectronUpdaterAdapter } from './updates/electron-updater-adapter'
+import { UpdateService } from './updates/update-service'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
 const LEGACY_GMAIL_SECRET_IDS = ['gmail.clientId', 'gmail.clientSecret', 'gmail.refreshToken']
@@ -172,6 +174,31 @@ async function bootstrap(): Promise<void> {
       controller?.showModuleMessage(moduleId, message, options)
   })
 
+  const updateUrl = process.env['FLOWERBUDDY_UPDATE_URL']
+  const portable = Boolean(
+    process.env['PORTABLE_EXECUTABLE_DIR'] || process.env['PORTABLE_EXECUTABLE_FILE']
+  )
+  const updatesSupported = app.isPackaged && process.platform === 'win32' && !portable
+  const updateUnsupportedMessage = !app.isPackaged
+    ? '开发环境不检查更新。'
+    : process.platform !== 'win32'
+      ? '当前平台不支持应用内更新。'
+      : portable
+        ? '便携版请手动下载新版本。'
+        : ''
+  const updateService = new UpdateService({
+    adapter: updatesSupported
+      ? createElectronUpdaterAdapter(
+          updateUrl
+            ? { provider: 'generic', url: updateUrl }
+            : { provider: 'github', owner: 'ZaiHuaOvO', repo: 'FlowerBuddy' }
+        )
+      : null,
+    supported: updatesSupported,
+    unsupportedMessage: updateUnsupportedMessage,
+    onError: (message) => logger.warn('update failed', { message })
+  })
+
   const appController = new AppController({
     configStore,
     moduleManager,
@@ -182,6 +209,7 @@ async function bootstrap(): Promise<void> {
     websiteService,
     deepSeekModule,
     esaModule,
+    updateService,
     logger,
     devServerUrl,
     rendererIndexPath,

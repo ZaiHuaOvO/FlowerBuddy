@@ -58,7 +58,7 @@ npm run build
 
 ## 3. 当前自动化覆盖范围
 
-`tests/unit/` 现有 35 个测试文件，按实际文件名归类：
+`tests/unit/` 现有 36 个测试文件，按实际文件名归类：
 
 | 区域       | 测试文件                                                                                                                                                                  | 主要覆盖                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -72,6 +72,7 @@ npm run build
 | 安全       | `secret-store.test.ts`、`logger.test.ts`、`web-preferences.test.ts`、`navigation-guards.test.ts`、`app-schemes.test.ts`、`validate-sender.test.ts`、`ipc-schemas.test.ts` | 加密不可用不回退、脱敏、窗口选项、导航拦截、scheme 声明、sender 校验、Zod 边界 |
 | 几何/窗口  | `geometry.test.ts`、`memo-card-geometry.test.ts`                                                                                                                          | 尺寸、缩放、可见区域、overlay 定位、卡片四角缩放                               |
 | IPC 桥     | `preload-api.test.ts`                                                                                                                                                     | 按视图暴露 API、通道调用                                                       |
+| 应用更新   | `update-service.test.ts`                                                                                                                                                  | unsupported、检查/可用/下载/完成/错误状态与安装时机                            |
 | 设置页     | `settings-formatters.test.ts`、`settings-tabs.test.ts`、`settings-navigation.test.ts`                                                                                     | 格式化、tab 渲染、系统页导航状态                                               |
 
 > `docs/regression-report.md` 记录 2026-10-17 的一次执行结果（27 个文件、199 项通过）。这是历史记录，不是本轮测试结果；不要在新文档中把它写成“当前已通过”。

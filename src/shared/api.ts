@@ -84,12 +84,30 @@ export interface SystemNavigation {
   settingsSection?: SystemSettingsSection
 }
 
-export type ExternalLinkId = 'author' | 'repository' | 'issues'
+export type ExternalLinkId = 'author' | 'repository' | 'issues' | 'releases'
 
 export const EXTERNAL_LINKS: Record<ExternalLinkId, string> = {
   author: 'https://github.com/ZaiHuaOvO',
   repository: 'https://github.com/ZaiHuaOvO/FlowerBuddy',
-  issues: 'https://github.com/ZaiHuaOvO/FlowerBuddy/issues'
+  issues: 'https://github.com/ZaiHuaOvO/FlowerBuddy/issues',
+  releases: 'https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest'
+}
+
+export type UpdateState =
+  | 'unsupported'
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+
+export interface UpdateStatus {
+  state: UpdateState
+  version: string | null
+  percent: number | null
+  message: string | null
 }
 
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
@@ -416,6 +434,11 @@ export const IPC_CHANNELS = {
   modulesList: 'modules:list',
   modulesSetEnabled: 'modules:set-enabled',
   securityStatus: 'security:status',
+  updatesStatus: 'updates:get-status',
+  updatesCheck: 'updates:check',
+  updatesDownload: 'updates:download',
+  updatesInstall: 'updates:install',
+  updatesChanged: 'updates:changed',
   memosList: 'memos:list',
   memosCreate: 'memos:create',
   memosUpdate: 'memos:update',
@@ -544,6 +567,11 @@ export interface SettingsApi {
   getModules(): Promise<ModuleSummary[]>
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): Promise<ModuleSummary[]>
   getSecurityStatus(): Promise<SecurityStatus>
+  getUpdateStatus(): Promise<UpdateStatus>
+  checkForUpdates(): Promise<UpdateStatus>
+  downloadUpdate(): Promise<UpdateStatus>
+  installUpdate(): Promise<void>
+  onUpdateStatus(callback: (status: UpdateStatus) => void): () => void
   getStartupNotice(): Promise<string | null>
   openExternal(link: ExternalLinkId): Promise<void>
   onNavigate(callback: (navigation: SystemNavigation) => void): () => void

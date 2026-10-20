@@ -123,6 +123,10 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     controller.setModuleEnabled(input.moduleId, input.enabled)
   )
   register(IPC_CHANNELS.securityStatus, null, () => controller.getSecurityStatus())
+  register(IPC_CHANNELS.updatesStatus, null, () => controller.getUpdateStatus())
+  register(IPC_CHANNELS.updatesCheck, null, () => controller.checkForUpdates())
+  register(IPC_CHANNELS.updatesDownload, null, () => controller.downloadUpdate())
+  register(IPC_CHANNELS.updatesInstall, null, () => controller.installUpdate())
 
   register(IPC_CHANNELS.memosList, null, () => controller.listMemos())
   register(IPC_CHANNELS.memosCreate, memoInputSchema, (input) =>

@@ -27,6 +27,7 @@ import type {
   RefreshableModuleId,
   SecurityStatus,
   SystemNavigation,
+  UpdateStatus,
   WebsiteCheckConfig,
   WebsiteCheckInput,
   WebsiteCheckPatch
@@ -52,6 +53,7 @@ import { ConfigStore } from './storage/config-store'
 import { MemoImageError, type MemoImageStore } from './storage/memo-images'
 import type { WebsiteService } from './modules/website-check/website-service'
 import { AppTray } from './tray/tray'
+import type { UpdateService } from './updates/update-service'
 import { loadView } from './windows/load-view'
 import { MemoCardWindowManager } from './windows/memo-card-window-manager'
 import { OverlayWindowManager } from './windows/overlay-window-manager'
@@ -68,6 +70,7 @@ export interface AppControllerOptions {
   websiteService: WebsiteService
   deepSeekModule: DeepSeekModule
   esaModule: EsaModule
+  updateService: UpdateService
   logger: LoggerLike
   devServerUrl: string | undefined
   rendererIndexPath: string
@@ -132,6 +135,11 @@ export class AppController {
     options.memoService.onChange(() => {
       this.memoCards.sync()
       this.notifyMemosChanged()
+    })
+    options.updateService.onChange((status) => {
+      if (this.settingsReady) {
+        this.sendSettingsEvent(IPC_CHANNELS.updatesChanged, status)
+      }
     })
   }
 
@@ -490,6 +498,22 @@ export class AppController {
         ? null
         : '系统安全存储当前不可用。应用不会把任何密钥以明文写入磁盘。'
     }
+  }
+
+  getUpdateStatus(): UpdateStatus {
+    return this.options.updateService.getStatus()
+  }
+
+  async checkForUpdates(): Promise<UpdateStatus> {
+    return this.options.updateService.check()
+  }
+
+  async downloadUpdate(): Promise<UpdateStatus> {
+    return this.options.updateService.download()
+  }
+
+  installUpdate(): void {
+    this.options.updateService.install()
   }
 
   handleResume(): void {

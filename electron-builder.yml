@@ -17,6 +17,11 @@ asar: true
 npmRebuild: false
 electronDist: node_modules/electron/dist
 
+publish:
+  provider: github
+  owner: ZaiHuaOvO
+  repo: FlowerBuddy
+
 win:
   icon: app-icon.ico
   # Keep an ASCII executable name; the visible product/shortcut names are 花伴.

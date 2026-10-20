@@ -34,6 +34,7 @@ import {
   type SecurityStatus,
   type SettingsApi,
   type SystemNavigation,
+  type UpdateStatus,
   type WebsiteCheckConfig,
   type WebsiteCheckInput,
   type WebsiteCheckPatch,
@@ -220,6 +221,14 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
       })) as ModuleSummary[],
     getSecurityStatus: async () =>
       (await ipc.invoke(IPC_CHANNELS.securityStatus)) as SecurityStatus,
+    getUpdateStatus: async () => (await ipc.invoke(IPC_CHANNELS.updatesStatus)) as UpdateStatus,
+    checkForUpdates: async () => (await ipc.invoke(IPC_CHANNELS.updatesCheck)) as UpdateStatus,
+    downloadUpdate: async () => (await ipc.invoke(IPC_CHANNELS.updatesDownload)) as UpdateStatus,
+    installUpdate: async () => {
+      await ipc.invoke(IPC_CHANNELS.updatesInstall)
+    },
+    onUpdateStatus: (callback) =>
+      ipc.on(IPC_CHANNELS.updatesChanged, (payload) => callback(payload as UpdateStatus)),
     getStartupNotice: async () => (await ipc.invoke(IPC_CHANNELS.startupNotice)) as string | null,
     openExternal: async (link: ExternalLinkId) => {
       await ipc.invoke(IPC_CHANNELS.appOpenExternal, { link })

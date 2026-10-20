@@ -55,7 +55,9 @@
 - [ ] 当前安装程序的视觉样式仍需优化；等正式 Logo 和品牌素材到位后再统一调整。
 - [ ] 待确认：正式 Logo 与配色素材、欢迎页/侧边栏/完成页布局、是否需要更多自定义 NSIS 页面、深色模式与高 DPI 表现。
 
-## 7. 自动更新
+## 7. ~~自动更新~~
+
+> 2026-10-20 已实现 GitHub 源的安装版应用内更新：`electron-updater`、关于页检查/下载/确认重启、稳定通道、`FLOWERBUDDY_UPDATE_URL` generic feed 覆盖；便携版保持手动下载；Release 工作流上传 `latest.yml` 与 blockmap。真实 Windows 双版本升级验证待做。
 
 - [ ] 调研应用内自动更新，避免每次发布都让用户手动下载和重装安装包。
 - [ ] 评估 electron-updater + GitHub Releases 的可行性：版本元数据（`latest.yml`）、blockmap、差分下载、安装与重启流程。
