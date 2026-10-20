@@ -33,8 +33,9 @@ import { Logger } from './shared/logger'
 import { ConfigStore } from './storage/config-store'
 import { JsonStore } from './storage/json-store'
 import { MemoImageStore } from './storage/memo-images'
-import { installNavigationGuards } from './security/navigation-guards'
+import { installNavigationGuards, resolveDevServerUrl } from './security/navigation-guards'
 import { createElectronUpdaterAdapter } from './updates/electron-updater-adapter'
+import { sanitizeUpdateUrlOverride } from './updates/update-feed'
 import { UpdateService } from './updates/update-service'
 
 const APP_USER_MODEL_ID = 'com.flowerbuddy.app'
@@ -47,7 +48,7 @@ if (!app.commandLine.hasSwitch('user-data-dir')) {
   app.setPath('userData', join(app.getPath('appData'), 'FlowerBuddy'))
 }
 
-const devServerUrl = process.env['ELECTRON_RENDERER_URL']
+const devServerUrl = resolveDevServerUrl(app.isPackaged, process.env['ELECTRON_RENDERER_URL'])
 const rendererIndexPath = join(__dirname, '../renderer/index.html')
 const preloadPath = join(__dirname, '../preload/index.js')
 const appRoot = app.getAppPath()
@@ -177,7 +178,11 @@ async function bootstrap(): Promise<void> {
       controller?.showModuleMessage(moduleId, message, options)
   })
 
-  const updateUrl = process.env['FLOWERBUDDY_UPDATE_URL']
+  const rawUpdateUrl = process.env['FLOWERBUDDY_UPDATE_URL']
+  const updateUrl = sanitizeUpdateUrlOverride(rawUpdateUrl)
+  if (rawUpdateUrl && !updateUrl) {
+    logger.warn('ignoring update feed override; only HTTPS or loopback HTTP is allowed')
+  }
   const portable = Boolean(
     process.env['PORTABLE_EXECUTABLE_DIR'] || process.env['PORTABLE_EXECUTABLE_FILE']
   )

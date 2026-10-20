@@ -328,7 +328,7 @@ interface ModuleDefinition {
 ### 6.8 应用更新
 
 - `UpdateService`（`updates/update-service.ts`）包装 `electron-updater`，只在打包的 Windows 安装版启用；开发环境和便携版（检测 `PORTABLE_EXECUTABLE_DIR` / `PORTABLE_EXECUTABLE_FILE`）返回 `unsupported`，不会发起网络请求。
-- 默认使用 GitHub provider（`ZaiHuaOvO/FlowerBuddy`）的稳定通道；设置环境变量 `FLOWERBUDDY_UPDATE_URL` 时改用 generic provider，便于后续切换到国内对象存储/CDN 镜像，无需改更新逻辑。
+- 默认使用 GitHub provider（`ZaiHuaOvO/FlowerBuddy`）的稳定通道；设置环境变量 `FLOWERBUDDY_UPDATE_URL` 时可改用 generic provider（仅接受 HTTPS，或本地回环地址的 HTTP，便于隔离测试源），可用于评估国内对象存储/CDN 镜像，无需改更新逻辑。
 - `autoDownload=false`、`autoInstallOnAppQuit=false`、`allowPrerelease=false`、`allowDowngrade=false`；由用户在关于页手动检查、下载并确认重启安装。
 - 状态为 `idle / checking / available / not-available / downloading / downloaded / error / unsupported`；下载进度通过 `updates:changed` 推送到设置窗口。错误只向 UI 展示通用重试提示，原始错误写入脱敏日志，并提供 Release 手动下载入口。
 - Release 工作流上传 `latest.yml` 与 blockmap；在真实签名的 Windows 安装包完成至少两个版本升级验证前，此功能按计划标记为实验/待验证，不宣称发布级完成。

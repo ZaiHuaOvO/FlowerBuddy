@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { WebContents } from 'electron'
 import {
   installNavigationGuards,
-  isAllowedAppNavigation
+  isAllowedAppNavigation,
+  resolveDevServerUrl
 } from '../../src/main/security/navigation-guards'
 
 const RENDERER_INDEX = '/app/out/renderer/index.html'
@@ -14,6 +15,12 @@ const PRODUCTION_OPTIONS = {
 const PRODUCTION_URL = pathToFileURL(RENDERER_INDEX).toString()
 
 describe('navigation guards', () => {
+  it('ignores ELECTRON_RENDERER_URL in packaged builds', () => {
+    expect(resolveDevServerUrl(true, 'http://localhost:5173')).toBeUndefined()
+    expect(resolveDevServerUrl(false, 'http://localhost:5173')).toBe('http://localhost:5173')
+    expect(resolveDevServerUrl(false, undefined)).toBeUndefined()
+  })
+
   it('allows the production renderer page with query and hash', () => {
     expect(isAllowedAppNavigation(`${PRODUCTION_URL}?view=settings`, PRODUCTION_OPTIONS)).toBe(true)
     expect(isAllowedAppNavigation(`${PRODUCTION_URL}#section`, PRODUCTION_OPTIONS)).toBe(true)

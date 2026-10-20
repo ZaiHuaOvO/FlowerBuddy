@@ -6,6 +6,14 @@ export interface NavigationGuardOptions {
   rendererIndexPath: string
 }
 
+/** The Vite dev server is trusted only in unpackaged development runs. */
+export function resolveDevServerUrl(
+  isPackaged: boolean,
+  rawUrl: string | undefined
+): string | undefined {
+  return isPackaged ? undefined : rawUrl
+}
+
 function decodePath(pathname: string): string {
   try {
     return decodeURIComponent(pathname)
