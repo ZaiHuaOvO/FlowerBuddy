@@ -307,6 +307,7 @@ interface ModuleDefinition {
 - `MemoCardWindowManager`（`windows/memo-card-window-manager.ts`）为每条 `anchored && !completed` 的备忘录维护一个 `memo-card` 窗口。新卡片默认从主显示器右上角开始，按“先向下、满列后向左”的网格寻找不重叠的位置并持久化；已有位置在未被其他卡片占用时保留。卡片高度在窗口创建时由 renderer 按正文内容测量并通过 `memo-card:fit-height` 回写，约为正文高度加一行空行。窗口使用自定义拖动与四角缩放 IPC（主进程读取系统光标位置），结束时把位置/尺寸写回 `MemoService`；模块停用、删除、完成或取消锚点时关闭对应窗口，显示器变化时重新限制到可见区域。
 - 同时锚定的未完成备忘卡片上限为 20 张：`sanitizeMemoData` 在加载旧数据时会取消超出上限条目的锚定状态，`MemoService.setAnchored` 对第 21 张返回明确错误。
 - 卡片操作列固定为 **加号 → 锁 → 完成 → 关闭**：加号复用 `openMemoComposer()`；锁状态持久化到 `data/memos.json`（schemaVersion 2），锁定时卡片窗口使用 `setIgnoreMouseEvents(true, { forward: true })`，仅指针移到锁按钮时恢复交互；关闭取消锚定并保留备忘录数据；托盘菜单提供“解锁全部桌面卡片”作为备用入口。
+- 双击卡片标题（提醒时间或“备忘”）进入正文原位编辑：卡片正文变为 textarea，700 ms 防抖自动保存，点击“完成”、按 Esc/Ctrl+Enter 或失去焦点时立即保存；保存失败保留编辑内容并提示。编辑期间禁用拖动、缩放与加号/锁/完成/关闭，正文高度变化会重新测量并回写窗口高度；图片仍使用功能页的现有编辑器处理。
 - 全局快捷键由 `shortcuts/global-shortcuts.ts` 注册。备忘录快捷键默认 `Alt+A`，保存在 `config.app.memoShortcut`；界面入口是备忘录页标题旁的齿轮设置弹窗，不出现在常规页；新建弹窗中的“创建后锚定到桌面”开关会把偏好写入 `modules.memo.anchorNewMemos`，创建后立即锚定。冲突时保留原快捷键并返回 `INVALID_INPUT`。触发后打开设置；渲染进程通过 `settings:ui-ready` 握手，主进程再发送 `settings:open-memo-composer` 切换到备忘录页并弹出新建弹窗。老板键默认 `Alt+Z`，保存在 `config.app.bossShortcut`，在常规页修改；按下后隐藏桌宠、菜单/气泡、设置窗口、桌面备忘卡片和托盘图标，再按一次恢复（设置窗口与卡片按原状态恢复），托盘通过 `AppTray.destroy()` / `create()` 幂等重建。
 
 ### 6.6 ESA 快捷流量范围

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Lock, LockOpen, Plus, X } from 'lucide-react'
 import type { MemoCardEdge, MemoCardState } from '../../../shared/api'
 import { memoImageUrl } from '../../../shared/api'
@@ -18,13 +18,23 @@ export default function MemoCardView() {
   const [state, setState] = useState<MemoCardState | null>(null)
   const [dragging, setDragging] = useState(false)
   const [resizing, setResizing] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const dragFrame = useRef<number | null>(null)
   const resizeFrame = useRef<number | null>(null)
   const resizeEdge = useRef<MemoCardEdge | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const lockButtonRef = useRef<HTMLButtonElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const saveTimer = useRef<number | null>(null)
+  const lastSaved = useRef('')
+  const editingRef = useRef(false)
+  const finishingRef = useRef(false)
   const mouseThrough = useRef(false)
   const fitSent = useRef(false)
+
+  editingRef.current = editing
 
   useEffect(() => {
     if (!api || !memoId) {
@@ -41,7 +51,12 @@ export default function MemoCardView() {
       .catch(() => {})
     const unsubscribe = api.onStateChanged((next) => {
       if (next.id === memoId) {
-        setState(next)
+        setState((current) => {
+          if (!current) {
+            return next
+          }
+          return editingRef.current ? { ...next, text: current.text } : next
+        })
       }
     })
     return () => {
@@ -55,7 +70,26 @@ export default function MemoCardView() {
         cancelAnimationFrame(resizeFrame.current)
         resizeFrame.current = null
       }
+      if (saveTimer.current !== null) {
+        window.clearTimeout(saveTimer.current)
+        saveTimer.current = null
+      }
     }
+  }, [api, memoId])
+
+  const measureContent = useCallback((): void => {
+    const content = contentRef.current
+    if (!api || !content) {
+      return
+    }
+    const height = Math.ceil(
+      MEMO_CARD_HEADER_HEIGHT +
+        MEMO_CARD_BODY_PADDING * 2 +
+        content.getBoundingClientRect().height +
+        MEMO_CARD_LINE_HEIGHT +
+        2
+    )
+    void api.fitHeight(memoId, height).catch(() => {})
   }, [api, memoId])
 
   useEffect(() => {
@@ -65,18 +99,9 @@ export default function MemoCardView() {
     fitSent.current = true
     let cancelled = false
     const measure = (): void => {
-      const content = contentRef.current
-      if (cancelled || !content) {
-        return
+      if (!cancelled) {
+        measureContent()
       }
-      const height = Math.ceil(
-        MEMO_CARD_HEADER_HEIGHT +
-          MEMO_CARD_BODY_PADDING * 2 +
-          content.getBoundingClientRect().height +
-          MEMO_CARD_LINE_HEIGHT +
-          2
-      )
-      void api.fitHeight(memoId, height).catch(() => {})
     }
     void document.fonts.ready.then(() => {
       if (!cancelled) {
@@ -86,7 +111,7 @@ export default function MemoCardView() {
     return () => {
       cancelled = true
     }
-  }, [api, memoId, state])
+  }, [api, memoId, measureContent, state])
 
   useEffect(() => {
     if (!api || !state?.locked) {
@@ -201,6 +226,83 @@ export default function MemoCardView() {
     void api?.endResize(memoId).catch(() => {})
   }
 
+  function startEditing(): void {
+    if (!api || !state || state.locked || editing) {
+      return
+    }
+    setDraft(state.text)
+    lastSaved.current = state.text
+    setSaveState('idle')
+    finishingRef.current = false
+    setEditing(true)
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+      measureContent()
+    })
+  }
+
+  async function saveDraft(next: string): Promise<boolean> {
+    if (!api) {
+      return false
+    }
+    setSaveState('saving')
+    try {
+      await api.updateText(memoId, next)
+      lastSaved.current = next
+      setState((current) => (current ? { ...current, text: next } : current))
+      setSaveState('saved')
+      return true
+    } catch {
+      setSaveState('error')
+      return false
+    }
+  }
+
+  function scheduleSave(next: string): void {
+    if (saveTimer.current !== null) {
+      window.clearTimeout(saveTimer.current)
+    }
+    saveTimer.current = window.setTimeout(() => {
+      saveTimer.current = null
+      void saveDraft(next)
+    }, 700)
+  }
+
+  function handleDraftChange(value: string): void {
+    setDraft(value)
+    setSaveState('idle')
+    scheduleSave(value)
+    requestAnimationFrame(measureContent)
+  }
+
+  async function finishEditing(): Promise<void> {
+    if (!editingRef.current || finishingRef.current) {
+      return
+    }
+    finishingRef.current = true
+    if (saveTimer.current !== null) {
+      window.clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    if (draft !== lastSaved.current) {
+      const saved = await saveDraft(draft)
+      if (!saved) {
+        finishingRef.current = false
+        return
+      }
+    }
+    setEditing(false)
+    finishingRef.current = false
+    requestAnimationFrame(measureContent)
+  }
+
+  function handleEditorKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
+    if (event.key === 'Escape' || ((event.metaKey || event.ctrlKey) && event.key === 'Enter')) {
+      event.preventDefault()
+      void finishEditing()
+    }
+  }
+
   if (!api || !memoId || !state) {
     return null
   }
@@ -218,7 +320,15 @@ export default function MemoCardView() {
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        <span className="memo-card-reminder">
+        <span
+          className="memo-card-reminder"
+          title="双击编辑正文"
+          onPointerDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => {
+            event.stopPropagation()
+            startEditing()
+          }}
+        >
           {state.reminderAt ? formatReminderDateTime(new Date(state.reminderAt)) : '备忘'}
         </span>
         <span className="memo-card-actions">
@@ -226,7 +336,7 @@ export default function MemoCardView() {
             type="button"
             className="memo-card-action"
             aria-label="新建备忘录"
-            disabled={locked}
+            disabled={locked || editing}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => void api.openComposer().catch(() => {})}
           >
@@ -238,6 +348,7 @@ export default function MemoCardView() {
             className={`memo-card-action${locked ? ' is-locked' : ''}`}
             aria-label={locked ? '解锁卡片' : '锁定卡片'}
             aria-pressed={locked}
+            disabled={editing}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => void api.setLocked(memoId, !locked).catch(() => {})}
           >
@@ -251,7 +362,7 @@ export default function MemoCardView() {
             type="button"
             className="memo-card-action"
             aria-label="完成"
-            disabled={locked}
+            disabled={locked || editing}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => void api.complete(memoId).catch(() => {})}
           >
@@ -261,7 +372,7 @@ export default function MemoCardView() {
             type="button"
             className="memo-card-action"
             aria-label="关闭卡片"
-            disabled={locked}
+            disabled={locked || editing}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => void api.unanchor(memoId).catch(() => {})}
           >
@@ -272,7 +383,41 @@ export default function MemoCardView() {
 
       <div className="memo-card-body">
         <div className="memo-card-content" ref={contentRef}>
-          {state.text ? <div className="memo-card-text">{state.text}</div> : null}
+          {editing ? (
+            <div className="memo-card-editor">
+              <textarea
+                ref={textareaRef}
+                className="memo-card-textarea"
+                value={draft}
+                maxLength={20000}
+                rows={Math.max(3, draft.split('\n').length)}
+                aria-label="编辑备忘录正文"
+                onChange={(event) => handleDraftChange(event.target.value)}
+                onKeyDown={handleEditorKeyDown}
+                onBlur={() => void finishEditing()}
+              />
+              <div className={`memo-card-editor-status${saveState === 'error' ? ' is-error' : ''}`}>
+                <span>
+                  {saveState === 'saving'
+                    ? '保存中…'
+                    : saveState === 'error'
+                      ? '保存失败，请重试'
+                      : saveState === 'saved'
+                        ? '已自动保存'
+                        : '编辑中…'}
+                </span>
+                <button
+                  type="button"
+                  className="memo-card-editor-done"
+                  onClick={() => void finishEditing()}
+                >
+                  完成
+                </button>
+              </div>
+            </div>
+          ) : state.text ? (
+            <div className="memo-card-text">{state.text}</div>
+          ) : null}
           {state.images.map((image) => (
             <img
               key={image.id}
@@ -284,7 +429,7 @@ export default function MemoCardView() {
               draggable={false}
             />
           ))}
-          {!state.text && state.images.length === 0 ? (
+          {!editing && !state.text && state.images.length === 0 ? (
             <p className="memo-card-empty">（空备忘录）</p>
           ) : null}
         </div>

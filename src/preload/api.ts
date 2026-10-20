@@ -184,6 +184,9 @@ function createMemoCardApi(ipc: IpcBridge): MemoCardApi {
     setIgnoreMouse: async (id: string, ignore: boolean) => {
       await ipc.invoke(IPC_CHANNELS.memoCardSetIgnoreMouse, { id, ignore })
     },
+    updateText: async (id: string, text: string) => {
+      await ipc.invoke(IPC_CHANNELS.memosUpdate, { id, patch: { text } })
+    },
     fitHeight: async (id: string, height: number) => {
       await ipc.invoke(IPC_CHANNELS.memoCardFitHeight, { id, height })
     }

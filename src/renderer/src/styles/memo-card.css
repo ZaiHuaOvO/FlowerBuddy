@@ -53,6 +53,7 @@
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: text;
 }
 
 .memo-card-actions {
@@ -125,6 +126,59 @@
   word-break: break-word;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-relaxed);
+}
+
+.memo-card-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.memo-card-textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: none;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.memo-card-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.memo-card-editor-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.memo-card-editor-status.is-error {
+  color: var(--color-danger);
+}
+
+.memo-card-editor-done {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.memo-card-editor-done:hover {
+  background: var(--color-surface-soft);
 }
 
 .memo-card-image {

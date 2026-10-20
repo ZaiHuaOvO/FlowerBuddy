@@ -550,6 +550,7 @@ export interface MemoCardApi {
   setLocked(id: string, locked: boolean): Promise<void>
   openComposer(): Promise<void>
   setIgnoreMouse(id: string, ignore: boolean): Promise<void>
+  updateText(id: string, text: string): Promise<void>
   fitHeight(id: string, height: number): Promise<void>
 }
 
