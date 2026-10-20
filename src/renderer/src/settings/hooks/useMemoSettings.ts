@@ -341,7 +341,7 @@ export function useMemoSettings({
     try {
       const next = await api.updateMemo(id, { lineTasksEnabled: enabled })
       setMemos((current) => mergeMemoOrder(current, next))
-      flash(enabled ? '已开启逐行勾选' : '已关闭逐行勾选')
+      flash(enabled ? '已开启逐行打勾' : '已关闭逐行打勾')
     } catch (cause) {
       setError(toMessage(cause))
     }

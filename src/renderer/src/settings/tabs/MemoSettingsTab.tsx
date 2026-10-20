@@ -287,7 +287,7 @@ export function MemoSettingsTab({ model, onOpenSettings }: Props) {
                       onChange={(event) => toggleDraftLineTasks(event.target.checked)}
                     />
                     <span className="fl-switch-track" aria-hidden="true" />
-                    <span className="fl-switch-label">逐行完成勾选</span>
+                    <span className="fl-switch-label">逐行打勾</span>
                   </label>
                 </div>
                 <div className="form-actions memo-form-actions">
@@ -356,7 +356,7 @@ function MemoRow({
 
       <div className="row-actions">
         <IconButton
-          label={memo.lineTasksEnabled ? '关闭逐行勾选' : '开启逐行勾选'}
+          label={memo.lineTasksEnabled ? '关闭逐行打勾' : '开启逐行打勾'}
           aria-pressed={memo.lineTasksEnabled}
           disabled={memo.completed}
           className={memo.lineTasksEnabled ? 'is-active' : undefined}

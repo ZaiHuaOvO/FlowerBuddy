@@ -53,7 +53,7 @@ export default function QuickMenu() {
   const [listClosing, setListClosing] = useState(false)
   const [hasOpened, setHasOpened] = useState(false)
   const [labelsArmed, setLabelsArmed] = useState(false)
-  const [selectedAction, setSelectedAction] = useState<'settings' | null>(null)
+  const [selectedAction, setSelectedAction] = useState<'functions' | 'settings' | null>(null)
   const lastToken = useRef(0)
   const ackedToken = useRef(0)
   const listTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -179,11 +179,18 @@ export default function QuickMenu() {
 
   function openActions(): void {
     setLabelsArmed(true)
-    setSelectedAction(null)
     clearHoverTimer()
     clearListTimer()
     setListClosing(false)
     setExpanded(true)
+  }
+
+  function openFunctions(): void {
+    setSelectedAction('functions')
+    setLabelsArmed(true)
+    if (api) {
+      fire(api.openFunctions())
+    }
   }
 
   function openSettings(): void {
@@ -296,7 +303,7 @@ export default function QuickMenu() {
                   buttonRefs.current[0] = node
                 }}
                 type="button"
-                className="menu-icon-button"
+                className={`menu-icon-button${selectedAction === 'functions' ? ' is-selected' : ''}`}
                 aria-label="查看全部功能"
                 aria-expanded={expanded}
                 onPointerEnter={openActions}
@@ -305,7 +312,7 @@ export default function QuickMenu() {
                     openActions()
                   }
                 }}
-                onClick={() => fire(api.openFunctions())}
+                onClick={openFunctions}
               >
                 <Sparkles size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>
