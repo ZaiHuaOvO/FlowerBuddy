@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/brand/app-icon/flowerbuddy-icon-transparent-256.png" width="96" height="96" alt="花伴 app icon">
+</p>
+
 # 花伴 (FlowerBuddy)
 
 面向 Windows 的桌面宠物与个人信息助手。桌宠常驻桌面，提供备忘录与定时提醒、网站检测，以及 DeepSeek 余额和阿里云 ESA 流量查询。

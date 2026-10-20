@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$petPath = Join-Path $root 'assets/default-pet/flower.png'
+$iconPath = Join-Path $root 'assets/brand/app-icon/flowerbuddy-icon-transparent-1024.png'
 $outputDirectory = Join-Path $root 'assets/installer'
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 
@@ -36,7 +36,7 @@ $brown = [System.Drawing.ColorTranslator]::FromHtml('#8b5a2b')
 $muted = [System.Drawing.ColorTranslator]::FromHtml('#7a6756')
 $soft = [System.Drawing.ColorTranslator]::FromHtml('#b39a84')
 $accent = [System.Drawing.ColorTranslator]::FromHtml('#e8c9a8')
-$pet = [System.Drawing.Image]::FromFile($petPath)
+$icon = [System.Drawing.Image]::FromFile($iconPath)
 
 try {
   $sidebar = New-BrandBitmap 164 314
@@ -55,7 +55,7 @@ try {
   $halo = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 244, 228, 213))
   $graphics.FillEllipse($halo, 20, 34, 124, 124)
 
-  $graphics.DrawImage($pet, 12, 48, 140, 100)
+  $graphics.DrawImage($icon, 28, 42, 108, 108)
 
   $brownBrush = New-Object System.Drawing.SolidBrush($brown)
   $softBrush = New-Object System.Drawing.SolidBrush($soft)
@@ -128,7 +128,7 @@ try {
   )
   $graphics.FillRectangle($headerGradient, $headerBounds)
   $graphics.FillEllipse($halo, 2, 4, 44, 44)
-  $graphics.DrawImage($pet, 7, 9, 36, 30)
+  $graphics.DrawImage($icon, 6, 8, 36, 36)
   $graphics.FillRectangle($brownBrush, 0, 55, 150, 2)
 
   $headerTitleFont = New-Object System.Drawing.Font(
@@ -170,5 +170,5 @@ try {
   Write-Output (Join-Path $outputDirectory 'header.bmp')
 }
 finally {
-  $pet.Dispose()
+  $icon.Dispose()
 }

@@ -24,7 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "npm run typecheck && electron-vite build",
-    "icons": "electron scripts/generate-icon.cjs",
+    "icons": "node scripts/generate-icon.cjs",
     "pets": "electron scripts/convert-pets.cjs",
     "installer-assets": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-installer-assets.ps1",
     "assets": "npm run icons && npm run pets && npm run installer-assets",

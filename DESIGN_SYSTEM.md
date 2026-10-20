@@ -142,6 +142,13 @@ AI Agent 第一次读取本文件时，要实际检查设计规范页面，并�
 - **未选中项**：透明背景 + `--color-text-muted`；hover 使用 `--color-surface-soft`，不影响选中态的连续表面。
 - **底部**：设置窗口不显示退出说明，也不绘制底部分隔线。
 
+### 4.3 品牌图标（2026-10-20）
+
+- 应用图标、托盘图标、关于页与安装器统一使用 `assets/brand/app-icon/` 的官方 app-icon（纯图形、无文字）。
+- 产品名称、标语和说明文字由界面、README 与官网自行排版；不在界面中加载带文字的完整组合 Logo。
+- Windows 使用 `FlowerBuddy.ico`；界面与网页优先使用透明底 PNG；需要实体底色时使用白底版本。
+- 变更品牌素材时必须同步 `scripts/generate-icon.cjs` 与 `scripts/generate-installer-assets.ps1`，避免重新生成时覆盖官方素材。
+
 ---
 
 ## 5. 阶段 1 的最低视觉验收标准
