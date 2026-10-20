@@ -311,7 +311,7 @@ interface ModuleDefinition {
 - 同时锚定的未完成备忘卡片上限为 20 张：`sanitizeMemoData` 在加载旧数据时会取消超出上限条目的锚定状态，`MemoService.setAnchored` 对第 21 张返回明确错误。
 - 卡片操作列固定为 **加号 → 锁 → 完成 → 关闭**：加号复用 `openMemoComposer()`；锁状态持久化到 `data/memos.json`（schemaVersion 3），锁定时卡片窗口使用 `setIgnoreMouseEvents(true, { forward: true })`，仅指针移到锁按钮时恢复交互；关闭取消锚定并保留备忘录数据；托盘菜单提供“解锁全部桌面卡片”作为备用入口。
 - 右键卡片正文或标题进入正文原位编辑：卡片正文变为 textarea，700 ms 防抖自动保存，点击“完成”、按 Esc/Ctrl+Enter 或失去焦点时立即保存；保存失败保留编辑内容并提示。编辑期间禁用拖动、缩放与加号/锁/完成/关闭，正文高度变化会重新测量并回写窗口高度；图片仍使用功能页的现有编辑器处理。
-- 逐行完成勾选是每条备忘录自己的 `lineTasksEnabled` 字段，`modules.memo.lineTasksEnabled` 只作为新建时的默认值。开启后卡片每个非空行前显示复选框；空行不生成任务，图片不参与。行任务保存稳定 ID、文本和完成状态，编辑正文时按完全匹配的行文本保留状态，新行默认未完成，删除的行状态清除。整张备忘录的完成状态与逐行状态互不自动联动。
+- 逐行打勾是每条备忘录自己的 `lineTasksEnabled` 字段，`modules.memo.lineTasksEnabled` 只作为新建时的默认值。开启后卡片每个非空行前显示复选框；空行不生成任务，图片不参与。行任务保存稳定 ID、文本和完成状态，编辑正文时按完全匹配的行文本保留状态，新行默认未完成，删除的行状态清除。整张备忘录的完成状态与逐行状态互不自动联动。
 - 全局快捷键由 `shortcuts/global-shortcuts.ts` 注册。备忘录快捷键默认 `Alt+A`，保存在 `config.app.memoShortcut`；界面入口是备忘录页标题旁的齿轮设置弹窗，不出现在常规页；新建弹窗中的“创建后锚定到桌面”开关会把偏好写入 `modules.memo.anchorNewMemos`，创建后立即锚定。冲突时保留原快捷键并返回 `INVALID_INPUT`。触发后打开设置；渲染进程通过 `settings:ui-ready` 握手，主进程再发送 `settings:open-memo-composer` 切换到备忘录页并弹出新建弹窗。老板键默认 `Alt+Z`，保存在 `config.app.bossShortcut`，在常规页修改；按下后隐藏桌宠、菜单/气泡、设置窗口、桌面备忘卡片和托盘图标，再按一次恢复（设置窗口与卡片按原状态恢复），托盘通过 `AppTray.destroy()` / `create()` 幂等重建。
 
 ### 6.6 ESA 快捷流量范围

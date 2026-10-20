@@ -75,7 +75,6 @@ export function GeneralSettingsTab({
       <div className="row">
         <span className="row-label">
           <label htmlFor="setting-launch-at-login">开机自启</label>
-          <InfoTip text="开机就会启动桌宠" align="right" />
         </span>
         <input
           id="setting-launch-at-login"
@@ -88,7 +87,6 @@ export function GeneralSettingsTab({
       <div className="row">
         <span className="row-label">
           <label htmlFor="setting-always-on-top">始终置顶</label>
-          <InfoTip text="总是会在其他窗口上面" align="right" />
         </span>
         <input
           id="setting-always-on-top"

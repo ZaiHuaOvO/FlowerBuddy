@@ -60,7 +60,7 @@ export function DeepSeekSettingsTab({
     <section className="panel">
       <div className="panel-header-row">
         <div className="module-title-row">
-          <h2>DeepSeek 余额</h2>
+          <h2>{isFunction ? 'DeepSeek 余额' : 'DeepSeek 余额设置'}</h2>
           <Tag tone={summary?.configured ? 'success' : 'warning'}>
             {summary?.statusLabel ?? '未配置'}
           </Tag>
@@ -106,7 +106,7 @@ export function DeepSeekSettingsTab({
               i
             </span>
             <span className="fl-alert-message">
-              “今日花费”当前未接入官方账号级每日消费统计；余额变化不等于消费，本应用不会用余额差额估算。
+              “今日花费”当前未接入官方统计，余额变化不等于消费。
             </span>
           </div>
           {balance ? (
@@ -138,9 +138,7 @@ export function DeepSeekSettingsTab({
             <EmptyState
               title="尚未查询余额"
               description={
-                summary?.configured
-                  ? '点击“刷新余额”查询当前余额。'
-                  : '保存 API Key 后即可查询余额。'
+                summary?.configured ? '点击“刷新余额”查看数据。' : '保存 API Key 后即可查询。'
               }
             />
           )}
@@ -148,13 +146,10 @@ export function DeepSeekSettingsTab({
       ) : (
         <>
           {showSetup ? (
-            <p className="hint">
-              API Key 仅由主进程使用 Windows safeStorage
-              加密保存，界面不会回显明文，也不会写入日志或普通配置文件。
-            </p>
+            <p className="hint">API Key 仅在本机加密保存，界面不会回显明文，也不会写入日志。</p>
           ) : null}
-          <div className="form-grid">
-            {showSetup ? (
+          {showSetup ? (
+            <div className="form-grid">
               <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
                 <input
                   className="fl-input"
@@ -166,8 +161,11 @@ export function DeepSeekSettingsTab({
                   onChange={(event) => setKeyDraft(event.target.value)}
                 />
               </Field>
-            ) : null}
-            <Field label="自动刷新" hint="默认仅手动刷新">
+            </div>
+          ) : null}
+          <div className="settings-inline-row">
+            <label className="settings-inline-field">
+              <span className="field-label">自动刷新</span>
               <select
                 className="fl-select"
                 value={
@@ -182,7 +180,7 @@ export function DeepSeekSettingsTab({
                 <option value="30">每 30 分钟</option>
                 <option value="60">每 60 分钟</option>
               </select>
-            </Field>
+            </label>
             <div className="form-actions">
               {showSetup ? (
                 <Button variant="primary" disabled={busy} onClick={() => void handleSave()}>
@@ -212,7 +210,7 @@ export function DeepSeekSettingsTab({
               i
             </span>
             <span className="fl-alert-message">
-              “今日花费”当前未接入官方账号级每日消费统计；余额变化不等于消费，本应用不会用余额差额估算。
+              余额变化不等于消费，本应用不会用余额差额估算今日花费。
             </span>
           </div>
         </>

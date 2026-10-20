@@ -34,7 +34,7 @@ export function WebsitesSettingsTab({ model }: Props) {
   return (
     <section className="panel">
       <h2>网站检测</h2>
-      <p className="hint">检测仅从本机网络发起，只能说明本地网络能否访问，不代表全球可用性。</p>
+      <p className="hint">只检测本机网络能否访问，不代表全球可用性。</p>
       <form className="form-grid" onSubmit={(event) => void submit(event)}>
         <Field label="名称">
           <input

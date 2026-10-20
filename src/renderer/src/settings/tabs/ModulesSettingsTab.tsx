@@ -146,7 +146,7 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
         </div>
       </div>
 
-      <p className="hint">已启用功能可拖拽排序</p>
+      <p className="hint">拖动已启用项可调整顺序</p>
     </section>
   )
 }
