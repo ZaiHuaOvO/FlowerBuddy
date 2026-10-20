@@ -5,6 +5,7 @@ const FALLBACK_ICON =
 
 export interface TrayActions {
   openSettings(): void
+  unlockCards(): void
   togglePet(): void
   quit(): void
 }
@@ -51,6 +52,7 @@ export class AppTray {
         click: () => this.actions.togglePet()
       },
       { label: '打开设置', click: () => this.actions.openSettings() },
+      { label: '解锁全部桌面卡片', click: () => this.actions.unlockCards() },
       { type: 'separator' },
       { label: '退出 花伴', click: () => this.actions.quit() }
     ])

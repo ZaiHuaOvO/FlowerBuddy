@@ -31,11 +31,13 @@ import {
   intervalReminderUpdateInputSchema,
   memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
+  memoCardIgnoreMouseInputSchema,
   memoCardResizeInputSchema,
   memoCardFitHeightInputSchema,
   memoDiscardImagesSchema,
   memoImageBytesSchema,
   memoInputSchema,
+  memoLockedInputSchema,
   memoUpdateInputSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
@@ -137,6 +139,9 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   register(IPC_CHANNELS.memosSetAnchored, memoAnchoredInputSchema, (input) =>
     controller.setMemoAnchored(input.id, input.anchored)
   )
+  register(IPC_CHANNELS.memosSetLocked, memoLockedInputSchema, (input) =>
+    controller.setMemoLocked(input.id, input.locked)
+  )
   register(IPC_CHANNELS.memosAddImage, memoImageBytesSchema, (input) =>
     controller.addMemoImage(input.data)
   )
@@ -187,6 +192,10 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.memoCardFitHeight, memoCardFitHeightInputSchema, (input) =>
     controller.memoCardFitHeight(input.id, input.height)
+  )
+  register(IPC_CHANNELS.memoCardOpenComposer, null, () => controller.openMemoComposer())
+  register(IPC_CHANNELS.memoCardSetIgnoreMouse, memoCardIgnoreMouseInputSchema, (input) =>
+    controller.memoCardSetIgnoreMouse(input.id, input.ignore)
   )
 
   register(IPC_CHANNELS.websitesList, null, () => controller.listWebsiteChecks())

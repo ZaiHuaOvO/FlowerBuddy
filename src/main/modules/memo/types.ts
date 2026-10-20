@@ -16,15 +16,18 @@ export interface StoredMemo {
   completed: boolean
   completedAt: string | null
   anchored: boolean
+  locked: boolean
   bounds: MemoBounds | null
   createdAt: string
   updatedAt: string
 }
 
 export interface MemoData {
-  schemaVersion: 1
+  schemaVersion: 2
   memos: StoredMemo[]
 }
+
+export const MEMO_DATA_SCHEMA_VERSION = 2
 
 export const MEMO_TEXT_MAX = 20000
 export const MEMO_IMAGES_MAX = 9
@@ -34,5 +37,5 @@ export const MEMO_COUNT_MAX = 500
 export const MEMO_ANCHORED_MAX = 20
 
 export function createEmptyMemoData(): MemoData {
-  return { schemaVersion: 1, memos: [] }
+  return { schemaVersion: MEMO_DATA_SCHEMA_VERSION, memos: [] }
 }

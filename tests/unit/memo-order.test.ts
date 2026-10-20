@@ -11,6 +11,7 @@ function memo(id: string, completed = false): MemoSummary {
     completed,
     completedAt: completed ? '2026-10-18T00:00:00.000Z' : null,
     anchored: false,
+    locked: false,
     createdAt: '2026-10-18T00:00:00.000Z',
     updatedAt: '2026-10-18T00:00:00.000Z'
   }

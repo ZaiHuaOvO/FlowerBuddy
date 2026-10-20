@@ -206,6 +206,7 @@ export interface MemoSummary {
   completed: boolean
   completedAt: string | null
   anchored: boolean
+  locked: boolean
   createdAt: string
   updatedAt: string
 }
@@ -229,6 +230,7 @@ export interface MemoCardState {
   text: string
   images: MemoImageInfo[]
   reminderAt: string | null
+  locked: boolean
 }
 
 export interface ReminderRange {
@@ -421,6 +423,7 @@ export const IPC_CHANNELS = {
   memosComplete: 'memos:complete',
   memosUncomplete: 'memos:uncomplete',
   memosSetAnchored: 'memos:set-anchored',
+  memosSetLocked: 'memos:set-locked',
   memosAddImage: 'memos:add-image',
   memosDiscardImages: 'memos:discard-images',
   memosSetAnchorNew: 'memos:set-anchor-new',
@@ -467,6 +470,8 @@ export const IPC_CHANNELS = {
   memoCardResizeMove: 'memo-card:resize-move',
   memoCardEndResize: 'memo-card:end-resize',
   memoCardFitHeight: 'memo-card:fit-height',
+  memoCardOpenComposer: 'memo-card:open-composer',
+  memoCardSetIgnoreMouse: 'memo-card:set-ignore-mouse',
   menuRunAction: 'menu:run-action',
   menuOpenSettings: 'menu:open-settings',
   menuOpenFunctions: 'menu:open-functions',
@@ -519,6 +524,9 @@ export interface MemoCardApi {
   endResize(id: string): Promise<void>
   complete(id: string): Promise<void>
   unanchor(id: string): Promise<void>
+  setLocked(id: string, locked: boolean): Promise<void>
+  openComposer(): Promise<void>
+  setIgnoreMouse(id: string, ignore: boolean): Promise<void>
   fitHeight(id: string, height: number): Promise<void>
 }
 

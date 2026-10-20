@@ -9,8 +9,10 @@ import {
   menuActionSchema,
   moduleEnabledInputSchema,
   memoCardResizeInputSchema,
+  memoCardIgnoreMouseInputSchema,
   memoImageBytesSchema,
   memoInputSchema,
+  memoLockedInputSchema,
   memoPatchSchema,
   moduleIdSchema,
   intervalReminderInputSchema,
@@ -65,6 +67,20 @@ describe('IPC input schemas', () => {
     expect(parseInput(externalLinkSchema, { link: 'issues' })).toEqual({ link: 'issues' })
     expect(() => parseInput(externalLinkSchema, { link: 'https://example.com' })).toThrow(AppError)
     expect(() => parseInput(externalLinkSchema, { link: 'author', extra: true })).toThrow(AppError)
+  })
+
+  it('validates memo lock and card mouse-through inputs', () => {
+    const id = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+    expect(parseInput(memoLockedInputSchema, { id, locked: true })).toEqual({
+      id,
+      locked: true
+    })
+    expect(parseInput(memoCardIgnoreMouseInputSchema, { id, ignore: false })).toEqual({
+      id,
+      ignore: false
+    })
+    expect(() => parseInput(memoLockedInputSchema, { id, locked: 'yes' })).toThrow(AppError)
+    expect(() => parseInput(memoCardIgnoreMouseInputSchema, { id, ignore: 1 })).toThrow(AppError)
   })
 
   it('validates pet asset selections and image deletion ids', () => {

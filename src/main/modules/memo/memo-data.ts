@@ -10,6 +10,7 @@ import {
   createEmptyMemoData,
   MEMO_ANCHORED_MAX,
   MEMO_COUNT_MAX,
+  MEMO_DATA_SCHEMA_VERSION,
   MEMO_IMAGE_MAX_DIMENSION,
   MEMO_IMAGES_MAX,
   MEMO_TEXT_MAX,
@@ -118,6 +119,7 @@ function sanitizeStoredMemo(raw: unknown, usedIds: Set<string>): StoredMemo | nu
     completed,
     completedAt,
     anchored: !completed && raw.anchored === true,
+    locked: !completed && raw.locked === true,
     bounds: sanitizeMemoBounds(raw.bounds),
     createdAt,
     updatedAt
@@ -145,5 +147,5 @@ export function sanitizeMemoData(raw: unknown): MemoData {
       memos.push(memo)
     }
   }
-  return { schemaVersion: 1, memos }
+  return { schemaVersion: MEMO_DATA_SCHEMA_VERSION, memos }
 }

@@ -174,6 +174,15 @@ function createMemoCardApi(ipc: IpcBridge): MemoCardApi {
     unanchor: async (id: string) => {
       await ipc.invoke(IPC_CHANNELS.memosSetAnchored, { id, anchored: false })
     },
+    setLocked: async (id: string, locked: boolean) => {
+      await ipc.invoke(IPC_CHANNELS.memosSetLocked, { id, locked })
+    },
+    openComposer: async () => {
+      await ipc.invoke(IPC_CHANNELS.memoCardOpenComposer)
+    },
+    setIgnoreMouse: async (id: string, ignore: boolean) => {
+      await ipc.invoke(IPC_CHANNELS.memoCardSetIgnoreMouse, { id, ignore })
+    },
     fitHeight: async (id: string, height: number) => {
       await ipc.invoke(IPC_CHANNELS.memoCardFitHeight, { id, height })
     }

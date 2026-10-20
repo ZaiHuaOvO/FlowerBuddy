@@ -141,6 +141,7 @@ export class AppController {
 
     this.tray = new AppTray(this.options.trayIconPath, {
       openSettings: () => this.openSettings(),
+      unlockCards: () => this.unlockAllMemoCards(),
       togglePet: () => this.togglePet(),
       quit: () => this.quitApp()
     })
@@ -260,6 +261,14 @@ export class AppController {
     return this.options.memoService.setAnchored(id, anchored)
   }
 
+  setMemoLocked(id: string, locked: boolean): MemoSummary[] {
+    return this.options.memoService.setLocked(id, locked)
+  }
+
+  unlockAllMemoCards(): void {
+    this.options.memoService.unlockAll()
+  }
+
   setMemoAnchorNew(enabled: boolean): PublicConfig {
     return this.options.configStore.setMemoAnchorNew(enabled)
   }
@@ -342,6 +351,10 @@ export class AppController {
 
   memoCardFitHeight(id: string, height: number): void {
     this.memoCards.fitHeight(id, height)
+  }
+
+  memoCardSetIgnoreMouse(id: string, ignore: boolean): void {
+    this.memoCards.setIgnoreMouse(id, ignore)
   }
 
   listWebsiteChecks(): WebsiteCheckConfig[] {

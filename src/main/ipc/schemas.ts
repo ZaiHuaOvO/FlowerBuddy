@@ -169,6 +169,12 @@ const memoDiscardImagesSchema = z.object({ ids: z.array(z.string().uuid()).max(2
 
 const memoAnchoredInputSchema = z.object({ id: z.string().uuid(), anchored: z.boolean() }).strict()
 
+const memoLockedInputSchema = z.object({ id: z.string().uuid(), locked: z.boolean() }).strict()
+
+const memoCardIgnoreMouseInputSchema = z
+  .object({ id: z.string().uuid(), ignore: z.boolean() })
+  .strict()
+
 const memoCardResizeInputSchema = z
   .object({ id: z.string().uuid(), edge: z.enum(['nw', 'ne', 'sw', 'se']) })
   .strict()
@@ -253,11 +259,13 @@ export {
   intervalReminderUpdateInputSchema,
   memoAnchorNewInputSchema,
   memoAnchoredInputSchema,
+  memoCardIgnoreMouseInputSchema,
   memoCardResizeInputSchema,
   memoCardFitHeightInputSchema,
   memoDiscardImagesSchema,
   memoImageBytesSchema,
   memoInputSchema,
+  memoLockedInputSchema,
   memoPatchSchema,
   memoUpdateInputSchema,
   refreshIntervalInputSchema,

@@ -107,7 +107,7 @@ export class MemoCardWindowManager {
 
   beginDrag(id: string): void {
     const card = this.cards.get(id)
-    if (!card || card.window.isDestroyed()) {
+    if (!card || card.window.isDestroyed() || this.options.service.get(id)?.locked) {
       return
     }
     const cursor = screen.getCursorScreenPoint()
@@ -117,7 +117,7 @@ export class MemoCardWindowManager {
 
   dragMove(id: string): void {
     const card = this.cards.get(id)
-    if (!card || card.window.isDestroyed() || !card.drag) {
+    if (!card || card.window.isDestroyed() || !card.drag || this.options.service.get(id)?.locked) {
       return
     }
     const cursor = screen.getCursorScreenPoint()
@@ -141,7 +141,7 @@ export class MemoCardWindowManager {
 
   beginResize(id: string, edge: MemoCardEdge): void {
     const card = this.cards.get(id)
-    if (!card || card.window.isDestroyed()) {
+    if (!card || card.window.isDestroyed() || this.options.service.get(id)?.locked) {
       return
     }
     const cursor = screen.getCursorScreenPoint()
@@ -155,7 +155,12 @@ export class MemoCardWindowManager {
 
   resizeMove(id: string): void {
     const card = this.cards.get(id)
-    if (!card || card.window.isDestroyed() || !card.resize) {
+    if (
+      !card ||
+      card.window.isDestroyed() ||
+      !card.resize ||
+      this.options.service.get(id)?.locked
+    ) {
       return
     }
     const cursor = screen.getCursorScreenPoint()
@@ -203,6 +208,18 @@ export class MemoCardWindowManager {
     }
     card.window.setBounds(next)
     this.options.service.updateBounds(id, next)
+  }
+
+  setIgnoreMouse(id: string, ignore: boolean): void {
+    const card = this.cards.get(id)
+    if (!card || card.window.isDestroyed()) {
+      return
+    }
+    const memo = this.options.service.get(id)
+    if (!memo?.locked) {
+      return
+    }
+    card.window.setIgnoreMouseEvents(ignore, { forward: true })
   }
 
   ensureVisible(): void {
@@ -290,8 +307,10 @@ export class MemoCardWindowManager {
       id: memo.id,
       text: memo.text,
       images: memo.images,
-      reminderAt: memo.reminderAt
+      reminderAt: memo.reminderAt,
+      locked: memo.locked
     }
+    card.window.setIgnoreMouseEvents(memo.locked, { forward: true })
     card.window.webContents.send(IPC_CHANNELS.memoCardStateChanged, state)
   }
 
@@ -382,7 +401,8 @@ function toCardState(memo: StoredMemo): MemoCardState {
     id: memo.id,
     text: memo.text,
     images: memo.images,
-    reminderAt: memo.reminderAt
+    reminderAt: memo.reminderAt,
+    locked: memo.locked
   }
 }
 

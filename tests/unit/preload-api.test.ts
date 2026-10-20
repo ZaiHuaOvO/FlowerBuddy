@@ -131,6 +131,31 @@ describe('preload bridge surface', () => {
     expect(received).toEqual([{ phase: 'open', placement: 'above', token: 1 }])
   })
 
+  it('forwards memo card lock, composer, and mouse-through calls', async () => {
+    const { bridge, invocations } = createFakeBridge()
+    const card = createBridge('memo-card', bridge)?.value as {
+      setLocked(id: string, locked: boolean): Promise<void>
+      openComposer(): Promise<void>
+      setIgnoreMouse(id: string, ignore: boolean): Promise<void>
+    }
+    const id = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+
+    await card.setLocked(id, true)
+    expect(invocations[0]).toEqual({
+      channel: IPC_CHANNELS.memosSetLocked,
+      args: [{ id, locked: true }]
+    })
+
+    await card.openComposer()
+    expect(invocations[1]).toEqual({ channel: IPC_CHANNELS.memoCardOpenComposer, args: [] })
+
+    await card.setIgnoreMouse(id, false)
+    expect(invocations[2]).toEqual({
+      channel: IPC_CHANNELS.memoCardSetIgnoreMouse,
+      args: [{ id, ignore: false }]
+    })
+  })
+
   it('refuses unknown views', () => {
     const { bridge } = createFakeBridge()
     expect(createBridge('devtools', bridge)).toBeNull()

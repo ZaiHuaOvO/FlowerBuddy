@@ -114,6 +114,46 @@ describe('memo service', () => {
     expect(data.memos[20]?.anchored).toBe(false)
   })
 
+  it('persists lock state and unlocks all cards', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const id = idOf(
+      service.create({ text: 'locked memo', images: [], reminderAt: null }),
+      'locked memo'
+    )
+    service.setAnchored(id, true)
+    service.setLocked(id, true)
+    expect(service.get(id)?.locked).toBe(true)
+
+    service.unlockAll()
+    expect(service.get(id)?.locked).toBe(false)
+  })
+
+  it('rejects locking a completed memo and treats legacy data as unlocked', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const id = idOf(
+      service.create({ text: 'done memo', images: [], reminderAt: null }),
+      'done memo'
+    )
+    service.complete(id)
+    expect(() => service.setLocked(id, true)).toThrow('不能锁定')
+
+    const legacy = sanitizeMemoData({
+      schemaVersion: 1,
+      memos: [
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          text: 'legacy',
+          images: [],
+          reminderAt: null,
+          completed: false,
+          anchored: true
+        }
+      ]
+    })
+    expect(legacy.schemaVersion).toBe(2)
+    expect(legacy.memos[0]?.locked).toBe(false)
+  })
+
   it('deletes images with the memo and when removed from an update', () => {
     const { service, removed } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
     const created = service.create({

@@ -6,6 +6,7 @@ import { normalizeIsoTimestamp, sanitizeMemoBounds, sanitizeMemoImages } from '.
 import {
   MEMO_ANCHORED_MAX,
   MEMO_COUNT_MAX,
+  MEMO_DATA_SCHEMA_VERSION,
   MEMO_TEXT_MAX,
   type MemoBounds,
   type MemoData,
@@ -46,6 +47,7 @@ function toSummary(memo: StoredMemo): MemoSummary {
     completed: memo.completed,
     completedAt: memo.completedAt,
     anchored: memo.anchored,
+    locked: memo.locked,
     createdAt: memo.createdAt,
     updatedAt: memo.updatedAt
   }
@@ -90,6 +92,7 @@ export class MemoService {
       completed: false,
       completedAt: null,
       anchored: false,
+      locked: false,
       bounds: null,
       createdAt: now,
       updatedAt: now
@@ -181,6 +184,7 @@ export class MemoService {
           completed: true,
           completedAt: now,
           anchored: false,
+          locked: false,
           updatedAt: now
         }
       : {
@@ -213,6 +217,31 @@ export class MemoService {
     const updated = [...memos]
     updated[index] = { ...current, anchored }
     this.save(updated)
+    return this.list()
+  }
+
+  setLocked(id: string, locked: boolean): MemoSummary[] {
+    const memos = this.store.get().memos
+    const index = memos.findIndex((memo) => memo.id === id)
+    if (index === -1) {
+      throw new AppError('NOT_FOUND', '未找到该备忘录')
+    }
+    const current = memos[index] as StoredMemo
+    if (current.completed && locked) {
+      throw new AppError('INVALID_INPUT', '已完成的备忘录不能锁定')
+    }
+    const updated = [...memos]
+    updated[index] = { ...current, locked }
+    this.save(updated)
+    return this.list()
+  }
+
+  unlockAll(): MemoSummary[] {
+    const memos = this.store.get().memos
+    if (!memos.some((memo) => memo.locked)) {
+      return this.list()
+    }
+    this.save(memos.map((memo) => (memo.locked ? { ...memo, locked: false } : memo)))
     return this.list()
   }
 
@@ -304,7 +333,7 @@ export class MemoService {
   }
 
   private save(memos: StoredMemo[]): void {
-    this.store.set({ schemaVersion: 1, memos })
+    this.store.set({ schemaVersion: MEMO_DATA_SCHEMA_VERSION, memos })
     for (const listener of this.listeners) {
       listener()
     }

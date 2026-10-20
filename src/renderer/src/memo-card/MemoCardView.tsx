@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, Lock, LockOpen, Plus, X } from 'lucide-react'
 import type { MemoCardEdge, MemoCardState } from '../../../shared/api'
 import { memoImageUrl } from '../../../shared/api'
 import {
@@ -11,38 +12,6 @@ import '../styles/memo-card.css'
 
 const RESIZE_EDGES: MemoCardEdge[] = ['nw', 'ne', 'sw', 'se']
 
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-      <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path
-        d="m5.2 8.2 1.9 1.9 3.7-3.9"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function UnpinIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-      <path
-        d="M9.4 1.8 14.2 6.6l-1.7.5-2.4 2.4-.3 2.1-1.1 1.1-5.4-5.4 1.1-1.1 2.1-.3L8.9 3.5zM4.7 11.3 2 14"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.15"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M2.4 2.4 5.6 5.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 export default function MemoCardView() {
   const api = window.memoCardApi
   const memoId = new URLSearchParams(window.location.search).get('memoId') ?? ''
@@ -53,6 +22,8 @@ export default function MemoCardView() {
   const resizeFrame = useRef<number | null>(null)
   const resizeEdge = useRef<MemoCardEdge | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
+  const lockButtonRef = useRef<HTMLButtonElement | null>(null)
+  const mouseThrough = useRef(false)
   const fitSent = useRef(false)
 
   useEffect(() => {
@@ -117,6 +88,34 @@ export default function MemoCardView() {
     }
   }, [api, memoId, state])
 
+  useEffect(() => {
+    if (!api || !state?.locked) {
+      mouseThrough.current = false
+      return
+    }
+    mouseThrough.current = true
+    const onMove = (event: MouseEvent): void => {
+      const button = lockButtonRef.current
+      if (!button) {
+        return
+      }
+      const rect = button.getBoundingClientRect()
+      const over =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      const next = !over
+      if (mouseThrough.current === next) {
+        return
+      }
+      mouseThrough.current = next
+      void api.setIgnoreMouse(memoId, next).catch(() => {})
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [api, memoId, state?.locked])
+
   function scheduleDrag(): void {
     if (dragFrame.current !== null) {
       return
@@ -138,7 +137,7 @@ export default function MemoCardView() {
   }
 
   function startDrag(event: React.PointerEvent<HTMLDivElement>): void {
-    if (!api || event.button !== 0) {
+    if (!api || state?.locked || event.button !== 0) {
       return
     }
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -169,7 +168,7 @@ export default function MemoCardView() {
   }
 
   function startResize(event: React.PointerEvent<HTMLDivElement>, edge: MemoCardEdge): void {
-    if (!api || event.button !== 0) {
+    if (!api || state?.locked || event.button !== 0) {
       return
     }
     event.stopPropagation()
@@ -206,9 +205,11 @@ export default function MemoCardView() {
     return null
   }
 
+  const locked = state.locked
+
   return (
     <div
-      className={`memo-card-window${dragging ? ' is-dragging' : ''}${resizing ? ' is-resizing' : ''}`}
+      className={`memo-card-window${dragging ? ' is-dragging' : ''}${resizing ? ' is-resizing' : ''}${locked ? ' is-locked' : ''}`}
     >
       <div
         className="memo-card-bar"
@@ -224,20 +225,47 @@ export default function MemoCardView() {
           <button
             type="button"
             className="memo-card-action"
-            aria-label="完成"
+            aria-label="新建备忘录"
+            disabled={locked}
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => void api.complete(memoId).catch(() => {})}
+            onClick={() => void api.openComposer().catch(() => {})}
           >
-            <CheckIcon />
+            <Plus size={15} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <button
+            ref={lockButtonRef}
+            type="button"
+            className={`memo-card-action${locked ? ' is-locked' : ''}`}
+            aria-label={locked ? '解锁卡片' : '锁定卡片'}
+            aria-pressed={locked}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => void api.setLocked(memoId, !locked).catch(() => {})}
+          >
+            {locked ? (
+              <LockOpen size={15} strokeWidth={1.8} aria-hidden="true" />
+            ) : (
+              <Lock size={15} strokeWidth={1.8} aria-hidden="true" />
+            )}
           </button>
           <button
             type="button"
             className="memo-card-action"
-            aria-label="取消锚点"
+            aria-label="完成"
+            disabled={locked}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => void api.complete(memoId).catch(() => {})}
+          >
+            <Check size={15} strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="memo-card-action"
+            aria-label="关闭卡片"
+            disabled={locked}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => void api.unanchor(memoId).catch(() => {})}
           >
-            <UnpinIcon />
+            <X size={15} strokeWidth={1.8} aria-hidden="true" />
           </button>
         </span>
       </div>
@@ -262,16 +290,18 @@ export default function MemoCardView() {
         </div>
       </div>
 
-      {RESIZE_EDGES.map((edge) => (
-        <div
-          key={edge}
-          className={`memo-resize-handle memo-resize-${edge}`}
-          onPointerDown={(event) => startResize(event, edge)}
-          onPointerMove={moveResize}
-          onPointerUp={endResize}
-          onPointerCancel={endResize}
-        />
-      ))}
+      {locked
+        ? null
+        : RESIZE_EDGES.map((edge) => (
+            <div
+              key={edge}
+              className={`memo-resize-handle memo-resize-${edge}`}
+              onPointerDown={(event) => startResize(event, edge)}
+              onPointerMove={moveResize}
+              onPointerUp={endResize}
+              onPointerCancel={endResize}
+            />
+          ))}
     </div>
   )
 }
