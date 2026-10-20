@@ -287,6 +287,7 @@ interface ModuleDefinition {
 ### 6.4 快捷菜单动作与气泡
 
 - 菜单默认展示 4 个图标（功能、设置、隐藏桌宠、退出）；悬停“功能”展开 `ModuleManager.getMenuActions()` 的结果，点击“功能”打开系统页功能 tab；点击“设置”打开系统页设置 tab。
+- 备忘录模块已启用且已配置时，`AppController.getMenuActions()` 会在动作列表最前加入“新建备忘录”（`memo:new`）；`runMenuAction` 直接复用 `openMemoComposer()`，与 `Alt+A` 共用同一新建流程，避免两套验证/保存逻辑。
 - 菜单几何由 `src/main/windows/geometry.ts` 的 `computeMenuLayout()` 计算，尺寸/动效常量集中在 `src/shared/menu-layout.ts`，主进程与 renderer 共用。
 - `ModuleActionRunner`（`src/main/actions/module-action-runner.ts`）负责：
   - 生成 `requestId`，新请求使旧结果失效；

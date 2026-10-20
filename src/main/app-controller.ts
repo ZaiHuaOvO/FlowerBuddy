@@ -33,6 +33,7 @@ import type {
 } from '../shared/api'
 import { EXTERNAL_LINKS, IPC_CHANNELS } from '../shared/api'
 import { ModuleActionRunner } from './actions/module-action-runner'
+import { MEMO_NEW_ACTION_ID, withMemoNewAction } from './actions/menu-actions'
 import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import type { EsaModule } from './modules/esa/esa-module'
 import type { IntervalReminderService } from './modules/interval-reminder/interval-reminder-service'
@@ -225,7 +226,10 @@ export class AppController {
   }
 
   getMenuActions(): MenuActionSummary[] {
-    return this.options.moduleManager.getMenuActions()
+    return withMemoNewAction(
+      this.options.moduleManager.getMenuActions(),
+      this.options.moduleManager.list()
+    )
   }
 
   listMemos(): MemoSummary[] {
@@ -509,6 +513,10 @@ export class AppController {
 
   runMenuAction(actionId: string): void {
     this.overlays.hideMenu(true)
+    if (actionId === MEMO_NEW_ACTION_ID) {
+      this.openMemoComposer()
+      return
+    }
     void this.actions.run(actionId)
   }
 
