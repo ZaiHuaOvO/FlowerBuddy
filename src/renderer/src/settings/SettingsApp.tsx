@@ -4,6 +4,7 @@ import type {
   AppInfo,
   AppSettingsPatch,
   EsaDisplayRanges,
+  ExternalLinkId,
   IntervalReminderSummary,
   MemoSummary,
   ModuleId,
@@ -13,9 +14,12 @@ import type {
   PublicConfig,
   RefreshableModuleId,
   SecurityStatus,
+  SystemNavigation,
   WebsiteCheckConfig
 } from '../../../shared/api'
 import { petPresetLabel } from '../../../shared/pet-presets'
+import { AboutPane } from './AboutPane'
+import { MemoSettingsPane } from './sections/MemoSettingsPane'
 import { MemoSettingsTab } from './tabs/MemoSettingsTab'
 import { IntervalReminderSettingsTab } from './tabs/IntervalReminderSettingsTab'
 import { DeepSeekSettingsTab } from './tabs/DeepSeekSettingsTab'
@@ -28,8 +32,9 @@ import { useIntervalReminderSettings } from './hooks/useIntervalReminderSettings
 import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
 import { useWebsiteSettings } from './hooks/useWebsiteSettings'
-import { CORE_TABS, MODULE_TAB_BY_ID } from './utils/constants'
-import type { SettingsTab } from './utils/constants'
+import { CORE_TABS, SETTINGS_MODULE_IDS, SYSTEM_TABS } from './utils/constants'
+import { applySystemNavigation, DEFAULT_SYSTEM_STATE } from './utils/navigation'
+import type { SystemState } from './utils/navigation'
 import { mergeMemoOrder } from './utils/memo-order'
 import { toMessage } from './utils/formatters'
 import type { SettingsApi } from './types'
@@ -49,7 +54,7 @@ export default function SettingsApp() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    document.title = '花伴 - 设置'
+    document.title = '花伴'
   }, [])
 
   useEffect(() => {
@@ -254,8 +259,24 @@ function SettingsContent({
   setError
 }: ContentProps) {
   const [status, setStatus] = useState('')
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [systemState, setSystemState] = useState<SystemState>(DEFAULT_SYSTEM_STATE)
   const statusTimer = useRef<number | null>(null)
+
+  const modulesById = new Map(modules.map((module) => [module.id, module]))
+  const enabledModules = config.app.moduleOrder
+    .map((id) => modulesById.get(id))
+    .filter((module): module is ModuleSummary => module?.enabled === true)
+  for (const module of modules) {
+    if (module.enabled && !enabledModules.includes(module)) {
+      enabledModules.push(module)
+    }
+  }
+  const enabledModuleIds = enabledModules.map((module) => module.id)
+  const settingsModules = enabledModules.filter((module) => SETTINGS_MODULE_IDS.includes(module.id))
+  const state = applySystemNavigation(systemState, { tab: systemState.tab }, enabledModuleIds)
+
+  const enabledModuleIdsRef = useRef<ModuleId[]>(enabledModuleIds)
+  enabledModuleIdsRef.current = enabledModuleIds
 
   useEffect(() => {
     return () => {
@@ -275,6 +296,12 @@ function SettingsContent({
       setStatus('')
       statusTimer.current = null
     }, 1800)
+  }
+
+  function navigate(navigation: SystemNavigation): void {
+    setSystemState((current) =>
+      applySystemNavigation(current, navigation, enabledModuleIdsRef.current)
+    )
   }
 
   async function saveApp(patch: AppSettingsPatch): Promise<void> {
@@ -382,6 +409,25 @@ function SettingsContent({
     }
   }
 
+  async function saveEsaDisplayRanges(ranges: EsaDisplayRanges): Promise<void> {
+    if (!ranges.last24h && !ranges.last7d && !ranges.last30d) {
+      setError('至少选择一项 ESA 流量范围')
+      return
+    }
+    setError('')
+    try {
+      setConfig(await api.setEsaDisplayRanges(ranges))
+      await esa.refresh()
+      flash('已保存')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
+  function openExternal(link: ExternalLinkId): void {
+    void api.openExternal(link).catch((cause: unknown) => setError(toMessage(cause)))
+  }
+
   const [composeSignal, setComposeSignal] = useState(0)
   const modulesRef = useRef(modules)
   modulesRef.current = modules
@@ -394,16 +440,39 @@ function SettingsContent({
         .catch((cause: unknown) => setError(toMessage(cause)))
     })
     const offComposer = api.onOpenMemoComposer(() => {
-      setComposeSignal((value) => value + 1)
       const memoEnabled = modulesRef.current.some(
         (module) => module.id === 'memo' && module.enabled
       )
-      setActiveTab(memoEnabled ? 'memo' : 'modules')
+      if (!memoEnabled) {
+        setSystemState((current) =>
+          applySystemNavigation(
+            current,
+            { tab: 'settings', settingsSection: 'modules' },
+            enabledModuleIdsRef.current
+          )
+        )
+        setError('备忘录功能未启用，无法新建备忘录。')
+        return
+      }
+      setComposeSignal((value) => value + 1)
+      setSystemState((current) =>
+        applySystemNavigation(
+          current,
+          { tab: 'function', moduleId: 'memo' },
+          enabledModuleIdsRef.current
+        )
+      )
+    })
+    const offNavigate = api.onNavigate((navigation) => {
+      setSystemState((current) =>
+        applySystemNavigation(current, navigation, enabledModuleIdsRef.current)
+      )
     })
     void api.settingsUiReady()
     return () => {
       offMemos()
       offComposer()
+      offNavigate()
     }
   }, [api, setError, setMemos])
 
@@ -414,7 +483,7 @@ function SettingsContent({
     flash,
     setError,
     composeSignal,
-    listVisible: activeTab === 'memo',
+    listVisible: state.tab === 'function' && state.moduleId === 'memo',
     anchorNewMemos: config.modules.memo.anchorNewMemos,
     onSetAnchorNew: (enabled) => void saveMemoAnchorNew(enabled)
   })
@@ -450,144 +519,213 @@ function SettingsContent({
     setError
   })
 
-  async function saveEsaDisplayRanges(ranges: EsaDisplayRanges): Promise<void> {
-    if (!ranges.last24h && !ranges.last7d && !ranges.last30d) {
-      setError('至少选择一项 ESA 流量范围')
-      return
-    }
-    setError('')
-    try {
-      setConfig(await api.setEsaDisplayRanges(ranges))
-      await esa.refresh()
-      flash('已保存')
-    } catch (cause) {
-      setError(toMessage(cause))
-    }
-  }
-  const modulesById = new Map(modules.map((module) => [module.id, module]))
-  const enabledModules = config.app.moduleOrder
-    .map((id) => modulesById.get(id))
-    .filter((module): module is ModuleSummary => module?.enabled === true)
-  for (const module of modules) {
-    if (module.enabled && !enabledModules.includes(module)) {
-      enabledModules.push(module)
-    }
-  }
-  const orderedModules = [...enabledModules, ...modules.filter((module) => !module.enabled)]
   const headerStatus = error || status || startupNotice || ''
-  const isFirstTab = activeTab === 'general'
 
-  useEffect(() => {
-    if (activeTab === 'general' || activeTab === 'modules') {
-      return
+  function renderFunctionContent() {
+    switch (state.moduleId) {
+      case 'memo':
+        return (
+          <MemoSettingsTab
+            model={memo}
+            onOpenSettings={() => navigate({ tab: 'settings', settingsSection: 'memo' })}
+          />
+        )
+      case 'interval-reminder':
+        return <IntervalReminderSettingsTab model={intervalReminderSettings} />
+      case 'website-check':
+        return <WebsitesSettingsTab model={websiteSettings} />
+      case 'deepseek':
+        return (
+          <DeepSeekSettingsTab
+            config={config}
+            model={deepSeek}
+            mode="function"
+            onOpenSettings={() => navigate({ tab: 'settings', settingsSection: 'deepseek' })}
+          />
+        )
+      case 'esa':
+        return (
+          <EsaSettingsTab
+            config={config}
+            model={esa}
+            mode="function"
+            onOpenSettings={() => navigate({ tab: 'settings', settingsSection: 'esa' })}
+          />
+        )
+      default:
+        return <p className="hint">没有可显示的功能。</p>
     }
-    const hasEnabledModule = modules.some(
-      (module) => module.enabled && MODULE_TAB_BY_ID[module.id] === activeTab
-    )
-    if (!hasEnabledModule) {
-      setActiveTab('modules')
+  }
+
+  function renderSettingsContent() {
+    switch (state.settingsSection) {
+      case 'general':
+        return (
+          <GeneralSettingsTab
+            config={config}
+            userImages={petImages}
+            onSave={(patch) => void saveApp(patch)}
+            onSavePet={(patch) => void savePet(patch)}
+            onImportImage={() => void importPetImage()}
+            onSelectAsset={selectPetAsset}
+            onDeleteImage={deletePetImage}
+            onRenameImage={renamePetImage}
+          />
+        )
+      case 'modules':
+        return (
+          <ModulesSettingsTab
+            modules={[...enabledModules, ...modules.filter((module) => !module.enabled)]}
+            security={security}
+            onToggle={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            onReorder={(order) => void reorderModules(order)}
+          />
+        )
+      case 'memo':
+        return (
+          <MemoSettingsPane
+            memoShortcut={config.app.memoShortcut}
+            anchorNewMemos={config.modules.memo.anchorNewMemos}
+            onSaveShortcut={(accelerator) => void saveApp({ memoShortcut: accelerator })}
+            onSaveAnchorNew={(enabled) => void saveMemoAnchorNew(enabled)}
+            onGoToFunction={() => navigate({ tab: 'function', moduleId: 'memo' })}
+          />
+        )
+      case 'deepseek':
+        return (
+          <DeepSeekSettingsTab
+            config={config}
+            model={deepSeek}
+            mode="settings"
+            onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            onGoToFunction={() => navigate({ tab: 'function', moduleId: 'deepseek' })}
+          />
+        )
+      case 'esa':
+        return (
+          <EsaSettingsTab
+            config={config}
+            model={esa}
+            mode="settings"
+            onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
+            onSaveDisplayRanges={(ranges) => void saveEsaDisplayRanges(ranges)}
+            onGoToFunction={() => navigate({ tab: 'function', moduleId: 'esa' })}
+          />
+        )
+      default:
+        return null
     }
-  }, [activeTab, modules])
+  }
 
   return (
     <div className="settings-root">
       <SettingsHeader appInfo={appInfo} status={headerStatus} isError={Boolean(error)} />
 
-      <div className="settings-body">
-        <nav className="settings-nav" role="tablist" aria-label="设置分区">
-          {CORE_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              id={`settings-tab-${tab.id}`}
-              type="button"
-              role="tab"
-              className={`settings-nav-item${activeTab === tab.id ? ' active' : ''}`}
-              aria-selected={activeTab === tab.id}
-              aria-controls="settings-tabpanel"
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="settings-nav-label">{tab.label}</span>
-            </button>
-          ))}
+      <nav className="system-top-tabs" role="tablist" aria-label="系统页面">
+        {SYSTEM_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={state.tab === tab.id}
+            className={`system-top-tab${state.tab === tab.id ? ' active' : ''}`}
+            onClick={() => navigate({ tab: tab.id })}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-          {enabledModules.length > 0 ? (
-            <div className="settings-nav-divider" role="separator" />
-          ) : null}
-
-          {enabledModules.map((module) => {
-            const tabId = MODULE_TAB_BY_ID[module.id]
-            return (
+      {state.tab === 'about' ? (
+        <div className="settings-body">
+          <section className="settings-content is-first" role="tabpanel" aria-label="关于">
+            <AboutPane appInfo={appInfo} onOpenExternal={openExternal} />
+          </section>
+        </div>
+      ) : state.tab === 'function' ? (
+        <div className="settings-body">
+          <nav className="settings-nav" role="tablist" aria-label="功能模块">
+            {enabledModules.length === 0 ? (
+              <p className="hint">暂无已启用功能。</p>
+            ) : (
+              enabledModules.map((module) => (
+                <button
+                  key={module.id}
+                  id={`function-tab-${module.id}`}
+                  type="button"
+                  role="tab"
+                  className={`settings-nav-item${state.moduleId === module.id ? ' active' : ''}`}
+                  aria-selected={state.moduleId === module.id}
+                  aria-controls="function-tabpanel"
+                  onClick={() => navigate({ tab: 'function', moduleId: module.id })}
+                >
+                  <span className="settings-nav-label">{module.name}</span>
+                  {module.configured ? null : <span className="settings-nav-badge">未配置</span>}
+                </button>
+              ))
+            )}
+          </nav>
+          <section
+            id="function-tabpanel"
+            className="settings-content is-first"
+            role="tabpanel"
+            aria-labelledby={`function-tab-${state.moduleId}`}
+          >
+            {enabledModules.length === 0 ? (
+              <p className="hint">请先在“设置 → 功能”中启用至少一个功能。</p>
+            ) : (
+              renderFunctionContent()
+            )}
+          </section>
+        </div>
+      ) : (
+        <div className="settings-body">
+          <nav className="settings-nav" role="tablist" aria-label="设置分区">
+            {CORE_TABS.map((tab) => (
               <button
-                key={module.id}
-                id={`settings-tab-${tabId}`}
+                key={tab.id}
+                id={`settings-tab-${tab.id}`}
                 type="button"
                 role="tab"
-                className={`settings-nav-item${activeTab === tabId ? ' active' : ''}`}
-                aria-selected={activeTab === tabId}
+                className={`settings-nav-item${state.settingsSection === tab.id ? ' active' : ''}`}
+                aria-selected={state.settingsSection === tab.id}
                 aria-controls="settings-tabpanel"
-                onClick={() => setActiveTab(tabId)}
+                onClick={() => navigate({ tab: 'settings', settingsSection: tab.id })}
+              >
+                <span className="settings-nav-label">{tab.label}</span>
+              </button>
+            ))}
+
+            {settingsModules.length > 0 ? (
+              <div className="settings-nav-divider" role="separator" />
+            ) : null}
+
+            {settingsModules.map((module) => (
+              <button
+                key={module.id}
+                id={`settings-tab-${module.id}`}
+                type="button"
+                role="tab"
+                className={`settings-nav-item${state.settingsSection === module.id ? ' active' : ''}`}
+                aria-selected={state.settingsSection === module.id}
+                aria-controls="settings-tabpanel"
+                onClick={() => navigate({ tab: 'settings', settingsSection: module.id })}
               >
                 <span className="settings-nav-label">{module.name}</span>
                 {module.configured ? null : <span className="settings-nav-badge">未配置</span>}
               </button>
-            )
-          })}
-        </nav>
-
-        <section
-          id="settings-tabpanel"
-          className={`settings-content${isFirstTab ? ' is-first' : ''}`}
-          role="tabpanel"
-          aria-labelledby={`settings-tab-${activeTab}`}
-        >
-          {activeTab === 'general' ? (
-            <GeneralSettingsTab
-              config={config}
-              userImages={petImages}
-              onSave={(patch) => void saveApp(patch)}
-              onSavePet={(patch) => void savePet(patch)}
-              onImportImage={() => void importPetImage()}
-              onSelectAsset={selectPetAsset}
-              onDeleteImage={deletePetImage}
-              onRenameImage={renamePetImage}
-            />
-          ) : null}
-          {activeTab === 'modules' ? (
-            <ModulesSettingsTab
-              modules={orderedModules}
-              security={security}
-              onToggle={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-              onReorder={(order) => void reorderModules(order)}
-            />
-          ) : null}
-          {activeTab === 'memo' ? (
-            <MemoSettingsTab
-              model={memo}
-              memoShortcut={config.app.memoShortcut}
-              onSaveShortcut={(accelerator) => void saveApp({ memoShortcut: accelerator })}
-            />
-          ) : null}
-          {activeTab === 'reminder' ? (
-            <IntervalReminderSettingsTab model={intervalReminderSettings} />
-          ) : null}
-          {activeTab === 'websites' ? <WebsitesSettingsTab model={websiteSettings} /> : null}
-          {activeTab === 'deepseek' ? (
-            <DeepSeekSettingsTab
-              config={config}
-              model={deepSeek}
-              onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-            />
-          ) : null}
-          {activeTab === 'esa' ? (
-            <EsaSettingsTab
-              config={config}
-              model={esa}
-              onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
-              onSaveDisplayRanges={(ranges) => void saveEsaDisplayRanges(ranges)}
-            />
-          ) : null}
-        </section>
-      </div>
+            ))}
+          </nav>
+          <section
+            id="settings-tabpanel"
+            className="settings-content is-first"
+            role="tabpanel"
+            aria-labelledby={`settings-tab-${state.settingsSection}`}
+          >
+            {renderSettingsContent()}
+          </section>
+        </div>
+      )}
     </div>
   )
 }
@@ -602,7 +740,7 @@ function SettingsHeader({ appInfo, status, isError = false }: SettingsHeaderProp
   return (
     <header className="settings-header">
       <h1>
-        花伴 - 设置
+        花伴
         {appInfo ? <span className="settings-version">版本 {appInfo.version}</span> : null}
       </h1>
       {status ? (

@@ -116,6 +116,8 @@ const memoImageBytesSchema = z
 
 const memoAnchorNewInputSchema = z.object({ enabled: z.boolean() }).strict()
 
+const externalLinkSchema = z.object({ link: z.enum(['author', 'repository', 'issues']) }).strict()
+
 const bubbleDismissInputSchema = z
   .object({
     id: z
@@ -244,6 +246,7 @@ export {
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   esaDisplayRangesSchema,
+  externalLinkSchema,
   idEnabledInputSchema,
   idInputSchema,
   intervalReminderInputSchema,

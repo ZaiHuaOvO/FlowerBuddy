@@ -199,8 +199,7 @@ describe('settings tabs render', () => {
       render(
         createElement(MemoSettingsTab, {
           model: memoModel,
-          memoShortcut: 'Alt+A',
-          onSaveShortcut: noop
+          onOpenSettings: noop
         })
       )
     ).toContain('<h2>备忘录</h2>')
@@ -212,7 +211,12 @@ describe('settings tabs render', () => {
     )
     expect(
       render(
-        createElement(DeepSeekSettingsTab, { config, model: deepSeekModel, onToggleModule: noop })
+        createElement(DeepSeekSettingsTab, {
+          config,
+          model: deepSeekModel,
+          mode: 'settings',
+          onToggleModule: noop
+        })
       )
     ).toContain('DeepSeek 余额')
     expect(
@@ -220,6 +224,7 @@ describe('settings tabs render', () => {
         createElement(EsaSettingsTab, {
           config,
           model: esaModel,
+          mode: 'settings',
           onToggleModule: noop,
           onSaveDisplayRanges: noop
         })
@@ -245,6 +250,7 @@ describe('settings tabs render', () => {
           modules: { ...config.modules, esa: { ...config.modules.esa, siteId: 'site-1' } }
         },
         model: { ...esaModel, summary: configured('esa', 'ESA') },
+        mode: 'settings',
         onToggleModule: noop,
         onSaveDisplayRanges: noop
       })
@@ -252,18 +258,39 @@ describe('settings tabs render', () => {
     expect(esa).not.toContain('AccessKey ID')
     expect(esa).not.toContain('AccessKey Secret')
     expect(esa).not.toContain('SiteId')
-    expect(esa).toContain('刷新流量')
+    expect(esa).not.toContain('刷新流量')
     expect(esa).toContain('重新配置')
 
     const deepseek = render(
       createElement(DeepSeekSettingsTab, {
         config,
         model: { ...deepSeekModel, summary: configured('deepseek', 'DeepSeek') },
+        mode: 'settings',
         onToggleModule: noop
       })
     )
     expect(deepseek).not.toContain('API Key')
-    expect(deepseek).toContain('刷新余额')
+    expect(deepseek).not.toContain('刷新余额')
     expect(deepseek).toContain('重新配置')
+
+    const esaFunction = render(
+      createElement(EsaSettingsTab, {
+        config,
+        model: { ...esaModel, summary: configured('esa', 'ESA') },
+        mode: 'function'
+      })
+    )
+    expect(esaFunction).toContain('刷新流量')
+    expect(esaFunction).not.toContain('AccessKey ID')
+
+    const deepseekFunction = render(
+      createElement(DeepSeekSettingsTab, {
+        config,
+        model: { ...deepSeekModel, summary: configured('deepseek', 'DeepSeek') },
+        mode: 'function'
+      })
+    )
+    expect(deepseekFunction).toContain('刷新余额')
+    expect(deepseekFunction).not.toContain('API Key')
   })
 })

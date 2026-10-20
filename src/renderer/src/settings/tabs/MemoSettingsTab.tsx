@@ -1,23 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { MemoSummary } from '../../../../shared/api'
 import { memoImageUrl } from '../../../../shared/api'
 import { formatMemoDateTime, memoExcerpt, memoTitle } from '../utils/formatters'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { IconButton } from '../../components/IconButton'
-import { InfoTip } from '../../components/InfoTip'
 import { Tag } from '../../components/Tag'
 import { useTooltip } from '../../components/Tooltip'
 import { MemoReminderPicker } from '../components/MemoReminderPicker'
-import { ShortcutInput } from '../components/ShortcutInput'
 import type { useMemoSettings } from '../hooks/useMemoSettings'
 
 type MemoModel = ReturnType<typeof useMemoSettings>
 
 interface Props {
   model: MemoModel
-  memoShortcut: string
-  onSaveShortcut: (accelerator: string) => void
+  onOpenSettings: () => void
 }
 
 function PinIcon({ active }: { active: boolean }) {
@@ -82,7 +79,7 @@ function GearIcon() {
   )
 }
 
-export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) {
+export function MemoSettingsTab({ model, onOpenSettings }: Props) {
   const {
     memos,
     draft,
@@ -106,7 +103,6 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
     toggleAnchor,
     remove
   } = model
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const reminderTip =
     draft.reminderError ||
@@ -148,11 +144,7 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
       <div className="memo-header">
         <div className="memo-title-group">
           <h2>备忘录</h2>
-          <IconButton
-            label="备忘录设置"
-            aria-haspopup="dialog"
-            onClick={() => setSettingsOpen(true)}
-          >
+          <IconButton label="打开备忘录设置" onClick={onOpenSettings}>
             <GearIcon />
           </IconButton>
         </div>
@@ -279,47 +271,6 @@ export function MemoSettingsTab({ model, memoShortcut, onSaveShortcut }: Props) 
                 </div>
               </div>
             </form>
-          </div>
-        </div>
-      ) : null}
-
-      {settingsOpen ? (
-        <div
-          className="memo-modal-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setSettingsOpen(false)
-            }
-          }}
-        >
-          <div
-            className="memo-modal memo-settings-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="memo-settings-title"
-          >
-            <div className="memo-modal-header">
-              <h3 id="memo-settings-title">备忘录设置</h3>
-              <IconButton label="关闭" onClick={() => setSettingsOpen(false)}>
-                <span aria-hidden="true">×</span>
-              </IconButton>
-            </div>
-            <div className="memo-setting-list">
-              <div className="row">
-                <span className="row-label">
-                  <span>新增快捷键</span>
-                  <InfoTip
-                    text="按下组合键后打开设置并新建备忘录；点击右侧按钮录制，退格清除"
-                    align="right"
-                  />
-                </span>
-                <ShortcutInput
-                  value={memoShortcut}
-                  onSave={onSaveShortcut}
-                  label="修改新建备忘录快捷键"
-                />
-              </div>
-            </div>
           </div>
         </div>
       ) : null}

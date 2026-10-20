@@ -129,7 +129,7 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 | `pet`       | `windows/pet-window.ts`       | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
 | `menu`      | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
 | `bubble`    | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
-| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 常规、功能管理，以及按启用顺序动态出现的备忘录、定时提醒、网站、DeepSeek、ESA 页面                                                |
+| `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 顶部 功能/设置/关于；功能页左侧模块导航显示业务内容，设置页左侧常规/功能/模块设置；关于页显示版本、作者、仓库与反馈               |
 | `memo-card` | `windows/memo-card-window.ts` | 每条锚定备忘录一个窗口             | 透明无边框、始终置顶、可聚焦；标题栏拖动、四角自定义缩放、完成与取消锚点；内容由 `memo-card:state-changed` 同步                   |
 
 加载规则（`windows/load-view.ts`）：
@@ -205,6 +205,7 @@ preload 的 `unwrapResult` 把 `IpcResult` 解包；失败时抛出一个可序�
 - `memo-card:state-changed` → 对应备忘卡片（文本、提醒时间、图片）。
 - `memos:changed` → 设置窗口（备忘录数据变化，触发重新拉取）。
 - `settings:open-memo-composer` → 设置窗口（快捷键请求新建备忘录；渲染进程通过 `settings:ui-ready` 握手后才会收到）。
+- `settings:navigate` → 设置窗口（打开功能/设置/关于 tab，或定位到指定模块/设置分区）。
 
 `menu` 视图在挂载时通过 `menu:ready` 握手获取当前表现状态，避免首次打开时推送早于订阅。菜单窗口只在首次打开时创建并 `show()` 一次，之后不再隐藏：关闭时把面板动画到完全透明，并让窗口忽略鼠标事件、释放焦点；重开时只切换面板内容，renderer 通过 `menu:opened` 确认新面板已提交后主进程才重新接收鼠标事件。这样可以避开 Windows 对工具窗口的显示过渡——隐藏后再次 `show()` 时系统会先呈现上一次缓存的画面，看起来就像菜单连续加载了两次。菜单窗口在打开时按“展开动作列表”的高度一次性定位并显示；之后展开/收起只由 renderer 切换内容，不再改变窗口尺寸，因此可见窗口不会因 resize 闪烁。面板只在首次打开时挂载，之后保持挂载并在每次关闭/重开时复用，不会重新加载内容；每次打开（含重开）都由根节点从关闭态切回打开态重新触发表格的错峰入场动画，关闭时播放退场动画（执行动作等需要立即隐藏的场景除外）。主进程在菜单打开期间轮询指针位置：只有指针同时离开菜单窗口和桌宠窗口超过 `MENU_IDLE_CLOSE_MS` 才播放退场并隐藏内容；再次右键不会关闭菜单。
 
@@ -212,7 +213,7 @@ renderer 不通过 IPC 主动请求外部网络；所有外部请求由主进程
 
 ### 5.4 通道定义
 
-所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`memos:`、`memo-card:`、`interval-reminders:`、`websites:`、`deepseek:`、`esa:`、`menu:`、`pet:`、`bubble:`。
+所有通道名集中在 `src/shared/api.ts` 的 `IPC_CHANNELS`，按前缀分组：`app:`、`config:`、`settings:`、`modules:`、`security:`、`memos:`、`memo-card:`、`interval-reminders:`、`websites:`、`deepseek:`、`esa:`、`menu:`、`pet:`、`bubble:`。关于页外链使用 `app:open-external`，只接受 `author` / `repository` / `issues` 三个固定 ID；菜单“功能”通过 `menu:open-functions` 打开系统页功能 tab。
 
 新增 IPC 的最小改动面：
 
@@ -285,7 +286,7 @@ interface ModuleDefinition {
 
 ### 6.4 快捷菜单动作与气泡
 
-- 菜单默认展示 4 个图标（功能、设置、隐藏桌宠、退出）；“功能”展开 `ModuleManager.getMenuActions()` 的结果。
+- 菜单默认展示 4 个图标（功能、设置、隐藏桌宠、退出）；悬停“功能”展开 `ModuleManager.getMenuActions()` 的结果，点击“功能”打开系统页功能 tab；点击“设置”打开系统页设置 tab。
 - 菜单几何由 `src/main/windows/geometry.ts` 的 `computeMenuLayout()` 计算，尺寸/动效常量集中在 `src/shared/menu-layout.ts`，主进程与 renderer 共用。
 - `ModuleActionRunner`（`src/main/actions/module-action-runner.ts`）负责：
   - 生成 `requestId`，新请求使旧结果失效；

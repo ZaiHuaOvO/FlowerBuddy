@@ -74,7 +74,9 @@ describe('preload bridge surface', () => {
       'listPetImages',
       'listWebsiteChecks',
       'onMemosChanged',
+      'onNavigate',
       'onOpenMemoComposer',
+      'openExternal',
       'renamePetImage',
       'resetPetPosition',
       'saveAppSettings',
@@ -109,6 +111,7 @@ describe('preload bridge surface', () => {
     const menu = createBridge('menu', bridge)?.value as {
       ready(): Promise<unknown>
       opened(): Promise<void>
+      openFunctions(): Promise<void>
       onPresentation(callback: (presentation: unknown) => void): () => void
     }
 
@@ -117,6 +120,9 @@ describe('preload bridge surface', () => {
 
     await menu.opened()
     expect(invocations[1]).toEqual({ channel: IPC_CHANNELS.menuOpened, args: [] })
+
+    await menu.openFunctions()
+    expect(invocations[2]).toEqual({ channel: IPC_CHANNELS.menuOpenFunctions, args: [] })
 
     const received: unknown[] = []
     menu.onPresentation((presentation) => received.push(presentation))

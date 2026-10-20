@@ -1,20 +1,21 @@
 import type { ModuleId } from '../../../../shared/api'
 
-export type SettingsTab =
-  'general' | 'modules' | 'memo' | 'reminder' | 'websites' | 'deepseek' | 'esa'
+export type SystemTab = 'function' | 'settings' | 'about'
 
-export const CORE_TABS: Array<{ id: SettingsTab; label: string }> = [
+export type SettingsSection = 'general' | 'modules' | 'memo' | 'deepseek' | 'esa'
+
+export const SYSTEM_TABS: Array<{ id: SystemTab; label: string }> = [
+  { id: 'function', label: '功能' },
+  { id: 'settings', label: '设置' },
+  { id: 'about', label: '关于' }
+]
+
+export const CORE_TABS: Array<{ id: 'general' | 'modules'; label: string }> = [
   { id: 'general', label: '常规' },
   { id: 'modules', label: '功能' }
 ]
 
-export const MODULE_TAB_BY_ID: Record<ModuleId, SettingsTab> = {
-  memo: 'memo',
-  'interval-reminder': 'reminder',
-  deepseek: 'deepseek',
-  esa: 'esa',
-  'website-check': 'websites'
-}
+export const SETTINGS_MODULE_IDS: ModuleId[] = ['memo', 'deepseek', 'esa']
 
 export const BUBBLE_SECONDS_MIN = 1
 export const BUBBLE_SECONDS_MAX = 10

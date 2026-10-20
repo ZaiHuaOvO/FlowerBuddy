@@ -24,6 +24,7 @@ import {
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   esaDisplayRangesSchema,
+  externalLinkSchema,
   idEnabledInputSchema,
   idInputSchema,
   intervalReminderInputSchema,
@@ -92,6 +93,9 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   register(IPC_CHANNELS.appInfo, null, () => controller.getAppInfo())
   register(IPC_CHANNELS.configGet, null, () => controller.getPublicConfig())
   register(IPC_CHANNELS.startupNotice, null, () => controller.getStartupNotice())
+  register(IPC_CHANNELS.appOpenExternal, externalLinkSchema, (input) =>
+    controller.openExternal(input.link)
+  )
 
   register(IPC_CHANNELS.settingsSaveApp, appSettingsPatchSchema, (patch) =>
     controller.updateAppSettings(patch as AppSettingsPatch)
@@ -234,6 +238,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     controller.runMenuAction(actionId)
   })
   register(IPC_CHANNELS.menuOpenSettings, null, () => controller.openSettings())
+  register(IPC_CHANNELS.menuOpenFunctions, null, () => controller.openFunctions())
   register(IPC_CHANNELS.menuHidePet, null, () => controller.hidePet())
   register(IPC_CHANNELS.menuQuit, null, () => controller.quitApp())
   register(IPC_CHANNELS.menuClose, null, () => controller.closeMenu())

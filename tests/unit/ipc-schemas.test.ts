@@ -5,6 +5,7 @@ import {
   deepSeekKeyInputSchema,
   esaCredentialsInputSchema,
   esaDisplayRangesSchema,
+  externalLinkSchema,
   menuActionSchema,
   moduleEnabledInputSchema,
   memoCardResizeInputSchema,
@@ -57,6 +58,13 @@ describe('IPC input schemas', () => {
     expect(() => parsePetSettingsPatch({ scale: 3 })).toThrow(AppError)
     expect(() => parsePetSettingsPatch({ assetId: '../x' })).toThrow(AppError)
     expect(() => parseAppSettingsPatch({ bossShortcut: 'x'.repeat(65) })).toThrow(AppError)
+  })
+
+  it('accepts only known external links', () => {
+    expect(parseInput(externalLinkSchema, { link: 'author' })).toEqual({ link: 'author' })
+    expect(parseInput(externalLinkSchema, { link: 'issues' })).toEqual({ link: 'issues' })
+    expect(() => parseInput(externalLinkSchema, { link: 'https://example.com' })).toThrow(AppError)
+    expect(() => parseInput(externalLinkSchema, { link: 'author', extra: true })).toThrow(AppError)
   })
 
   it('validates pet asset selections and image deletion ids', () => {

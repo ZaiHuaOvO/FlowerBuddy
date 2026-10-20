@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron'
+import { app, BrowserWindow, screen, shell } from 'electron'
 import type {
   AppInfo,
   AppSettingsPatch,
@@ -6,6 +6,7 @@ import type {
   EsaCredentialsInput,
   EsaDisplayRanges,
   EsaTrafficSummary,
+  ExternalLinkId,
   IntervalReminderInput,
   IntervalReminderPatch,
   IntervalReminderSummary,
@@ -25,11 +26,12 @@ import type {
   PublicConfig,
   RefreshableModuleId,
   SecurityStatus,
+  SystemNavigation,
   WebsiteCheckConfig,
   WebsiteCheckInput,
   WebsiteCheckPatch
 } from '../shared/api'
-import { IPC_CHANNELS } from '../shared/api'
+import { EXTERNAL_LINKS, IPC_CHANNELS } from '../shared/api'
 import { ModuleActionRunner } from './actions/module-action-runner'
 import type { DeepSeekModule } from './modules/deepseek/deepseek-module'
 import type { EsaModule } from './modules/esa/esa-module'
@@ -80,6 +82,7 @@ export class AppController {
   private settingsWindow: BrowserWindow | null = null
   private settingsReady = false
   private pendingMemoComposer = false
+  private pendingNavigation: SystemNavigation | null = null
   private tray: AppTray | null = null
   private readonly pet: PetWindowController
   private readonly overlays: OverlayWindowManager
@@ -434,27 +437,32 @@ export class AppController {
 
   acknowledgeSettingsUiReady(): void {
     this.settingsReady = true
+    const navigation = this.pendingNavigation
+    this.pendingNavigation = null
+    if (navigation) {
+      // Let a dev-mode StrictMode remount finish registering its listener.
+      setTimeout(() => this.sendSettingsEvent(IPC_CHANNELS.settingsNavigate, navigation), 0)
+    }
     if (this.pendingMemoComposer) {
       this.pendingMemoComposer = false
-      // Let a dev-mode StrictMode remount finish registering its listener.
       setTimeout(() => this.sendSettingsEvent(IPC_CHANNELS.settingsOpenMemoComposer), 0)
     }
   }
 
   openMemoComposer(): void {
+    this.pendingMemoComposer = true
     const existing = this.settingsWindow
     if (existing && !existing.isDestroyed()) {
       existing.show()
       existing.focus()
+      this.navigateSettings({ tab: 'function', moduleId: 'memo' })
       if (this.settingsReady) {
-        this.sendSettingsEvent(IPC_CHANNELS.settingsOpenMemoComposer)
-      } else {
-        this.pendingMemoComposer = true
+        this.pendingMemoComposer = false
+        setTimeout(() => this.sendSettingsEvent(IPC_CHANNELS.settingsOpenMemoComposer), 0)
       }
       return
     }
-    this.pendingMemoComposer = true
-    this.openSettings()
+    this.openSystemPage({ tab: 'function', moduleId: 'memo' })
   }
 
   async getSecurityStatus(): Promise<SecurityStatus> {
@@ -526,12 +534,26 @@ export class AppController {
   }
 
   openSettings(): void {
+    this.openSystemPage({ tab: 'settings', settingsSection: 'general' })
+  }
+
+  openFunctions(): void {
+    this.openSystemPage({ tab: 'function' })
+  }
+
+  openExternal(link: ExternalLinkId): void {
+    void shell.openExternal(EXTERNAL_LINKS[link])
+  }
+
+  private openSystemPage(navigation: SystemNavigation): void {
     if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
       this.settingsWindow.show()
       this.settingsWindow.focus()
+      this.navigateSettings(navigation)
       return
     }
 
+    this.pendingNavigation = navigation
     const window = createSettingsWindow({
       preloadPath: this.options.preloadPath,
       iconPath: this.options.appIconPath
@@ -542,6 +564,7 @@ export class AppController {
       this.settingsWindow = null
       this.settingsReady = false
       this.pendingMemoComposer = false
+      this.pendingNavigation = null
     })
     window.once('ready-to-show', () => {
       window.show()
@@ -552,6 +575,14 @@ export class AppController {
       rendererIndexPath: this.options.rendererIndexPath,
       view: 'settings'
     })
+  }
+
+  private navigateSettings(navigation: SystemNavigation): void {
+    if (this.settingsReady) {
+      this.sendSettingsEvent(IPC_CHANNELS.settingsNavigate, navigation)
+    } else {
+      this.pendingNavigation = navigation
+    }
   }
 
   hidePet(): void {
@@ -694,12 +725,16 @@ export class AppController {
     }
   }
 
-  private sendSettingsEvent(channel: string): void {
+  private sendSettingsEvent(channel: string, payload?: unknown): void {
     const window = this.settingsWindow
     if (!window || window.isDestroyed() || window.webContents.isDestroyed()) {
       return
     }
-    window.webContents.send(channel)
+    if (payload === undefined) {
+      window.webContents.send(channel)
+    } else {
+      window.webContents.send(channel, payload)
+    }
   }
 
   quitApp(): void {

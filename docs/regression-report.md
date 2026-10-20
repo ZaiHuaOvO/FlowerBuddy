@@ -142,3 +142,13 @@
 - 多显示器、100%/125%/150%/200% 缩放、任务栏边缘与长文本视觉检查。
 - 默认桌宠、导入形象、备忘录图片和桌面卡片图片在打包版中的实际加载。
 - `docs/screenshots/` 视觉基线更新与对应版本/commit 标注。
+
+## 2026-10-20：v0.2.0 阶段 B 系统页导航（自动化与本地冒烟）
+
+- `npm run typecheck`：通过。
+- `npm run lint`：通过。
+- `npm run format:check`：通过。
+- `npm test`：34 个测试文件、250 个测试全部通过；新增 `settings-navigation.test.ts`，并更新设置页、preload API 与 IPC schema 测试。
+- `npm run build`：通过；renderer 打包包含官方 app-icon。
+- 本地冒烟：在 macOS 以 `electron out/main/index.js` 启动构建产物，并通过第二实例打开系统窗口；确认顶部“功能/设置/关于”三个 tab、设置页左侧“常规/功能/备忘录/ESA 流量/DeepSeek 余额”导航和常规页渲染。该冒烟不能替代 Windows 实机验收。
+- 未运行：`npm run dist:win`、Windows 安装/卸载、托盘与高 DPI 实机检查；这些仍在上述未覆盖项中。

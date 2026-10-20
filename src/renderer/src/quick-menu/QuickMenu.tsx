@@ -305,7 +305,7 @@ export default function QuickMenu() {
                     openActions()
                   }
                 }}
-                onClick={openActions}
+                onClick={() => fire(api.openFunctions())}
               >
                 <Sparkles size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>

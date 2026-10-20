@@ -74,6 +74,24 @@ export interface PetSettingsPatch {
 
 export type ModuleId = 'memo' | 'interval-reminder' | 'esa' | 'deepseek' | 'website-check'
 
+export type SystemTab = 'function' | 'settings' | 'about'
+
+export type SystemSettingsSection = 'general' | 'modules' | ModuleId
+
+export interface SystemNavigation {
+  tab: SystemTab
+  moduleId?: ModuleId
+  settingsSection?: SystemSettingsSection
+}
+
+export type ExternalLinkId = 'author' | 'repository' | 'issues'
+
+export const EXTERNAL_LINKS: Record<ExternalLinkId, string> = {
+  author: 'https://github.com/ZaiHuaOvO',
+  repository: 'https://github.com/ZaiHuaOvO/FlowerBuddy',
+  issues: 'https://github.com/ZaiHuaOvO/FlowerBuddy/issues'
+}
+
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
 
 export interface ModulesSettings {
@@ -384,6 +402,7 @@ export const IPC_CHANNELS = {
   appInfo: 'app:get-info',
   configGet: 'config:get-public',
   startupNotice: 'app:get-startup-notice',
+  appOpenExternal: 'app:open-external',
   settingsSaveApp: 'settings:save-app',
   settingsSavePet: 'settings:save-pet',
   settingsImportPet: 'settings:import-pet',
@@ -413,6 +432,7 @@ export const IPC_CHANNELS = {
   memosChanged: 'memos:changed',
   settingsOpenMemoComposer: 'settings:open-memo-composer',
   settingsUiReady: 'settings:ui-ready',
+  settingsNavigate: 'settings:navigate',
   websitesList: 'websites:list',
   websitesCreate: 'websites:create',
   websitesUpdate: 'websites:update',
@@ -449,6 +469,7 @@ export const IPC_CHANNELS = {
   memoCardFitHeight: 'memo-card:fit-height',
   menuRunAction: 'menu:run-action',
   menuOpenSettings: 'menu:open-settings',
+  menuOpenFunctions: 'menu:open-functions',
   menuHidePet: 'menu:hide-pet',
   menuQuit: 'menu:quit',
   menuClose: 'menu:close',
@@ -475,6 +496,7 @@ export interface MenuApi {
   onPresentation(callback: (presentation: MenuPresentation) => void): () => void
   runAction(actionId: string): Promise<void>
   openSettings(): Promise<void>
+  openFunctions(): Promise<void>
   hidePet(): Promise<void>
   quit(): Promise<void>
   close(): Promise<void>
@@ -515,6 +537,8 @@ export interface SettingsApi {
   setModuleEnabled(moduleId: ModuleId, enabled: boolean): Promise<ModuleSummary[]>
   getSecurityStatus(): Promise<SecurityStatus>
   getStartupNotice(): Promise<string | null>
+  openExternal(link: ExternalLinkId): Promise<void>
+  onNavigate(callback: (navigation: SystemNavigation) => void): () => void
   listMemos(): Promise<MemoSummary[]>
   createMemo(input: MemoInput): Promise<MemoSummary[]>
   updateMemo(id: string, patch: MemoPatch): Promise<MemoSummary[]>

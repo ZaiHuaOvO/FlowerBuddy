@@ -1289,3 +1289,77 @@
   color: var(--color-primary);
   box-shadow: var(--focus-ring);
 }
+
+.system-top-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.system-top-tab {
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+}
+
+.system-top-tab:hover {
+  color: var(--color-text);
+}
+
+.system-top-tab.active {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.system-top-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.about-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.about-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.about-icon {
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+}
+
+.about-brand h2 {
+  margin: 0 0 var(--space-1);
+}
+
+.about-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 520px;
+}
+
+.about-links .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}

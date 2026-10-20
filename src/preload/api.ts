@@ -16,6 +16,7 @@ import {
   type EsaCredentialsInput,
   type EsaDisplayRanges,
   type EsaTrafficSummary,
+  type ExternalLinkId,
   type IntervalReminderInput,
   type IntervalReminderPatch,
   type IntervalReminderSummary,
@@ -32,6 +33,7 @@ import {
   type RefreshableModuleId,
   type SecurityStatus,
   type SettingsApi,
+  type SystemNavigation,
   type WebsiteCheckConfig,
   type WebsiteCheckInput,
   type WebsiteCheckPatch,
@@ -113,6 +115,9 @@ function createMenuApi(ipc: IpcBridge): MenuApi {
     },
     openSettings: async () => {
       await ipc.invoke(IPC_CHANNELS.menuOpenSettings)
+    },
+    openFunctions: async () => {
+      await ipc.invoke(IPC_CHANNELS.menuOpenFunctions)
     },
     hidePet: async () => {
       await ipc.invoke(IPC_CHANNELS.menuHidePet)
@@ -207,6 +212,11 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     getSecurityStatus: async () =>
       (await ipc.invoke(IPC_CHANNELS.securityStatus)) as SecurityStatus,
     getStartupNotice: async () => (await ipc.invoke(IPC_CHANNELS.startupNotice)) as string | null,
+    openExternal: async (link: ExternalLinkId) => {
+      await ipc.invoke(IPC_CHANNELS.appOpenExternal, { link })
+    },
+    onNavigate: (callback) =>
+      ipc.on(IPC_CHANNELS.settingsNavigate, (payload) => callback(payload as SystemNavigation)),
     listMemos: async () => (await ipc.invoke(IPC_CHANNELS.memosList)) as MemoSummary[],
     createMemo: async (input: MemoInput) =>
       (await ipc.invoke(IPC_CHANNELS.memosCreate, input)) as MemoSummary[],
