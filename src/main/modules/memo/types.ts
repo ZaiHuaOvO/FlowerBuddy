@@ -12,6 +12,7 @@ export interface StoredMemo {
   text: string
   images: MemoImageInfo[]
   lineTasks: MemoLineTask[]
+  lineTasksEnabled: boolean
   reminderAt: string | null
   remindedAt: string | null
   completed: boolean
@@ -24,11 +25,11 @@ export interface StoredMemo {
 }
 
 export interface MemoData {
-  schemaVersion: 2
+  schemaVersion: 3
   memos: StoredMemo[]
 }
 
-export const MEMO_DATA_SCHEMA_VERSION = 2
+export const MEMO_DATA_SCHEMA_VERSION = 3
 
 export const MEMO_TEXT_MAX = 20000
 export const MEMO_LINE_TASKS_MAX = 1000

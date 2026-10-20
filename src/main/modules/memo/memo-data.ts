@@ -124,7 +124,11 @@ export function sanitizeMemoBounds(raw: unknown): MemoBounds | null {
   }
 }
 
-function sanitizeStoredMemo(raw: unknown, usedIds: Set<string>): StoredMemo | null {
+function sanitizeStoredMemo(
+  raw: unknown,
+  usedIds: Set<string>,
+  defaultLineTasksEnabled: boolean
+): StoredMemo | null {
   if (!isRecord(raw)) {
     return null
   }
@@ -155,6 +159,8 @@ function sanitizeStoredMemo(raw: unknown, usedIds: Set<string>): StoredMemo | nu
     text,
     images,
     lineTasks,
+    lineTasksEnabled:
+      raw.lineTasksEnabled === undefined ? defaultLineTasksEnabled : raw.lineTasksEnabled === true,
     reminderAt,
     remindedAt,
     completed,
@@ -167,7 +173,11 @@ function sanitizeStoredMemo(raw: unknown, usedIds: Set<string>): StoredMemo | nu
   }
 }
 
-export function sanitizeMemoData(raw: unknown): MemoData {
+export function sanitizeMemoData(
+  raw: unknown,
+  options: { defaultLineTasksEnabled?: boolean } = {}
+): MemoData {
+  const defaultLineTasksEnabled = options.defaultLineTasksEnabled === true
   if (!isRecord(raw) || !Array.isArray(raw.memos)) {
     return createEmptyMemoData()
   }
@@ -176,7 +186,7 @@ export function sanitizeMemoData(raw: unknown): MemoData {
   const memos: StoredMemo[] = []
   let anchoredCount = 0
   for (const entry of raw.memos.slice(0, MEMO_COUNT_MAX)) {
-    const memo = sanitizeStoredMemo(entry, usedIds)
+    const memo = sanitizeStoredMemo(entry, usedIds, defaultLineTasksEnabled)
     if (memo) {
       if (memo.anchored) {
         if (anchoredCount < MEMO_ANCHORED_MAX) {

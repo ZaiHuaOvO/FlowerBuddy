@@ -504,7 +504,9 @@ function SettingsContent({
     composeSignal,
     listVisible: state.tab === 'function' && state.moduleId === 'memo',
     anchorNewMemos: config.modules.memo.anchorNewMemos,
-    onSetAnchorNew: (enabled) => void saveMemoAnchorNew(enabled)
+    defaultLineTasksEnabled: config.modules.memo.lineTasksEnabled,
+    onSetAnchorNew: (enabled) => void saveMemoAnchorNew(enabled),
+    onSetLineTasksDefault: (enabled) => void saveMemoLineTasks(enabled)
   })
   const intervalReminderSettings = useIntervalReminderSettings({
     api,

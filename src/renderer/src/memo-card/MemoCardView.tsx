@@ -241,6 +241,14 @@ export default function MemoCardView() {
     })
   }
 
+  function handleContextMenu(event: React.MouseEvent<HTMLElement>): void {
+    if (editing) {
+      return
+    }
+    event.preventDefault()
+    startEditing()
+  }
+
   async function saveDraft(next: string): Promise<boolean> {
     if (!api) {
       return false
@@ -322,12 +330,9 @@ export default function MemoCardView() {
       >
         <span
           className="memo-card-reminder"
-          title="双击编辑正文"
+          title="右键编辑正文"
           onPointerDown={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => {
-            event.stopPropagation()
-            startEditing()
-          }}
+          onContextMenu={handleContextMenu}
         >
           {state.reminderAt ? formatReminderDateTime(new Date(state.reminderAt)) : '备忘'}
         </span>
@@ -381,7 +386,7 @@ export default function MemoCardView() {
         </span>
       </div>
 
-      <div className="memo-card-body">
+      <div className="memo-card-body" onContextMenu={handleContextMenu}>
         <div className="memo-card-content" ref={contentRef}>
           {editing ? (
             <div className="memo-card-editor">

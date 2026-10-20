@@ -20,6 +20,7 @@ export interface MemoDraft {
   reminderAt: string | null
   reminderError: string
   anchor: boolean
+  lineTasks: boolean
 }
 
 interface Options {
@@ -31,11 +32,21 @@ interface Options {
   composeSignal: number
   listVisible: boolean
   anchorNewMemos: boolean
+  defaultLineTasksEnabled: boolean
   onSetAnchorNew: (enabled: boolean) => void
+  onSetLineTasksDefault: (enabled: boolean) => void
 }
 
-export function createMemoDraft(anchor = false): MemoDraft {
-  return { text: '', images: [], reminderText: '', reminderAt: null, reminderError: '', anchor }
+export function createMemoDraft(anchor = false, lineTasks = false): MemoDraft {
+  return {
+    text: '',
+    images: [],
+    reminderText: '',
+    reminderAt: null,
+    reminderError: '',
+    anchor,
+    lineTasks
+  }
 }
 
 export function useMemoSettings({
@@ -47,9 +58,13 @@ export function useMemoSettings({
   composeSignal,
   listVisible,
   anchorNewMemos,
-  onSetAnchorNew
+  defaultLineTasksEnabled,
+  onSetAnchorNew,
+  onSetLineTasksDefault
 }: Options) {
-  const [draft, setDraft] = useState<MemoDraft>(createMemoDraft)
+  const [draft, setDraft] = useState<MemoDraft>(() =>
+    createMemoDraft(anchorNewMemos, defaultLineTasksEnabled)
+  )
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
@@ -85,12 +100,12 @@ export function useMemoSettings({
       }
       newImageIds.current = new Set()
       newImageIdsSnapshot.current = newImageIds.current
-      setDraft(createMemoDraft(anchorNewMemos))
+      setDraft(createMemoDraft(anchorNewMemos, defaultLineTasksEnabled))
       setEditingId(null)
       setConfirmDeleteId(null)
       setEditorOpen(true)
     }
-  }, [anchorNewMemos, api, composeSignal])
+  }, [anchorNewMemos, api, composeSignal, defaultLineTasksEnabled])
 
   function releaseDraftImages(): void {
     if (api && newImageIds.current.size > 0) {
@@ -102,7 +117,7 @@ export function useMemoSettings({
 
   function startNew(): void {
     releaseDraftImages()
-    setDraft(createMemoDraft(anchorNewMemos))
+    setDraft(createMemoDraft(anchorNewMemos, defaultLineTasksEnabled))
     setEditingId(null)
     setConfirmDeleteId(null)
     setEditorOpen(true)
@@ -119,7 +134,8 @@ export function useMemoSettings({
       reminderText: memo.reminderAt ? formatMemoDateTime(memo.reminderAt) : '',
       reminderAt: memo.reminderAt,
       reminderError: '',
-      anchor: memo.anchored
+      anchor: memo.anchored,
+      lineTasks: memo.lineTasksEnabled
     })
     setEditingId(memo.id)
     setConfirmDeleteId(null)
@@ -128,7 +144,7 @@ export function useMemoSettings({
 
   function cancelEdit(): void {
     releaseDraftImages()
-    setDraft(createMemoDraft(anchorNewMemos))
+    setDraft(createMemoDraft(anchorNewMemos, defaultLineTasksEnabled))
     setEditingId(null)
     setEditorOpen(false)
   }
@@ -216,6 +232,13 @@ export function useMemoSettings({
     onSetAnchorNew(enabled)
   }
 
+  function toggleDraftLineTasks(enabled: boolean): void {
+    setDraft((current) => ({ ...current, lineTasks: enabled }))
+    if (!editingId) {
+      onSetLineTasksDefault(enabled)
+    }
+  }
+
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault()
     if (!api) {
@@ -235,7 +258,8 @@ export function useMemoSettings({
       const input = {
         text: draft.text,
         images: draft.images,
-        reminderAt: draft.reminderAt
+        reminderAt: draft.reminderAt,
+        lineTasksEnabled: draft.lineTasks
       }
       const existingIds = new Set(memos.map((memo) => memo.id))
       let next = editingId ? await api.updateMemo(editingId, input) : await api.createMemo(input)
@@ -253,7 +277,7 @@ export function useMemoSettings({
       setMemos(next)
       newImageIds.current = new Set()
       newImageIdsSnapshot.current = newImageIds.current
-      setDraft(createMemoDraft(anchorNewMemos))
+      setDraft(createMemoDraft(anchorNewMemos, defaultLineTasksEnabled))
       setEditingId(null)
       setEditorOpen(false)
       if (anchorError) {
@@ -310,6 +334,19 @@ export function useMemoSettings({
     }
   }
 
+  async function toggleMemoLineTasks(id: string, enabled: boolean): Promise<void> {
+    if (!api) {
+      return
+    }
+    try {
+      const next = await api.updateMemo(id, { lineTasksEnabled: enabled })
+      setMemos((current) => mergeMemoOrder(current, next))
+      flash(enabled ? '已开启逐行勾选' : '已关闭逐行勾选')
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
   async function remove(id: string): Promise<void> {
     if (!api) {
       return
@@ -347,7 +384,9 @@ export function useMemoSettings({
     complete,
     uncomplete,
     toggleAnchorNew,
+    toggleDraftLineTasks,
     toggleAnchor,
+    toggleMemoLineTasks,
     remove
   }
 }

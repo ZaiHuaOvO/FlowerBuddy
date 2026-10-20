@@ -127,7 +127,10 @@ async function bootstrap(): Promise<void> {
   const memoStore = new JsonStore<MemoData>(join(dataDirectory, 'memos.json'), {
     label: 'memos',
     defaults: createEmptyMemoData,
-    sanitize: sanitizeMemoData,
+    sanitize: (raw) =>
+      sanitizeMemoData(raw, {
+        defaultLineTasksEnabled: configStore.get().modules.memo.lineTasksEnabled
+      }),
     logger
   })
   memoStore.load()

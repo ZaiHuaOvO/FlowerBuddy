@@ -63,6 +63,21 @@ function TrashIcon() {
   )
 }
 
+function LinesIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
+      <path
+        d="m2.2 3.9 1.1 1.1 1.9-2.2M2.2 7.9l1.1 1.1 1.9-2.2M2.2 11.9l1.1 1.1 1.9-2.2M8.2 4.4h5.6M8.2 8.4h5.6M8.2 12.4h5.6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={active ? 1.6 : 1.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function GearIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
@@ -100,7 +115,9 @@ export function MemoSettingsTab({ model, onOpenSettings }: Props) {
     complete,
     uncomplete,
     toggleAnchorNew,
+    toggleDraftLineTasks,
     toggleAnchor,
+    toggleMemoLineTasks,
     remove
   } = model
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -168,6 +185,7 @@ export function MemoSettingsTab({ model, onOpenSettings }: Props) {
                 memo.completed ? void uncomplete(memo.id) : void complete(memo.id)
               }
               onToggleAnchor={(anchored) => void toggleAnchor(memo.id, anchored)}
+              onToggleLineTasks={(enabled) => void toggleMemoLineTasks(memo.id, enabled)}
               onRemove={() => void remove(memo.id)}
             />
           ))}
@@ -250,17 +268,28 @@ export function MemoSettingsTab({ model, onOpenSettings }: Props) {
               </div>
 
               <div className="memo-editor-footer">
-                {!editingId ? (
+                <div className="memo-editor-switches">
+                  {!editingId ? (
+                    <label className="fl-switch memo-anchor-switch">
+                      <input
+                        type="checkbox"
+                        checked={draft.anchor}
+                        onChange={(event) => toggleAnchorNew(event.target.checked)}
+                      />
+                      <span className="fl-switch-track" aria-hidden="true" />
+                      <span className="fl-switch-label">创建后锚定到桌面</span>
+                    </label>
+                  ) : null}
                   <label className="fl-switch memo-anchor-switch">
                     <input
                       type="checkbox"
-                      checked={draft.anchor}
-                      onChange={(event) => toggleAnchorNew(event.target.checked)}
+                      checked={draft.lineTasks}
+                      onChange={(event) => toggleDraftLineTasks(event.target.checked)}
                     />
                     <span className="fl-switch-track" aria-hidden="true" />
-                    <span className="fl-switch-label">创建后锚定到桌面</span>
+                    <span className="fl-switch-label">逐行完成勾选</span>
                   </label>
-                ) : null}
+                </div>
                 <div className="form-actions memo-form-actions">
                   <Button variant="primary" type="submit" disabled={busy}>
                     {editingId ? '保存修改' : '添加备忘录'}
@@ -285,6 +314,7 @@ interface MemoRowProps {
   onEdit: () => void
   onToggleComplete: () => void
   onToggleAnchor: (anchored: boolean) => void
+  onToggleLineTasks: (enabled: boolean) => void
   onRemove: () => void
 }
 
@@ -295,6 +325,7 @@ function MemoRow({
   onEdit,
   onToggleComplete,
   onToggleAnchor,
+  onToggleLineTasks,
   onRemove
 }: MemoRowProps) {
   const excerpt = memoExcerpt(memo.text)
@@ -324,6 +355,15 @@ function MemoRow({
       </button>
 
       <div className="row-actions">
+        <IconButton
+          label={memo.lineTasksEnabled ? '关闭逐行勾选' : '开启逐行勾选'}
+          aria-pressed={memo.lineTasksEnabled}
+          disabled={memo.completed}
+          className={memo.lineTasksEnabled ? 'is-active' : undefined}
+          onClick={() => onToggleLineTasks(!memo.lineTasksEnabled)}
+        >
+          <LinesIcon active={memo.lineTasksEnabled} />
+        </IconButton>
         <IconButton
           label={memo.anchored ? '取消锚点' : '锚定到桌面'}
           aria-pressed={memo.anchored}

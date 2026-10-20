@@ -734,6 +734,13 @@
   align-self: center;
 }
 
+.memo-editor-switches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .memo-editor-footer {
   display: flex;
   flex-wrap: wrap;

@@ -93,7 +93,8 @@ const memoInputSchema = z
   .object({
     text: z.string().max(20000),
     images: z.array(memoImageSchema).max(9),
-    reminderAt: memoTimestampSchema.nullable()
+    reminderAt: memoTimestampSchema.nullable(),
+    lineTasksEnabled: z.boolean().optional()
   })
   .strict()
 
@@ -101,7 +102,8 @@ const memoPatchSchema = z
   .object({
     text: z.string().max(20000).optional(),
     images: z.array(memoImageSchema).max(9).optional(),
-    reminderAt: memoTimestampSchema.nullable().optional()
+    reminderAt: memoTimestampSchema.nullable().optional(),
+    lineTasksEnabled: z.boolean().optional()
   })
   .strict()
 

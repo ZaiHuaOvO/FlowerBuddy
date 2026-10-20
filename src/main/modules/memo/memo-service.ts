@@ -49,6 +49,7 @@ function toSummary(memo: StoredMemo): MemoSummary {
     text: memo.text,
     images: memo.images,
     lineTasks: memo.lineTasks,
+    lineTasksEnabled: memo.lineTasksEnabled,
     reminderAt: memo.reminderAt,
     completed: memo.completed,
     completedAt: memo.completedAt,
@@ -94,6 +95,7 @@ export class MemoService {
       text,
       images,
       lineTasks: reconcileLineTasks(text, []),
+      lineTasksEnabled: input.lineTasksEnabled === true,
       reminderAt: normalizeReminder(input.reminderAt),
       remindedAt: null,
       completed: false,
@@ -133,6 +135,9 @@ export class MemoService {
         next.remindedAt = null
       }
       next.reminderAt = reminderAt
+    }
+    if (patch.lineTasksEnabled !== undefined) {
+      next.lineTasksEnabled = patch.lineTasksEnabled
     }
     if (next.text !== current.text) {
       next.lineTasks = reconcileLineTasks(next.text, current.lineTasks)

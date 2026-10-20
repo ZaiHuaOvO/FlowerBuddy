@@ -96,7 +96,7 @@
 }
 
 .memo-card-window.is-locked {
-  opacity: 0.82;
+  opacity: 0.9;
 }
 
 .memo-card-window.is-locked .memo-card-bar {
@@ -143,7 +143,10 @@
 }
 
 .memo-card-line input {
-  margin-top: 3px;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  margin: calc((var(--font-size-sm) * var(--line-height-relaxed) - 13px) / 2) 0 0;
   accent-color: var(--color-primary);
 }
 

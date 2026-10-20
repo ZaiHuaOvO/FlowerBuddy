@@ -42,8 +42,11 @@ export function MemoSettingsPane({
         </div>
         <div className="row">
           <span className="row-label">
-            <span>创建后锚定到桌面</span>
-            <InfoTip text="新建备忘录时默认勾选“创建后锚定到桌面”" align="right" />
+            <span>新建时默认锚定到桌面</span>
+            <InfoTip
+              text="仅作为新建备忘录的默认值；新建时可在对话框中临时修改，之后也可在备忘录列表中按条切换"
+              align="right"
+            />
           </span>
           <label className="fl-switch">
             <input
@@ -56,9 +59,9 @@ export function MemoSettingsPane({
         </div>
         <div className="row">
           <span className="row-label">
-            <span>逐行完成勾选</span>
+            <span>新建时默认逐行勾选</span>
             <InfoTip
-              text="开启后，锚定卡片的每个非空行前显示复选框；整张完成状态与逐行状态互不自动联动"
+              text="仅作为新建备忘录的默认值；是否逐行显示复选框可在新建或编辑对话框中修改，也可在备忘录列表中按条切换"
               align="right"
             />
           </span>

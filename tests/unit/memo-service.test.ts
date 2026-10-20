@@ -150,7 +150,7 @@ describe('memo service', () => {
         }
       ]
     })
-    expect(legacy.schemaVersion).toBe(2)
+    expect(legacy.schemaVersion).toBe(3)
     expect(legacy.memos[0]?.locked).toBe(false)
   })
 
@@ -176,6 +176,53 @@ describe('memo service', () => {
     expect(updated.find((task) => task.text === 'second')?.completed).toBe(true)
     expect(updated.find((task) => task.text === 'fourth')?.completed).toBe(false)
     expect(updated.find((task) => task.text === 'second')?.id).toBe(second?.id)
+  })
+
+  it('stores line task display per memo and updates it through the memo patch', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const created = service.create({
+      text: 'first\nsecond',
+      images: [],
+      reminderAt: null,
+      lineTasksEnabled: true
+    })
+    const id = created[0]?.id as string
+    expect(created[0]?.lineTasksEnabled).toBe(true)
+
+    service.update(id, { lineTasksEnabled: false })
+    expect(service.get(id)?.lineTasksEnabled).toBe(false)
+
+    const plain = service.create({ text: 'plain', images: [], reminderAt: null })
+    expect(plain.find((memo) => memo.text === 'plain')?.lineTasksEnabled).toBe(false)
+  })
+
+  it('uses the configured default only for stored memos without the flag', () => {
+    const data = sanitizeMemoData(
+      {
+        schemaVersion: 2,
+        memos: [
+          {
+            id: '00000000-0000-4000-8000-000000000001',
+            text: 'legacy',
+            images: [],
+            reminderAt: null,
+            completed: false
+          },
+          {
+            id: '00000000-0000-4000-8000-000000000002',
+            text: 'explicit',
+            images: [],
+            reminderAt: null,
+            completed: false,
+            lineTasksEnabled: false
+          }
+        ]
+      },
+      { defaultLineTasksEnabled: true }
+    )
+
+    expect(data.memos[0]?.lineTasksEnabled).toBe(true)
+    expect(data.memos[1]?.lineTasksEnabled).toBe(false)
   })
 
   it('rejects completing an unknown line task', () => {

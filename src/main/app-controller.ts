@@ -130,7 +130,6 @@ export class AppController {
       rendererIndexPath: options.rendererIndexPath,
       service: options.memoService,
       isEnabled: () => this.config.modules.memo.enabled,
-      isLineTasksEnabled: () => this.config.modules.memo.lineTasksEnabled,
       logger: options.logger
     })
     options.memoService.onChange(() => {
@@ -247,7 +246,10 @@ export class AppController {
   }
 
   createMemo(input: MemoInput): MemoSummary[] {
-    return this.options.memoService.create(input)
+    return this.options.memoService.create({
+      ...input,
+      lineTasksEnabled: input.lineTasksEnabled ?? this.config.modules.memo.lineTasksEnabled
+    })
   }
 
   updateMemo(id: string, patch: MemoPatch): MemoSummary[] {

@@ -227,6 +227,7 @@ export interface MemoSummary {
   text: string
   images: MemoImageInfo[]
   lineTasks: MemoLineTask[]
+  lineTasksEnabled: boolean
   reminderAt: string | null
   completed: boolean
   completedAt: string | null
@@ -240,12 +241,14 @@ export interface MemoInput {
   text: string
   images: MemoImageInfo[]
   reminderAt: string | null
+  lineTasksEnabled?: boolean
 }
 
 export interface MemoPatch {
   text?: string
   images?: MemoImageInfo[]
   reminderAt?: string | null
+  lineTasksEnabled?: boolean
 }
 
 export type MemoCardEdge = 'nw' | 'ne' | 'sw' | 'se'
