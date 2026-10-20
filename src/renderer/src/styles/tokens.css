@@ -15,7 +15,9 @@
  * - Pressed surfaces reuse the verified page background colour.
  * - Primary button values were verified against the live .fl-button--solid
  *   component on the design page (2026-10-17): background #8b5a2b, white text,
- *   34px height, 10px radius, 500 weight.
+ *   10px radius, 500 weight. The system page raises action height to 36px on
+ *   2026-10-20 so buttons and form controls share one baseline; the design
+ *   system records this adaptation in DESIGN_SYSTEM.md §4.6.
  */
 :root {
   color-scheme: light;
@@ -38,6 +40,7 @@
   --color-success: #5a8a3c;
   --color-success-bg: #eef5e8;
   --color-warning: #c8952e;
+  --color-warning-strong: #8a6516;
   --color-warning-bg: #fdf5e6;
   --color-danger: #b54a3a;
   --color-danger-bg: #fdeeed;
@@ -53,7 +56,7 @@
   --color-form-bg-disabled: #f5f1eb;
   --color-form-border: #d8c8b8;
   --color-form-border-hover: #cda983;
-  --color-form-placeholder: #a88b73;
+  --color-form-placeholder: #8a6b52;
   --color-form-disabled-text: #b39a84;
 
   /* Spacing */
@@ -109,9 +112,19 @@
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Controls */
-  --control-height-button: 34px;
+  --control-height-xs: 32px;
+  --control-height-button: 36px;
   --control-height-sm: 28px;
   --control-height-md: 36px;
   --control-height-lg: 44px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
   --focus-ring: 0 0 0 2px var(--color-primary-outline);
+
+  /* Layers */
+  --color-overlay: rgba(47, 33, 23, 0.32);
+  --color-overlay-strong: rgba(47, 33, 23, 0.72);
+  --layer-dialog: 30;
+  --layer-popover: 40;
+  --layer-tooltip: 1000;
 }

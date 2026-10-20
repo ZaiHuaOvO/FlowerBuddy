@@ -1,6 +1,9 @@
 import { Button } from '../../components/Button'
-import { InfoTip } from '../../components/InfoTip'
+import { FormRow } from '../components/FormRow'
+import { PageHeader } from '../components/PageHeader'
+import { Section } from '../components/Section'
 import { ShortcutInput } from '../components/ShortcutInput'
+import { Toggle } from '../components/Toggle'
 
 interface Props {
   memoShortcut: string
@@ -22,50 +25,48 @@ export function MemoSettingsPane({
   onGoToFunction
 }: Props) {
   return (
-    <section className="panel">
-      <div className="panel-header-row">
-        <h2>备忘录设置</h2>
-        <Button variant="secondary" onClick={onGoToFunction}>
-          前往功能页
-        </Button>
-      </div>
-      <div className="memo-setting-list">
-        <div className="row">
-          <span className="row-label">
-            <span>新增快捷键</span>
-            <InfoTip text="点击按钮后按下组合键；退格清除" align="right" />
-          </span>
+    <>
+      <PageHeader
+        title="备忘录设置"
+        description="快捷键与新建备忘录的默认行为。"
+        actions={
+          <Button variant="secondary" onClick={onGoToFunction}>
+            前往功能页
+          </Button>
+        }
+      />
+
+      <Section title="新建默认值">
+        <FormRow label="新增快捷键" hint="点击后按下组合键；退格清除">
           <ShortcutInput value={memoShortcut} onSave={onSaveShortcut} />
-        </div>
-        <div className="row">
-          <span className="row-label">
-            <span>新建时默认锚定到桌面</span>
-            <InfoTip text="只影响新建的备忘，之后可在列表中逐条切换" align="right" />
-          </span>
-          <label className="fl-switch">
-            <input
-              type="checkbox"
-              checked={anchorNewMemos}
-              onChange={(event) => onSaveAnchorNew(event.target.checked)}
-            />
-            <span className="fl-switch-track" aria-hidden="true" />
-          </label>
-        </div>
-        <div className="row">
-          <span className="row-label">
-            <span>新建时默认逐行打勾</span>
-            <InfoTip text="每行前显示勾选框，方便逐条打勾；只影响新建的备忘" align="right" />
-          </span>
-          <label className="fl-switch">
-            <input
-              type="checkbox"
-              checked={lineTasksEnabled}
-              onChange={(event) => onSaveLineTasks(event.target.checked)}
-            />
-            <span className="fl-switch-track" aria-hidden="true" />
-          </label>
-        </div>
-      </div>
-    </section>
+        </FormRow>
+
+        <FormRow
+          label="新建时默认锚定到桌面"
+          hint="只影响新建的备忘，之后可在列表中逐条切换"
+          htmlFor="memo-anchor-default"
+        >
+          <Toggle
+            id="memo-anchor-default"
+            ariaLabel="新建时默认锚定到桌面"
+            checked={anchorNewMemos}
+            onChange={onSaveAnchorNew}
+          />
+        </FormRow>
+
+        <FormRow
+          label="新建时默认逐行打勾"
+          hint="每行前显示勾选框；只影响新建的备忘"
+          htmlFor="memo-line-default"
+        >
+          <Toggle
+            id="memo-line-default"
+            ariaLabel="新建时默认逐行打勾"
+            checked={lineTasksEnabled}
+            onChange={onSaveLineTasks}
+          />
+        </FormRow>
+      </Section>
+    </>
   )
 }

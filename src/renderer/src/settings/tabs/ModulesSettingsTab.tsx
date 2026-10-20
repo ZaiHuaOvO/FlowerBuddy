@@ -1,42 +1,16 @@
 import { useState } from 'react'
+import { GripVertical } from 'lucide-react'
 import type { ModuleId, ModuleSummary, SecurityStatus } from '../../../../shared/api'
-import { IconButton } from '../../components/IconButton'
+import { Alert } from '../../components/Alert'
+import { Button } from '../../components/Button'
 import { InfoTip } from '../../components/InfoTip'
+import { PageHeader } from '../components/PageHeader'
 
 interface Props {
   modules: ModuleSummary[]
   security: SecurityStatus | null
   onToggle: (moduleId: ModuleId, enabled: boolean) => void
   onReorder: (order: ModuleId[]) => void
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
-      <path
-        d="M2.8 4.2h10.4M6.2 4.2V3a1 1 0 0 1 1-1h1.6a1 1 0 0 1 1 1v1.2M4.2 4.2l.6 8.3a1 1 0 0 0 1 .9h4.4a1 1 0 0 0 1-.9l.6-8.3M6.6 6.6v4.2M9.4 6.6v4.2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function EnableIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
-      <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path
-        d="M8 5.2v5.6M5.2 8h5.6"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
 }
 
 export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: Props) {
@@ -66,20 +40,21 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
   }
 
   return (
-    <section className="panel">
-      <h2>功能管理</h2>
+    <>
+      <PageHeader title="功能管理" description="启用需要的功能，并拖动已启用项调整导航顺序。" />
+
       {security && !security.encryptionAvailable && security.message ? (
-        <div className="fl-alert fl-alert-warning module-security-alert" role="status">
-          <span className="fl-alert-icon" aria-hidden="true">
-            !
-          </span>
-          <span className="fl-alert-message">{security.message}</span>
-        </div>
+        <Alert tone="warning" className="module-security-alert">
+          {security.message}
+        </Alert>
       ) : null}
 
       <div className="module-columns">
-        <div className="module-column">
-          <h3 className="module-column-title">已启用</h3>
+        <section className="module-column">
+          <header className="module-column-header">
+            <h3>已启用</h3>
+            <span className="module-count">{enabled.length}</span>
+          </header>
           {enabled.length === 0 ? (
             <p className="hint">暂无已启用的功能。</p>
           ) : (
@@ -112,20 +87,33 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
                   onDragEnd={clearDrag}
                 >
                   <span className="module-row-main">
+                    <GripVertical
+                      className="module-drag-handle"
+                      size={14}
+                      strokeWidth={1.8}
+                      aria-hidden="true"
+                    />
                     <span className="module-row-name">{module.name}</span>
                     <InfoTip text={module.description} align="right" />
                   </span>
-                  <IconButton label="停用" tone="danger" onClick={() => onToggle(module.id, false)}>
-                    <TrashIcon />
-                  </IconButton>
+                  <Button
+                    variant="ghost"
+                    className="module-row-action"
+                    onClick={() => onToggle(module.id, false)}
+                  >
+                    停用
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </section>
 
-        <div className="module-column">
-          <h3 className="module-column-title">已停用</h3>
+        <section className="module-column">
+          <header className="module-column-header">
+            <h3>已停用</h3>
+            <span className="module-count">{disabled.length}</span>
+          </header>
           {disabled.length === 0 ? (
             <p className="hint">所有功能均已启用。</p>
           ) : (
@@ -136,17 +124,23 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
                     <span className="module-row-name">{module.name}</span>
                     <InfoTip text={module.description} align="left" />
                   </span>
-                  <IconButton label="启用" onClick={() => onToggle(module.id, true)}>
-                    <EnableIcon />
-                  </IconButton>
+                  <Button
+                    variant="secondary"
+                    className="module-row-action"
+                    onClick={() => onToggle(module.id, true)}
+                  >
+                    启用
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </section>
       </div>
 
-      <p className="hint">拖动已启用项可调整顺序</p>
-    </section>
+      <p className="page-footnote">
+        停用功能会隐藏入口但保留数据；重新启用后会追加到已启用列表末尾。
+      </p>
+    </>
   )
 }

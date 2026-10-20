@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { Settings as SettingsIcon } from 'lucide-react'
 import type { ModuleId, PublicConfig } from '../../../../shared/api'
+import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { Field } from '../../components/Field'
 import { IconButton } from '../../components/IconButton'
 import { Tag } from '../../components/Tag'
+import { FormRow } from '../components/FormRow'
+import { PageHeader } from '../components/PageHeader'
+import { Section } from '../components/Section'
+import { Toggle } from '../components/Toggle'
 import type { useDeepSeekSettings } from '../hooks/useDeepSeekSettings'
 import { formatBalanceAmount, formatTime } from '../utils/formatters'
 
@@ -57,115 +62,117 @@ export function DeepSeekSettingsTab({
   }
 
   return (
-    <section className="panel">
-      <div className="panel-header-row">
-        <div className="module-title-row">
-          <h2>{isFunction ? 'DeepSeek 余额' : 'DeepSeek 余额设置'}</h2>
+    <>
+      <PageHeader
+        title={isFunction ? 'DeepSeek 余额' : 'DeepSeek 余额设置'}
+        description={
+          isFunction
+            ? '在本机查询账户余额；余额变化不等同于消费。'
+            : showSetup
+              ? 'API Key 仅在本机加密保存，不会回显明文。'
+              : '配置自动刷新；重新配置可覆盖现有 Key。'
+        }
+        meta={
           <Tag tone={summary?.configured ? 'success' : 'warning'}>
             {summary?.statusLabel ?? '未配置'}
           </Tag>
-          {isFunction && onOpenSettings ? (
-            <IconButton label="打开 DeepSeek 设置" onClick={onOpenSettings}>
-              <SettingsIcon size={16} strokeWidth={1.8} aria-hidden="true" />
-            </IconButton>
-          ) : null}
-        </div>
-        {isFunction ? (
-          <Button
-            variant="secondary"
-            disabled={busy || !summary?.configured}
-            onClick={() => void refresh()}
-          >
-            刷新余额
-          </Button>
-        ) : (
-          <div className="panel-header-actions">
-            {onGoToFunction ? (
-              <Button variant="secondary" onClick={onGoToFunction}>
-                前往功能页
+        }
+        actions={
+          isFunction ? (
+            <div className="page-actions-group">
+              {onOpenSettings ? (
+                <IconButton label="打开 DeepSeek 设置" onClick={onOpenSettings}>
+                  <SettingsIcon size={16} strokeWidth={1.8} aria-hidden="true" />
+                </IconButton>
+              ) : null}
+              <Button
+                variant="secondary"
+                disabled={busy || !summary?.configured}
+                onClick={() => void refresh()}
+              >
+                刷新余额
               </Button>
-            ) : null}
-            {onToggleModule ? (
-              <label className="module-switch">
-                <input
-                  type="checkbox"
+            </div>
+          ) : (
+            <div className="page-actions-group">
+              {onGoToFunction ? (
+                <Button variant="secondary" onClick={onGoToFunction}>
+                  前往功能页
+                </Button>
+              ) : null}
+              {onToggleModule ? (
+                <Toggle
                   checked={summary?.enabled ?? false}
-                  onChange={(event) => onToggleModule('deepseek', event.target.checked)}
+                  ariaLabel="启用 DeepSeek 模块"
+                  label={summary?.enabled ? '已启用' : '已停用'}
+                  onChange={(enabled) => onToggleModule('deepseek', enabled)}
                 />
-                <span>{summary?.enabled ? '已启用' : '已停用'}</span>
-              </label>
-            ) : null}
-          </div>
-        )}
-      </div>
+              ) : null}
+            </div>
+          )
+        }
+      />
 
       {isFunction ? (
         <>
-          <div className="fl-alert fl-alert-info panel-alert" role="note">
-            <span className="fl-alert-icon" aria-hidden="true">
-              i
-            </span>
-            <span className="fl-alert-message">
-              “今日花费”当前未接入官方统计，余额变化不等于消费。
-            </span>
-          </div>
-          {balance ? (
-            <div className="result-card">
-              <p className="result-title">
-                {balance.isAvailable ? '账户余额' : '账户当前不可用（余额不足或受限）'}
-              </p>
-              {balance.balances.length === 0 ? (
+          <Alert tone="info">“今日花费”当前未接入官方统计，余额变化不等于消费。</Alert>
+          <Section
+            title="账户余额"
+            description={balance ? `更新于 ${formatTime(balance.fetchedAt)}` : undefined}
+          >
+            {balance ? (
+              balance.balances.length === 0 ? (
                 <p className="hint">接口未返回余额信息。</p>
               ) : (
-                balance.balances.map((info, index) => (
-                  <div key={`${info.currency}-${index}`}>
-                    <div className="result-row">
-                      <span>{info.currency}</span>
-                      <span className="result-value">
+                <div className="stat-list">
+                  {balance.balances.map((info, index) => (
+                    <div className="stat-row" key={`${info.currency}-${index}`}>
+                      <div className="stat-row-main">
+                        <span className="stat-label">{info.currency}</span>
+                        <span className="stat-note">
+                          赠送 {formatBalanceAmount(info.currency, info.grantedBalance)} · 充值{' '}
+                          {formatBalanceAmount(info.currency, info.toppedUpBalance)}
+                        </span>
+                      </div>
+                      <span className="stat-value">
                         {formatBalanceAmount(info.currency, info.totalBalance)}
                       </span>
                     </div>
-                    <p className="hint">
-                      赠送 {formatBalanceAmount(info.currency, info.grantedBalance)} · 充值{' '}
-                      {formatBalanceAmount(info.currency, info.toppedUpBalance)}
-                    </p>
-                  </div>
-                ))
-              )}
-              <p className="hint">更新于 {formatTime(balance.fetchedAt)}</p>
-            </div>
-          ) : (
-            <EmptyState
-              title="尚未查询余额"
-              description={
-                summary?.configured ? '点击“刷新余额”查看数据。' : '保存 API Key 后即可查询。'
-              }
-            />
-          )}
+                  ))}
+                </div>
+              )
+            ) : (
+              <EmptyState
+                title="尚未查询余额"
+                description={
+                  summary?.configured ? '点击“刷新余额”查看数据。' : '保存 API Key 后即可查询。'
+                }
+              />
+            )}
+          </Section>
         </>
       ) : (
         <>
-          {showSetup ? (
-            <p className="hint">API Key 仅在本机加密保存，界面不会回显明文，也不会写入日志。</p>
-          ) : null}
-          {showSetup ? (
-            <div className="form-grid">
-              <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
-                <input
-                  className="fl-input"
-                  type="password"
-                  autoComplete="new-password"
-                  spellCheck={false}
-                  value={keyDraft}
-                  placeholder="sk-..."
-                  onChange={(event) => setKeyDraft(event.target.value)}
-                />
-              </Field>
-            </div>
-          ) : null}
-          <div className="settings-inline-row">
-            <label className="settings-inline-field">
-              <span className="field-label">自动刷新</span>
+          <Section title="连接配置">
+            {showSetup ? (
+              <div className="form-grid">
+                <div className="form-span-2">
+                  <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
+                    <input
+                      className="fl-input"
+                      type="password"
+                      autoComplete="new-password"
+                      spellCheck={false}
+                      value={keyDraft}
+                      placeholder="sk-..."
+                      onChange={(event) => setKeyDraft(event.target.value)}
+                    />
+                  </Field>
+                </div>
+              </div>
+            ) : null}
+
+            <FormRow label="自动刷新" hint="仅在模块启用时生效">
               <select
                 className="fl-select"
                 value={
@@ -180,20 +187,14 @@ export function DeepSeekSettingsTab({
                 <option value="30">每 30 分钟</option>
                 <option value="60">每 60 分钟</option>
               </select>
-            </label>
-            <div className="form-actions">
+            </FormRow>
+
+            <div className="form-actions form-actions-end">
               {showSetup ? (
                 <Button variant="primary" disabled={busy} onClick={() => void handleSave()}>
                   {busy ? '处理中…' : '保存'}
                 </Button>
               ) : null}
-              <Button
-                variant="danger"
-                disabled={!summary?.configured}
-                onClick={() => void handleClear()}
-              >
-                清除 Key
-              </Button>
               {configured ? (
                 <Button
                   variant="secondary"
@@ -203,18 +204,19 @@ export function DeepSeekSettingsTab({
                   {reconfiguring ? '取消' : '重新配置'}
                 </Button>
               ) : null}
+              <Button
+                variant="danger"
+                disabled={!summary?.configured || busy}
+                onClick={() => void handleClear()}
+              >
+                清除 Key
+              </Button>
             </div>
-          </div>
-          <div className="fl-alert fl-alert-info panel-alert" role="note">
-            <span className="fl-alert-icon" aria-hidden="true">
-              i
-            </span>
-            <span className="fl-alert-message">
-              余额变化不等于消费，本应用不会用余额差额估算今日花费。
-            </span>
-          </div>
+          </Section>
+
+          <Alert tone="info">余额变化不等于消费，本应用不会用余额差额估算今日花费。</Alert>
         </>
       )}
-    </section>
+    </>
   )
 }

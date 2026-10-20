@@ -1,7 +1,9 @@
+import { ChevronRight } from 'lucide-react'
 import type { AppInfo, ExternalLinkId, UpdateStatus } from '../../../shared/api'
 import { Button } from '../components/Button'
 import { Tag } from '../components/Tag'
 import type { TagTone } from '../components/tag-tone'
+import { Section } from './components/Section'
 import appIcon from '../assets/app-icon-256.png'
 
 interface Props {
@@ -71,11 +73,9 @@ export function AboutPane({
 }: Props) {
   const tag = updateStatus ? updateTag(updateStatus) : null
   return (
-    <section className="panel about-pane">
-      <div className="about-hero">
-        <div className="about-icon-shell">
-          <img className="about-icon" src={appIcon} width={80} height={80} alt="花伴 app icon" />
-        </div>
+    <div className="about-pane">
+      <section className="about-hero">
+        <img className="about-icon" src={appIcon} width={72} height={72} alt="花伴 app icon" />
         <div className="about-identity">
           <div className="about-title-row">
             <h2>花伴</h2>
@@ -84,14 +84,10 @@ export function AboutPane({
           <p className="about-tagline">桌面宠物与个人信息助手</p>
           <p className="about-meta">FlowerBuddy · 数据仅保存在本机</p>
         </div>
-      </div>
+      </section>
 
       <div className="about-grid">
-        <section className="about-card">
-          <div className="about-card-head">
-            <h3>应用更新</h3>
-            {tag ? <Tag tone={tag.tone}>{tag.label}</Tag> : null}
-          </div>
+        <Section title="应用更新" actions={tag ? <Tag tone={tag.tone}>{tag.label}</Tag> : null}>
           <p className="about-status" role="status">
             {updateStatus ? updateMessage(updateStatus) : '正在读取更新状态…'}
           </p>
@@ -124,10 +120,9 @@ export function AboutPane({
               ) : null}
             </div>
           ) : null}
-        </section>
+        </Section>
 
-        <section className="about-card">
-          <h3>链接</h3>
+        <Section title="链接">
           <div className="about-links">
             {LINKS.map((item) => (
               <button
@@ -136,15 +131,18 @@ export function AboutPane({
                 className="about-link"
                 onClick={() => onOpenExternal(item.link)}
               >
-                <span>{item.label}</span>
-                <span className="about-link-value">{item.value}</span>
+                <span className="about-link-label">{item.label}</span>
+                <span className="about-link-value">
+                  {item.value}
+                  <ChevronRight size={14} aria-hidden="true" />
+                </span>
               </button>
             ))}
           </div>
-        </section>
+        </Section>
       </div>
 
       <p className="about-footer">花伴 · MIT License</p>
-    </section>
+    </div>
   )
 }

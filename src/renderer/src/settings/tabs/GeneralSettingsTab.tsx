@@ -8,9 +8,12 @@ import type {
 } from '../../../../shared/api'
 import { PET_BASE_HEIGHT } from '../../../../shared/pet-layout'
 import { Button } from '../../components/Button'
-import { InfoTip } from '../../components/InfoTip'
+import { FormRow } from '../components/FormRow'
+import { PageHeader } from '../components/PageHeader'
+import { Section } from '../components/Section'
 import { ShortcutInput } from '../components/ShortcutInput'
 import { PetGallery } from '../components/PetGallery'
+import { Toggle } from '../components/Toggle'
 import {
   BUBBLE_SECONDS_MAX,
   BUBBLE_SECONDS_MIN,
@@ -69,127 +72,120 @@ export function GeneralSettingsTab({
   }
 
   return (
-    <section className="panel">
-      <h2>常规</h2>
+    <>
+      <PageHeader title="常规" description="应用行为、桌宠显示与桌面形象。" />
 
-      <div className="row">
-        <span className="row-label">
-          <label htmlFor="setting-launch-at-login">开机自启</label>
-        </span>
-        <input
-          id="setting-launch-at-login"
-          type="checkbox"
-          checked={config.app.launchAtLogin}
-          onChange={(event) => onSave({ launchAtLogin: event.target.checked })}
-        />
-      </div>
-
-      <div className="row">
-        <span className="row-label">
-          <label htmlFor="setting-always-on-top">始终置顶</label>
-        </span>
-        <input
-          id="setting-always-on-top"
-          type="checkbox"
-          checked={config.app.alwaysOnTop}
-          onChange={(event) => onSave({ alwaysOnTop: event.target.checked })}
-        />
-      </div>
-
-      <div className="row">
-        <span className="row-label">
-          <label htmlFor="setting-bounce-animation">抚摸效果</label>
-          <InfoTip text="是否开启左键点击的桌宠Q弹效果" align="right" />
-        </span>
-        <input
-          id="setting-bounce-animation"
-          type="checkbox"
-          checked={config.app.bounceAnimation}
-          onChange={(event) => onSave({ bounceAnimation: event.target.checked })}
-        />
-      </div>
-
-      <div className="row">
-        <span className="row-label">
-          <span>老板键</span>
-          <InfoTip text="按下后隐藏桌宠和托盘图标，再按一次恢复" align="right" />
-        </span>
-        <ShortcutInput
-          value={config.app.bossShortcut}
-          label="修改老板键"
-          onSave={(accelerator) => onSave({ bossShortcut: accelerator })}
-        />
-      </div>
-
-      <div className="row">
-        <span className="row-label">
-          <label htmlFor="setting-bubble-duration">气泡停留时长</label>
-          <InfoTip text="控制各类信息气泡的展示时间" align="right" />
-        </span>
-        <span className="range-field">
-          <input
-            id="setting-bubble-duration"
-            type="range"
-            min={BUBBLE_SECONDS_MIN}
-            max={BUBBLE_SECONDS_MAX}
-            step={1}
-            value={bubbleDraft}
-            onChange={(event) => setBubbleDraft(Number(event.target.value))}
-            onPointerUp={commitBubble}
-            onKeyUp={commitBubble}
+      <Section title="应用行为">
+        <FormRow
+          label="开机自启"
+          hint="登录 Windows 后自动启动花伴"
+          htmlFor="setting-launch-at-login"
+        >
+          <Toggle
+            id="setting-launch-at-login"
+            ariaLabel="开机自启"
+            checked={config.app.launchAtLogin}
+            onChange={(checked) => onSave({ launchAtLogin: checked })}
           />
-          <span className="range-value">{bubbleDraft} 秒</span>
-        </span>
-      </div>
+        </FormRow>
 
-      <div className="row">
-        <span className="row-label">
-          <span>桌宠图片选择</span>
-          <InfoTip text="支持 15MB 内的 PNG/JPEG 图片，透明底 PNG 效果最佳" align="right" />
-        </span>
-        <Button variant="secondary" onClick={onImportImage}>
-          选择图片
-        </Button>
-      </div>
-
-      <div className="row">
-        <span className="row-label">
-          <label htmlFor="setting-pet-scale">缩放比例</label>
-          <InfoTip text="调整桌宠在桌面上的显示大小" align="right" />
-        </span>
-        <span className="range-field">
-          <input
-            id="setting-pet-scale"
-            type="range"
-            min={PET_SCALE_MIN}
-            max={PET_SCALE_MAX}
-            step={PET_SCALE_STEP}
-            value={scaleDraft}
-            onChange={(event) => setScaleDraft(Number(event.target.value))}
-            onPointerUp={commitScale}
-            onKeyUp={commitScale}
+        <FormRow label="老板键" hint="按下后隐藏桌宠与托盘图标，再按一次恢复">
+          <ShortcutInput
+            value={config.app.bossShortcut}
+            label="修改老板键"
+            onSave={(accelerator) => onSave({ bossShortcut: accelerator })}
           />
-          <span className="range-value">{scaleDraft.toFixed(1)}×</span>
-        </span>
-      </div>
+        </FormRow>
 
-      <PetGallery
-        currentAssetId={config.pet.assetId}
-        userImages={userImages}
-        onSelect={onSelectAsset}
-        onDelete={onDeleteImage}
-        onRename={onRenameImage}
-      />
+        <FormRow
+          label="气泡停留时长"
+          hint="普通气泡自动关闭前的停留时间"
+          htmlFor="setting-bubble-duration"
+        >
+          <span className="range-field">
+            <input
+              id="setting-bubble-duration"
+              type="range"
+              min={BUBBLE_SECONDS_MIN}
+              max={BUBBLE_SECONDS_MAX}
+              step={1}
+              value={bubbleDraft}
+              onChange={(event) => setBubbleDraft(Number(event.target.value))}
+              onPointerUp={commitBubble}
+              onKeyUp={commitBubble}
+            />
+            <span className="range-value">{bubbleDraft} 秒</span>
+          </span>
+        </FormRow>
+      </Section>
 
-      <div className="pet-preview">
-        <img
-          className="pet-preview-image"
-          src={petAssetUrl(config.pet.assetId)}
-          alt="桌宠预览"
-          style={{ height: `${Math.round(PET_BASE_HEIGHT * scaleDraft)}px` }}
-          draggable={false}
+      <Section title="桌宠显示">
+        <FormRow label="始终置顶" hint="桌宠始终显示在普通窗口上方" htmlFor="setting-always-on-top">
+          <Toggle
+            id="setting-always-on-top"
+            ariaLabel="始终置顶"
+            checked={config.app.alwaysOnTop}
+            onChange={(checked) => onSave({ alwaysOnTop: checked })}
+          />
+        </FormRow>
+
+        <FormRow
+          label="抚摸效果"
+          hint="左键点击桌宠时播放 Q 弹反馈"
+          htmlFor="setting-bounce-animation"
+        >
+          <Toggle
+            id="setting-bounce-animation"
+            ariaLabel="抚摸效果"
+            checked={config.app.bounceAnimation}
+            onChange={(checked) => onSave({ bounceAnimation: checked })}
+          />
+        </FormRow>
+
+        <FormRow label="缩放比例" hint="只影响桌面显示大小，不改变原图" htmlFor="setting-pet-scale">
+          <span className="range-field">
+            <input
+              id="setting-pet-scale"
+              type="range"
+              min={PET_SCALE_MIN}
+              max={PET_SCALE_MAX}
+              step={PET_SCALE_STEP}
+              value={scaleDraft}
+              onChange={(event) => setScaleDraft(Number(event.target.value))}
+              onPointerUp={commitScale}
+              onKeyUp={commitScale}
+            />
+            <span className="range-value">{scaleDraft.toFixed(1)}×</span>
+          </span>
+        </FormRow>
+      </Section>
+
+      <Section
+        title="桌宠形象"
+        description="支持 15MB 内的 PNG/JPEG，透明底 PNG 效果最佳。"
+        actions={
+          <Button variant="secondary" onClick={onImportImage}>
+            选择图片
+          </Button>
+        }
+      >
+        <PetGallery
+          currentAssetId={config.pet.assetId}
+          userImages={userImages}
+          onSelect={onSelectAsset}
+          onDelete={onDeleteImage}
+          onRename={onRenameImage}
         />
-      </div>
-    </section>
+        <div className="pet-preview">
+          <img
+            className="pet-preview-image"
+            src={petAssetUrl(config.pet.assetId)}
+            alt="桌宠预览"
+            style={{ height: `${Math.round(PET_BASE_HEIGHT * scaleDraft)}px` }}
+            draggable={false}
+          />
+        </div>
+      </Section>
+    </>
   )
 }

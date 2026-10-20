@@ -19,6 +19,7 @@ import type {
   WebsiteCheckConfig
 } from '../../../shared/api'
 import { petPresetLabel } from '../../../shared/pet-presets'
+import { Alert } from '../components/Alert'
 import { AboutPane } from './AboutPane'
 import { MemoSettingsPane } from './sections/MemoSettingsPane'
 import { MemoSettingsTab } from './tabs/MemoSettingsTab'
@@ -34,6 +35,7 @@ import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
 import { useWebsiteSettings } from './hooks/useWebsiteSettings'
 import { CORE_TABS, SETTINGS_MODULE_IDS, SYSTEM_TABS } from './utils/constants'
+import type { SettingsSection, SystemTab } from './utils/constants'
 import { applySystemNavigation, DEFAULT_SYSTEM_STATE } from './utils/navigation'
 import type { SystemState } from './utils/navigation'
 import { mergeMemoOrder } from './utils/memo-order'
@@ -540,7 +542,7 @@ function SettingsContent({
     setError
   })
 
-  const headerStatus = error || status || startupNotice || ''
+  const headerStatus = status
 
   function renderFunctionContent() {
     switch (state.moduleId) {
@@ -640,17 +642,34 @@ function SettingsContent({
     }
   }
 
+  const topTabIds = SYSTEM_TABS.map((tab) => tab.id)
+  const functionTabIds = enabledModules.map((module) => module.id)
+  const settingsTabIds = [
+    ...CORE_TABS.map((tab) => tab.id),
+    ...settingsModules.map((module) => module.id)
+  ]
+
   return (
     <div className="settings-root">
-      <SettingsHeader appInfo={appInfo} status={headerStatus} isError={Boolean(error)} />
+      <SettingsHeader appInfo={appInfo} status={headerStatus} />
 
-      <nav className="system-top-tabs" role="tablist" aria-label="系统页面">
+      <nav
+        className="system-top-tabs"
+        role="tablist"
+        aria-label="系统页面"
+        onKeyDown={(event) =>
+          moveTabFocus(event, topTabIds, state.tab, (id) => navigate({ tab: id as SystemTab }))
+        }
+      >
         {SYSTEM_TABS.map((tab) => (
           <button
             key={tab.id}
+            id={`tab-${tab.id}`}
             type="button"
             role="tab"
             aria-selected={state.tab === tab.id}
+            aria-controls="system-panel"
+            tabIndex={state.tab === tab.id ? 0 : -1}
             className={`system-top-tab${state.tab === tab.id ? ' active' : ''}`}
             onClick={() => navigate({ tab: tab.id })}
           >
@@ -659,51 +678,73 @@ function SettingsContent({
         ))}
       </nav>
 
+      {error ? (
+        <Alert tone="danger" className="settings-global-alert">
+          {error}
+        </Alert>
+      ) : startupNotice ? (
+        <Alert tone="warning" className="settings-global-alert">
+          {startupNotice}
+        </Alert>
+      ) : null}
+
       {state.tab === 'about' ? (
         <div className="settings-body">
           <section
-            key="about"
-            className="settings-content is-first"
+            id="system-panel"
+            className="settings-content"
             role="tabpanel"
-            aria-label="关于"
+            aria-labelledby="tab-about"
           >
-            <AboutPane
-              appInfo={appInfo}
-              updateStatus={updateStatus}
-              onOpenExternal={openExternal}
-              onCheckForUpdates={() =>
-                void api
-                  .checkForUpdates()
-                  .then(setUpdateStatus)
-                  .catch((cause: unknown) => setError(toMessage(cause)))
-              }
-              onDownloadUpdate={() =>
-                void api
-                  .downloadUpdate()
-                  .then(setUpdateStatus)
-                  .catch((cause: unknown) => setError(toMessage(cause)))
-              }
-              onInstallUpdate={() =>
-                void api.installUpdate().catch((cause: unknown) => setError(toMessage(cause)))
-              }
-            />
+            <div className="settings-content-inner">
+              <AboutPane
+                appInfo={appInfo}
+                updateStatus={updateStatus}
+                onOpenExternal={openExternal}
+                onCheckForUpdates={() =>
+                  void api
+                    .checkForUpdates()
+                    .then(setUpdateStatus)
+                    .catch((cause: unknown) => setError(toMessage(cause)))
+                }
+                onDownloadUpdate={() =>
+                  void api
+                    .downloadUpdate()
+                    .then(setUpdateStatus)
+                    .catch((cause: unknown) => setError(toMessage(cause)))
+                }
+                onInstallUpdate={() =>
+                  void api.installUpdate().catch((cause: unknown) => setError(toMessage(cause)))
+                }
+              />
+            </div>
           </section>
         </div>
       ) : state.tab === 'function' ? (
         <div className="settings-body">
-          <nav className="settings-nav" role="tablist" aria-label="功能模块">
+          <nav
+            className="settings-nav"
+            role="tablist"
+            aria-label="功能模块"
+            onKeyDown={(event) =>
+              moveTabFocus(event, functionTabIds, state.moduleId ?? '', (id) =>
+                navigate({ tab: 'function', moduleId: id as ModuleId })
+              )
+            }
+          >
             {enabledModules.length === 0 ? (
-              <p className="hint">暂无已启用功能。</p>
+              <p className="settings-nav-empty">暂无已启用功能。</p>
             ) : (
               enabledModules.map((module) => (
                 <button
                   key={module.id}
-                  id={`function-tab-${module.id}`}
+                  id={`tab-${module.id}`}
                   type="button"
                   role="tab"
                   className={`settings-nav-item${state.moduleId === module.id ? ' active' : ''}`}
                   aria-selected={state.moduleId === module.id}
-                  aria-controls="function-tabpanel"
+                  aria-controls="system-panel"
+                  tabIndex={state.moduleId === module.id ? 0 : -1}
                   onClick={() => navigate({ tab: 'function', moduleId: module.id })}
                 >
                   <span className="settings-nav-label">{module.name}</span>
@@ -713,31 +754,42 @@ function SettingsContent({
             )}
           </nav>
           <section
-            key={`function-${state.moduleId}`}
-            id="function-tabpanel"
-            className="settings-content is-first"
+            id="system-panel"
+            className="settings-content"
             role="tabpanel"
-            aria-labelledby={`function-tab-${state.moduleId}`}
+            aria-labelledby={`tab-${state.moduleId ?? ''}`}
           >
-            {enabledModules.length === 0 ? (
-              <p className="hint">请先在“设置 → 功能”中启用至少一个功能。</p>
-            ) : (
-              renderFunctionContent()
-            )}
+            <div className="settings-content-inner">
+              {enabledModules.length === 0 ? (
+                <p className="hint">请先在“设置 → 功能”中启用至少一个功能。</p>
+              ) : (
+                renderFunctionContent()
+              )}
+            </div>
           </section>
         </div>
       ) : (
         <div className="settings-body">
-          <nav className="settings-nav" role="tablist" aria-label="设置分区">
+          <nav
+            className="settings-nav"
+            role="tablist"
+            aria-label="设置分区"
+            onKeyDown={(event) =>
+              moveTabFocus(event, settingsTabIds, state.settingsSection ?? '', (id) =>
+                navigate({ tab: 'settings', settingsSection: id as SettingsSection })
+              )
+            }
+          >
             {CORE_TABS.map((tab) => (
               <button
                 key={tab.id}
-                id={`settings-tab-${tab.id}`}
+                id={`tab-${tab.id}`}
                 type="button"
                 role="tab"
                 className={`settings-nav-item${state.settingsSection === tab.id ? ' active' : ''}`}
                 aria-selected={state.settingsSection === tab.id}
-                aria-controls="settings-tabpanel"
+                aria-controls="system-panel"
+                tabIndex={state.settingsSection === tab.id ? 0 : -1}
                 onClick={() => navigate({ tab: 'settings', settingsSection: tab.id })}
               >
                 <span className="settings-nav-label">{tab.label}</span>
@@ -745,18 +797,21 @@ function SettingsContent({
             ))}
 
             {settingsModules.length > 0 ? (
-              <div className="settings-nav-divider" role="separator" />
+              <div className="settings-nav-divider" aria-hidden="true" />
             ) : null}
 
             {settingsModules.map((module) => (
               <button
                 key={module.id}
-                id={`settings-tab-${module.id}`}
+                id={`tab-${module.id}`}
                 type="button"
                 role="tab"
-                className={`settings-nav-item${state.settingsSection === module.id ? ' active' : ''}`}
+                className={`settings-nav-item${
+                  state.settingsSection === module.id ? ' active' : ''
+                }`}
                 aria-selected={state.settingsSection === module.id}
-                aria-controls="settings-tabpanel"
+                aria-controls="system-panel"
+                tabIndex={state.settingsSection === module.id ? 0 : -1}
                 onClick={() => navigate({ tab: 'settings', settingsSection: module.id })}
               >
                 <span className="settings-nav-label">{module.name}</span>
@@ -765,18 +820,46 @@ function SettingsContent({
             ))}
           </nav>
           <section
-            key={`settings-${state.settingsSection}`}
-            id="settings-tabpanel"
-            className="settings-content is-first"
+            id="system-panel"
+            className="settings-content"
             role="tabpanel"
-            aria-labelledby={`settings-tab-${state.settingsSection}`}
+            aria-labelledby={`tab-${state.settingsSection ?? ''}`}
           >
-            {renderSettingsContent()}
+            <div className="settings-content-inner">{renderSettingsContent()}</div>
           </section>
         </div>
       )}
     </div>
   )
+}
+
+function moveTabFocus(
+  event: React.KeyboardEvent<HTMLElement>,
+  ids: readonly string[],
+  currentId: string,
+  select: (id: string) => void
+): void {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key) || ids.length === 0) {
+    return
+  }
+  const currentIndex = Math.max(0, ids.indexOf(currentId))
+  let nextIndex = currentIndex
+  if (event.key === 'ArrowLeft') {
+    nextIndex = (currentIndex - 1 + ids.length) % ids.length
+  } else if (event.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % ids.length
+  } else if (event.key === 'Home') {
+    nextIndex = 0
+  } else if (event.key === 'End') {
+    nextIndex = ids.length - 1
+  }
+  const nextId = ids[nextIndex]
+  if (!nextId) {
+    return
+  }
+  event.preventDefault()
+  select(nextId)
+  document.getElementById(`tab-${nextId}`)?.focus()
 }
 
 interface SettingsHeaderProps {

@@ -12,7 +12,7 @@ export const SYSTEM_TABS: Array<{ id: SystemTab; label: string }> = [
 
 export const CORE_TABS: Array<{ id: 'general' | 'modules'; label: string }> = [
   { id: 'general', label: '常规' },
-  { id: 'modules', label: '功能' }
+  { id: 'modules', label: '功能管理' }
 ]
 
 export const SETTINGS_MODULE_IDS: ModuleId[] = ['memo', 'deepseek', 'esa']
