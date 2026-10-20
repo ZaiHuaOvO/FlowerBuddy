@@ -152,3 +152,16 @@
 - `npm run build`：通过；renderer 打包包含官方 app-icon。
 - 本地冒烟：在 macOS 以 `electron out/main/index.js` 启动构建产物，并通过第二实例打开系统窗口；确认顶部“功能/设置/关于”三个 tab、设置页左侧“常规/功能/备忘录/ESA 流量/DeepSeek 余额”导航和常规页渲染。该冒烟不能替代 Windows 实机验收。
 - 未运行：`npm run dist:win`、Windows 安装/卸载、托盘与高 DPI 实机检查；这些仍在上述未覆盖项中。
+
+## 2026-10-20：v0.2.0 开发窗口（系统页、卡片交互、官网、自动更新）
+
+- `npm run typecheck`：通过。
+- `npm run lint`：通过。
+- `npm run format:check`：通过。
+- `npm test`：36 个测试文件、263 个测试全部通过。
+- `npm run build`：通过。
+- `npm run licenses`：476 个包均有许可证字段；生成文件被 `.gitignore` 忽略，由发布流程重新生成。
+- `cd website && npm run build`：通过；首页、指南、安装、功能、使用、FAQ、隐私、安全、更新日志与 `app-icon.png` 均返回 200；静态内部链接检查 0 缺失。
+- 本地冒烟：macOS 构建产物打开系统页，确认顶部“功能/设置/关于”、左侧设置导航和常规页渲染；不能替代 Windows 实机验收。
+- 已推送提交：`9ddcc3c`（官方 app-icon）、`c3af153`（系统页导航）、`d4a2776`（快捷新建）、`e4c72dd`（卡片加号/锁/完成/关闭）、`d2ebbde`（VitePress 官网）、`3af399c`（GitHub 源自动更新）、`608234a`（卡片原位编辑）、`db04089`（逐行完成勾选）。
+- 未执行：`npm run dist:win`、Windows 安装/卸载、托盘与高 DPI、鼠标穿透、自动更新双版本升级、真实 DeepSeek/ESA 账户、官网线上代理与 DNS。以上不得用本轮自动化结果替代。

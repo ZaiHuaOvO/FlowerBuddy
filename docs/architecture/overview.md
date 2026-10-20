@@ -69,6 +69,9 @@ src/
       pet-assets.ts
       memo-images.ts
     tray/tray.ts
+    updates/
+      update-service.ts          # 更新状态机与用户确认流程
+      electron-updater-adapter.ts # electron-updater / GitHub / generic feed
     windows/
       pet-window.ts
       pet-window-controller.ts
