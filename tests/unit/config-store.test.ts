@@ -92,6 +92,34 @@ describe('config schema', () => {
     expect(config).not.toHaveProperty('secrets')
   })
 
+  it('recovers only the structurally invalid section', () => {
+    const result = migrateConfig({
+      schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
+      app: null,
+      pet: { assetId: 'default', scale: 1.5, position: { x: 10, y: 20 } },
+      modules: { deepseek: { enabled: true, refreshIntervalMinutes: 15 } }
+    })
+
+    expect(result.recoveredSections).toEqual(['app'])
+    expect(result.config.app.bossShortcut).toBe('Alt+Z')
+    expect(result.config.pet.scale).toBe(1.5)
+    expect(result.config.pet.position).toEqual({ x: 10, y: 20 })
+    expect(result.config.modules.deepseek.enabled).toBe(true)
+    expect(result.config.modules.deepseek.refreshIntervalMinutes).toBe(15)
+  })
+
+  it('reports every structurally invalid section and a non-object root', () => {
+    expect(
+      migrateConfig({
+        schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
+        app: [],
+        pet: null,
+        modules: 'broken'
+      }).recoveredSections
+    ).toEqual(['app', 'pet', 'modules'])
+    expect(migrateConfig([]).recoveredSections).toEqual(['root'])
+  })
+
   it('migrates version 1 files by adding module defaults', () => {
     const result = migrateConfig(V1_CONFIG)
 
@@ -343,6 +371,31 @@ describe('config store', () => {
     store.load()
 
     expect(store.getRecoveryNotice()).toContain('配置文件无法读取')
+  })
+
+  it('backs up a structurally invalid section without wiping other settings', () => {
+    const directory = createTemporaryDirectory()
+    const filePath = join(directory, 'config.json')
+    writeFileSync(
+      filePath,
+      JSON.stringify({
+        schemaVersion: CURRENT_CONFIG_SCHEMA_VERSION,
+        app: null,
+        pet: { assetId: 'default', scale: 1.5, position: null },
+        modules: { deepseek: { enabled: true, refreshIntervalMinutes: 15 } }
+      }),
+      'utf8'
+    )
+
+    const store = new ConfigStore(filePath)
+    const config = store.load()
+
+    expect(config.app.bossShortcut).toBe('Alt+Z')
+    expect(config.pet.scale).toBe(1.5)
+    expect(config.modules.deepseek.enabled).toBe(true)
+    expect(config.modules.deepseek.refreshIntervalMinutes).toBe(15)
+    expect(readdirSync(directory).some((name) => name.includes('.recovered-app-'))).toBe(true)
+    expect(store.getRecoveryNotice()).toContain('部分内容无法读取')
   })
 
   it('backs up a future version and resets to defaults', () => {

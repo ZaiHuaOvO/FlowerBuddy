@@ -123,7 +123,7 @@ const positionSchema = z
     }
   })
 
-const appSchema = z.object({
+const appFieldsSchema = z.object({
   alwaysOnTop: booleanField(true),
   bossShortcut: stringField(64, 'Alt+Z'),
   bounceAnimation: booleanField(true),
@@ -132,6 +132,17 @@ const appSchema = z.object({
   memoShortcut: stringField(64, 'Alt+A'),
   moduleOrder: moduleOrderField(),
   showPetOnStartup: booleanField(true)
+})
+
+const appSchema = appFieldsSchema.catch({
+  alwaysOnTop: true,
+  bossShortcut: 'Alt+Z',
+  bounceAnimation: true,
+  bubbleDurationMs: 5000,
+  launchAtLogin: false,
+  memoShortcut: 'Alt+A',
+  moduleOrder: [...defaultModuleOrder],
+  showPetOnStartup: true
 })
 
 const USER_PET_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -156,7 +167,7 @@ function petNamesField() {
     })
 }
 
-const petSchema = z.object({
+const petFieldsSchema = z.object({
   assetId: z
     .string()
     .regex(/^[A-Za-z0-9-]{1,64}$/)
@@ -164,6 +175,13 @@ const petSchema = z.object({
   names: petNamesField(),
   scale: numberField(0.5, 2, 1),
   position: positionSchema
+})
+
+const petSchema = petFieldsSchema.catch({
+  assetId: 'default',
+  names: {},
+  scale: 1,
+  position: null
 })
 
 const memoModuleSchema = z
@@ -220,41 +238,41 @@ const websiteCheckModuleSchema = z
   })
   .catch({ enabled: false, defaultTimeoutMs: 8000 })
 
-const modulesSchema = z
-  .object({
-    memo: memoModuleSchema.default({
-      enabled: true,
-      anchorNewMemos: false,
-      lineTasksEnabled: false
-    }),
-    intervalReminder: intervalReminderModuleSchema.default({ enabled: true }),
-    esa: esaModuleSchema.default({
-      enabled: false,
-      siteId: '',
-      refreshIntervalMinutes: null,
-      displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
-    }),
-    deepseek: deepseekModuleSchema.default({
-      enabled: false,
-      refreshIntervalMinutes: null
-    }),
-    websiteCheck: websiteCheckModuleSchema.default({
-      enabled: false,
-      defaultTimeoutMs: 8000
-    })
+const modulesFieldsSchema = z.object({
+  memo: memoModuleSchema.default({
+    enabled: true,
+    anchorNewMemos: false,
+    lineTasksEnabled: false
+  }),
+  intervalReminder: intervalReminderModuleSchema.default({ enabled: true }),
+  esa: esaModuleSchema.default({
+    enabled: false,
+    siteId: '',
+    refreshIntervalMinutes: null,
+    displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+  }),
+  deepseek: deepseekModuleSchema.default({
+    enabled: false,
+    refreshIntervalMinutes: null
+  }),
+  websiteCheck: websiteCheckModuleSchema.default({
+    enabled: false,
+    defaultTimeoutMs: 8000
   })
-  .catch({
-    memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
-    intervalReminder: { enabled: true },
-    esa: {
-      enabled: false,
-      siteId: '',
-      refreshIntervalMinutes: null,
-      displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
-    },
-    deepseek: { enabled: false, refreshIntervalMinutes: null },
-    websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
-  })
+})
+
+const modulesSchema = modulesFieldsSchema.catch({
+  memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
+  intervalReminder: { enabled: true },
+  esa: {
+    enabled: false,
+    siteId: '',
+    refreshIntervalMinutes: null,
+    displayRanges: { ...DEFAULT_ESA_DISPLAY_RANGES }
+  },
+  deepseek: { enabled: false, refreshIntervalMinutes: null },
+  websiteCheck: { enabled: false, defaultTimeoutMs: 8000 }
+})
 
 const configSchema = z
   .object({
@@ -371,15 +389,37 @@ export function readSchemaVersion(raw: unknown): number {
   return 0
 }
 
+export type ConfigSection = 'root' | 'app' | 'pet' | 'modules'
+
 export interface ConfigMigrationResult {
   config: PublicConfig
   fromVersion: number
   migrated: boolean
   futureVersion: boolean
+  recoveredSections: ConfigSection[]
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Sections that failed structural parsing and were replaced by defaults. */
+function findInvalidSections(raw: unknown): ConfigSection[] {
+  if (!isPlainObject(raw)) {
+    return ['root']
+  }
+
+  const sections: ConfigSection[] = []
+  if (raw.app !== undefined && !appFieldsSchema.safeParse(raw.app).success) {
+    sections.push('app')
+  }
+  if (raw.pet !== undefined && !petFieldsSchema.safeParse(raw.pet).success) {
+    sections.push('pet')
+  }
+  if (raw.modules !== undefined && !modulesFieldsSchema.safeParse(raw.modules).success) {
+    sections.push('modules')
+  }
+  return sections
 }
 
 /** v5 stored the memo module under `dates`; keep its enabled state and order. */
@@ -450,19 +490,21 @@ export function migrateConfig(raw: unknown): ConfigMigrationResult {
       config: createDefaultConfig(),
       fromVersion,
       migrated: false,
-      futureVersion: true
+      futureVersion: true,
+      recoveredSections: []
     }
   }
 
+  const migrated = removeGmailModule(
+    applyInitialModuleDefaults(migrateMemoModule(raw, fromVersion), fromVersion),
+    fromVersion
+  )
+
   return {
-    config: parseConfig(
-      removeGmailModule(
-        applyInitialModuleDefaults(migrateMemoModule(raw, fromVersion), fromVersion),
-        fromVersion
-      )
-    ),
+    config: parseConfig(migrated),
     fromVersion,
     migrated: fromVersion < CURRENT_CONFIG_SCHEMA_VERSION,
-    futureVersion: false
+    futureVersion: false,
+    recoveredSections: findInvalidSections(migrated)
   }
 }

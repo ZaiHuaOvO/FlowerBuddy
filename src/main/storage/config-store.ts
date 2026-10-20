@@ -70,6 +70,20 @@ export class ConfigStore {
         return this.get()
       }
 
+      if (result.recoveredSections.length > 0) {
+        const backupPath = this.backup(`recovered-${result.recoveredSections.join('-')}`)
+        this.current = result.config
+        this.writeNow()
+        this.recoveryNotice = backupPath
+          ? `配置文件的部分内容无法读取，已备份为 ${basename(backupPath)} 并恢复默认值。`
+          : '配置文件的部分内容无法读取，已恢复默认值。'
+        this.logger?.warn('config file had invalid sections; backed up and recovered', {
+          sections: result.recoveredSections,
+          fromVersion: result.fromVersion
+        })
+        return this.get()
+      }
+
       if (result.migrated) {
         this.backup(`v${result.fromVersion}`)
         this.current = result.config
