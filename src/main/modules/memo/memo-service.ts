@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto'
 import type { MemoInput, MemoPatch, MemoSummary } from '../../../shared/api'
 import { AppError } from '../../shared/errors'
 import type { JsonStore } from '../../storage/json-store'
-import { normalizeIsoTimestamp, sanitizeMemoBounds, sanitizeMemoImages } from './memo-data'
+import {
+  normalizeIsoTimestamp,
+  reconcileLineTasks,
+  sanitizeMemoBounds,
+  sanitizeMemoImages
+} from './memo-data'
 import {
   MEMO_ANCHORED_MAX,
   MEMO_COUNT_MAX,
@@ -43,6 +48,7 @@ function toSummary(memo: StoredMemo): MemoSummary {
     id: memo.id,
     text: memo.text,
     images: memo.images,
+    lineTasks: memo.lineTasks,
     reminderAt: memo.reminderAt,
     completed: memo.completed,
     completedAt: memo.completedAt,
@@ -87,6 +93,7 @@ export class MemoService {
       id: randomUUID(),
       text,
       images,
+      lineTasks: reconcileLineTasks(text, []),
       reminderAt: normalizeReminder(input.reminderAt),
       remindedAt: null,
       completed: false,
@@ -126,6 +133,9 @@ export class MemoService {
         next.remindedAt = null
       }
       next.reminderAt = reminderAt
+    }
+    if (next.text !== current.text) {
+      next.lineTasks = reconcileLineTasks(next.text, current.lineTasks)
     }
     if (next.text.trim().length === 0 && next.images.length === 0) {
       throw new AppError('INVALID_INPUT', '备忘录不能为空')
@@ -232,6 +242,26 @@ export class MemoService {
     }
     const updated = [...memos]
     updated[index] = { ...current, locked }
+    this.save(updated)
+    return this.list()
+  }
+
+  setLineCompleted(id: string, lineId: string, completed: boolean): MemoSummary[] {
+    const memos = this.store.get().memos
+    const index = memos.findIndex((memo) => memo.id === id)
+    if (index === -1) {
+      throw new AppError('NOT_FOUND', '未找到该备忘录')
+    }
+    const current = memos[index] as StoredMemo
+    const taskIndex = current.lineTasks.findIndex((task) => task.id === lineId)
+    if (taskIndex === -1) {
+      throw new AppError('NOT_FOUND', '未找到该任务行')
+    }
+    const lineTasks = current.lineTasks.map((task, taskIndexCurrent) =>
+      taskIndexCurrent === taskIndex ? { ...task, completed } : task
+    )
+    const updated = [...memos]
+    updated[index] = { ...current, lineTasks, updatedAt: this.now().toISOString() }
     this.save(updated)
     return this.list()
   }

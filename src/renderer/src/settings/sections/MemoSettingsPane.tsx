@@ -5,16 +5,20 @@ import { ShortcutInput } from '../components/ShortcutInput'
 interface Props {
   memoShortcut: string
   anchorNewMemos: boolean
+  lineTasksEnabled: boolean
   onSaveShortcut: (accelerator: string) => void
   onSaveAnchorNew: (enabled: boolean) => void
+  onSaveLineTasks: (enabled: boolean) => void
   onGoToFunction: () => void
 }
 
 export function MemoSettingsPane({
   memoShortcut,
   anchorNewMemos,
+  lineTasksEnabled,
   onSaveShortcut,
   onSaveAnchorNew,
+  onSaveLineTasks,
   onGoToFunction
 }: Props) {
   return (
@@ -46,6 +50,23 @@ export function MemoSettingsPane({
               type="checkbox"
               checked={anchorNewMemos}
               onChange={(event) => onSaveAnchorNew(event.target.checked)}
+            />
+            <span className="fl-switch-track" aria-hidden="true" />
+          </label>
+        </div>
+        <div className="row">
+          <span className="row-label">
+            <span>逐行完成勾选</span>
+            <InfoTip
+              text="开启后，锚定卡片的每个非空行前显示复选框；整张完成状态与逐行状态互不自动联动"
+              align="right"
+            />
+          </span>
+          <label className="fl-switch">
+            <input
+              type="checkbox"
+              checked={lineTasksEnabled}
+              onChange={(event) => onSaveLineTasks(event.target.checked)}
             />
             <span className="fl-switch-track" aria-hidden="true" />
           </label>

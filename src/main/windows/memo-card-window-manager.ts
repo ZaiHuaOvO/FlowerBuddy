@@ -52,6 +52,7 @@ export interface MemoCardWindowManagerOptions {
   rendererIndexPath: string
   service: MemoService
   isEnabled: () => boolean
+  isLineTasksEnabled: () => boolean
   logger: LoggerLike
 }
 
@@ -102,7 +103,7 @@ export class MemoCardWindowManager {
     if (!memo) {
       throw new AppError('NOT_FOUND', '未找到该备忘录')
     }
-    return toCardState(memo)
+    return toCardState(memo, this.options.isLineTasksEnabled())
   }
 
   beginDrag(id: string): void {
@@ -307,6 +308,8 @@ export class MemoCardWindowManager {
       id: memo.id,
       text: memo.text,
       images: memo.images,
+      lineTasks: memo.lineTasks,
+      lineTasksEnabled: this.options.isLineTasksEnabled(),
       reminderAt: memo.reminderAt,
       locked: memo.locked
     }
@@ -396,11 +399,13 @@ export class MemoCardWindowManager {
   }
 }
 
-function toCardState(memo: StoredMemo): MemoCardState {
+function toCardState(memo: StoredMemo, lineTasksEnabled: boolean): MemoCardState {
   return {
     id: memo.id,
     text: memo.text,
     images: memo.images,
+    lineTasks: memo.lineTasks,
+    lineTasksEnabled,
     reminderAt: memo.reminderAt,
     locked: memo.locked
   }

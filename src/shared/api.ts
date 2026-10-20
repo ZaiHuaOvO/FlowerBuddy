@@ -113,7 +113,7 @@ export interface UpdateStatus {
 export type ModuleStatus = 'ready' | 'not-configured' | 'auth-expired' | 'not-implemented'
 
 export interface ModulesSettings {
-  memo: { enabled: boolean; anchorNewMemos: boolean }
+  memo: { enabled: boolean; anchorNewMemos: boolean; lineTasksEnabled: boolean }
   intervalReminder: { enabled: boolean }
   esa: {
     enabled: boolean
@@ -216,10 +216,17 @@ export interface MemoImageInfo {
   height: number
 }
 
+export interface MemoLineTask {
+  id: string
+  text: string
+  completed: boolean
+}
+
 export interface MemoSummary {
   id: string
   text: string
   images: MemoImageInfo[]
+  lineTasks: MemoLineTask[]
   reminderAt: string | null
   completed: boolean
   completedAt: string | null
@@ -247,6 +254,8 @@ export interface MemoCardState {
   id: string
   text: string
   images: MemoImageInfo[]
+  lineTasks: MemoLineTask[]
+  lineTasksEnabled: boolean
   reminderAt: string | null
   locked: boolean
 }
@@ -447,6 +456,8 @@ export const IPC_CHANNELS = {
   memosUncomplete: 'memos:uncomplete',
   memosSetAnchored: 'memos:set-anchored',
   memosSetLocked: 'memos:set-locked',
+  memosSetLineTasks: 'memos:set-line-tasks',
+  memosSetLineCompleted: 'memos:set-line-completed',
   memosAddImage: 'memos:add-image',
   memosDiscardImages: 'memos:discard-images',
   memosSetAnchorNew: 'memos:set-anchor-new',
@@ -550,6 +561,7 @@ export interface MemoCardApi {
   setLocked(id: string, locked: boolean): Promise<void>
   openComposer(): Promise<void>
   setIgnoreMouse(id: string, ignore: boolean): Promise<void>
+  setLineCompleted(id: string, lineId: string, completed: boolean): Promise<void>
   updateText(id: string, text: string): Promise<void>
   fitHeight(id: string, height: number): Promise<void>
 }
@@ -586,6 +598,7 @@ export interface SettingsApi {
   addMemoImage(data: ArrayBuffer): Promise<MemoImageInfo>
   discardMemoImages(ids: string[]): Promise<void>
   setMemoAnchorNew(enabled: boolean): Promise<PublicConfig>
+  setMemoLineTasks(enabled: boolean): Promise<PublicConfig>
   listIntervalReminders(): Promise<IntervalReminderSummary[]>
   createIntervalReminder(input: IntervalReminderInput): Promise<IntervalReminderSummary[]>
   updateIntervalReminder(

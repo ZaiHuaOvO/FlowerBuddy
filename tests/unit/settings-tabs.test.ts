@@ -35,7 +35,7 @@ function makeConfig(): PublicConfig {
     },
     pet: { assetId: 'default', names: {}, scale: 1, position: null },
     modules: {
-      memo: { enabled: true, anchorNewMemos: false },
+      memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
       intervalReminder: { enabled: true },
       esa: {
         enabled: false,

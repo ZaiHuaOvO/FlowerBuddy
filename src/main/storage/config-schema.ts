@@ -3,7 +3,7 @@ import { MAX_PET_NAME_LENGTH } from '../../shared/api'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 import { DEFAULT_ESA_DISPLAY_RANGES } from '../../shared/esa'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 10
+export const CURRENT_CONFIG_SCHEMA_VERSION = 11
 
 export const MODULE_ID_VALUES = [
   'memo',
@@ -167,8 +167,12 @@ const petSchema = z.object({
 })
 
 const memoModuleSchema = z
-  .object({ enabled: booleanField(true), anchorNewMemos: booleanField(false) })
-  .catch({ enabled: true, anchorNewMemos: false })
+  .object({
+    enabled: booleanField(true),
+    anchorNewMemos: booleanField(false),
+    lineTasksEnabled: booleanField(false)
+  })
+  .catch({ enabled: true, anchorNewMemos: false, lineTasksEnabled: false })
 
 const intervalReminderModuleSchema = z
   .object({ enabled: booleanField(true) })
@@ -218,7 +222,11 @@ const websiteCheckModuleSchema = z
 
 const modulesSchema = z
   .object({
-    memo: memoModuleSchema.default({ enabled: true, anchorNewMemos: false }),
+    memo: memoModuleSchema.default({
+      enabled: true,
+      anchorNewMemos: false,
+      lineTasksEnabled: false
+    }),
     intervalReminder: intervalReminderModuleSchema.default({ enabled: true }),
     esa: esaModuleSchema.default({
       enabled: false,
@@ -236,7 +244,7 @@ const modulesSchema = z
     })
   })
   .catch({
-    memo: { enabled: true, anchorNewMemos: false },
+    memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
     intervalReminder: { enabled: true },
     esa: {
       enabled: false,
@@ -263,7 +271,7 @@ const configSchema = z
     }),
     pet: petSchema.default({ assetId: 'default', names: {}, scale: 1, position: null }),
     modules: modulesSchema.default({
-      memo: { enabled: true, anchorNewMemos: false },
+      memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
       intervalReminder: { enabled: true },
       esa: {
         enabled: false,
@@ -289,7 +297,7 @@ const configSchema = z
     },
     pet: { assetId: 'default', names: {}, scale: 1, position: null },
     modules: {
-      memo: { enabled: true, anchorNewMemos: false },
+      memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
       intervalReminder: { enabled: true },
       esa: {
         enabled: false,
@@ -304,7 +312,7 @@ const configSchema = z
 
 export function createDefaultModules(): ModulesSettings {
   return {
-    memo: { enabled: true, anchorNewMemos: false },
+    memo: { enabled: true, anchorNewMemos: false, lineTasksEnabled: false },
     intervalReminder: { enabled: true },
     esa: {
       enabled: false,

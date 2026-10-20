@@ -171,6 +171,12 @@ const memoAnchoredInputSchema = z.object({ id: z.string().uuid(), anchored: z.bo
 
 const memoLockedInputSchema = z.object({ id: z.string().uuid(), locked: z.boolean() }).strict()
 
+const memoLineCompletedInputSchema = z
+  .object({ id: z.string().uuid(), lineId: z.string().uuid(), completed: z.boolean() })
+  .strict()
+
+const memoLineTasksEnabledInputSchema = z.object({ enabled: z.boolean() }).strict()
+
 const memoCardIgnoreMouseInputSchema = z
   .object({ id: z.string().uuid(), ignore: z.boolean() })
   .strict()
@@ -265,6 +271,8 @@ export {
   memoDiscardImagesSchema,
   memoImageBytesSchema,
   memoInputSchema,
+  memoLineCompletedInputSchema,
+  memoLineTasksEnabledInputSchema,
   memoLockedInputSchema,
   memoPatchSchema,
   memoUpdateInputSchema,

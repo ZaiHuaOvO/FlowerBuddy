@@ -178,6 +178,9 @@ function createMemoCardApi(ipc: IpcBridge): MemoCardApi {
     setLocked: async (id: string, locked: boolean) => {
       await ipc.invoke(IPC_CHANNELS.memosSetLocked, { id, locked })
     },
+    setLineCompleted: async (id: string, lineId: string, completed: boolean) => {
+      await ipc.invoke(IPC_CHANNELS.memosSetLineCompleted, { id, lineId, completed })
+    },
     openComposer: async () => {
       await ipc.invoke(IPC_CHANNELS.memoCardOpenComposer)
     },
@@ -258,6 +261,8 @@ function createSettingsApi(ipc: IpcBridge): SettingsApi {
     },
     setMemoAnchorNew: async (enabled: boolean) =>
       (await ipc.invoke(IPC_CHANNELS.memosSetAnchorNew, { enabled })) as PublicConfig,
+    setMemoLineTasks: async (enabled: boolean) =>
+      (await ipc.invoke(IPC_CHANNELS.memosSetLineTasks, { enabled })) as PublicConfig,
     listIntervalReminders: async () =>
       (await ipc.invoke(IPC_CHANNELS.intervalRemindersList)) as IntervalReminderSummary[],
     createIntervalReminder: async (input: IntervalReminderInput) =>

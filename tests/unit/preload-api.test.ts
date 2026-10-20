@@ -93,6 +93,7 @@ describe('preload bridge surface', () => {
       'setIntervalReminderEnabled',
       'setMemoAnchorNew',
       'setMemoAnchored',
+      'setMemoLineTasks',
       'setModuleEnabled',
       'setModuleRefreshInterval',
       'setWebsiteCheckEnabled',
@@ -142,9 +143,11 @@ describe('preload bridge surface', () => {
       setLocked(id: string, locked: boolean): Promise<void>
       openComposer(): Promise<void>
       setIgnoreMouse(id: string, ignore: boolean): Promise<void>
+      setLineCompleted(id: string, lineId: string, completed: boolean): Promise<void>
       updateText(id: string, text: string): Promise<void>
     }
     const id = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+    const lineId = '11111111-1111-4111-8111-111111111111'
 
     await card.setLocked(id, true)
     expect(invocations[0]).toEqual({
@@ -165,6 +168,12 @@ describe('preload bridge surface', () => {
     expect(invocations[3]).toEqual({
       channel: IPC_CHANNELS.memosUpdate,
       args: [{ id, patch: { text: 'hello' } }]
+    })
+
+    await card.setLineCompleted(id, lineId, true)
+    expect(invocations[4]).toEqual({
+      channel: IPC_CHANNELS.memosSetLineCompleted,
+      args: [{ id, lineId, completed: true }]
     })
   })
 

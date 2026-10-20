@@ -12,6 +12,8 @@ import {
   memoCardIgnoreMouseInputSchema,
   memoImageBytesSchema,
   memoInputSchema,
+  memoLineCompletedInputSchema,
+  memoLineTasksEnabledInputSchema,
   memoLockedInputSchema,
   memoPatchSchema,
   moduleIdSchema,
@@ -81,6 +83,23 @@ describe('IPC input schemas', () => {
     })
     expect(() => parseInput(memoLockedInputSchema, { id, locked: 'yes' })).toThrow(AppError)
     expect(() => parseInput(memoCardIgnoreMouseInputSchema, { id, ignore: 1 })).toThrow(AppError)
+  })
+
+  it('validates line-task completion and the global switch', () => {
+    const id = '3f1c2a56-8b9d-4a1e-9f0c-123456789abc'
+    const lineId = '11111111-1111-4111-8111-111111111111'
+    expect(parseInput(memoLineCompletedInputSchema, { id, lineId, completed: true })).toEqual({
+      id,
+      lineId,
+      completed: true
+    })
+    expect(parseInput(memoLineTasksEnabledInputSchema, { enabled: true })).toEqual({
+      enabled: true
+    })
+    expect(() =>
+      parseInput(memoLineCompletedInputSchema, { id, lineId: 'x', completed: true })
+    ).toThrow(AppError)
+    expect(() => parseInput(memoLineTasksEnabledInputSchema, { enabled: 'yes' })).toThrow(AppError)
   })
 
   it('validates pet asset selections and image deletion ids', () => {

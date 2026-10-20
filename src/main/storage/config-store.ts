@@ -200,6 +200,16 @@ export class ConfigStore {
     return this.get()
   }
 
+  setMemoLineTasks(enabled: boolean): PublicConfig {
+    const modules = this.current.modules
+    this.current = {
+      ...this.current,
+      modules: { ...modules, memo: { ...modules.memo, lineTasksEnabled: enabled } }
+    }
+    this.scheduleSave()
+    return this.get()
+  }
+
   setModuleRefreshInterval(moduleId: RefreshableModuleId, minutes: number | null): PublicConfig {
     const modules = this.current.modules
     if (moduleId === 'deepseek') {

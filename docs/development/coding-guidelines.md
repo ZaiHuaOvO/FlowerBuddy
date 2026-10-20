@@ -90,7 +90,7 @@
 
 ## 6. 存储、配置与密钥（已存在）
 
-- 普通配置使用 `ConfigStore`（`config.json`，当前 `schemaVersion: 5`）：
+- 普通配置使用 `ConfigStore`（`config.json`，当前 `schemaVersion: 11`）：
   - 修改结构时提升 `CURRENT_CONFIG_SCHEMA_VERSION`；
   - 保持 `migrateConfig` / `parseConfig` 的修复能力；
   - 不为旧版本添加临时兼容分支而不提升版本号。

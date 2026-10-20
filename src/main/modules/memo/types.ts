@@ -1,4 +1,4 @@
-import type { MemoImageInfo } from '../../../shared/api'
+import type { MemoImageInfo, MemoLineTask } from '../../../shared/api'
 
 export interface MemoBounds {
   x: number
@@ -11,6 +11,7 @@ export interface StoredMemo {
   id: string
   text: string
   images: MemoImageInfo[]
+  lineTasks: MemoLineTask[]
   reminderAt: string | null
   remindedAt: string | null
   completed: boolean
@@ -30,6 +31,7 @@ export interface MemoData {
 export const MEMO_DATA_SCHEMA_VERSION = 2
 
 export const MEMO_TEXT_MAX = 20000
+export const MEMO_LINE_TASKS_MAX = 1000
 export const MEMO_IMAGES_MAX = 9
 export const MEMO_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 export const MEMO_IMAGE_MAX_DIMENSION = 4096

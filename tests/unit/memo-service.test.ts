@@ -154,6 +154,38 @@ describe('memo service', () => {
     expect(legacy.memos[0]?.locked).toBe(false)
   })
 
+  it('reconciles line tasks and preserves completion by exact text', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const created = service.create({
+      text: 'first\n\nsecond\nthird',
+      images: [],
+      reminderAt: null
+    })
+    const id = created[0]?.id as string
+    const initial = service.get(id)?.lineTasks ?? []
+    expect(initial.map((task) => task.text)).toEqual(['first', 'second', 'third'])
+
+    const second = initial.find((task) => task.text === 'second')
+    expect(second).toBeDefined()
+    service.setLineCompleted(id, second?.id as string, true)
+    expect(service.get(id)?.lineTasks.find((task) => task.text === 'second')?.completed).toBe(true)
+
+    service.update(id, { text: 'first\nsecond\nfourth' })
+    const updated = service.get(id)?.lineTasks ?? []
+    expect(updated.map((task) => task.text)).toEqual(['first', 'second', 'fourth'])
+    expect(updated.find((task) => task.text === 'second')?.completed).toBe(true)
+    expect(updated.find((task) => task.text === 'fourth')?.completed).toBe(false)
+    expect(updated.find((task) => task.text === 'second')?.id).toBe(second?.id)
+  })
+
+  it('rejects completing an unknown line task', () => {
+    const { service } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
+    const id = idOf(service.create({ text: 'one', images: [], reminderAt: null }), 'one')
+    expect(() =>
+      service.setLineCompleted(id, '00000000-0000-4000-8000-000000000099', true)
+    ).toThrow('未找到该任务行')
+  })
+
   it('deletes images with the memo and when removed from an update', () => {
     const { service, removed } = createService(() => new Date(2026, 9, 18, 9, 0, 0))
     const created = service.create({

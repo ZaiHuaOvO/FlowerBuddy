@@ -130,6 +130,7 @@ export class AppController {
       rendererIndexPath: options.rendererIndexPath,
       service: options.memoService,
       isEnabled: () => this.config.modules.memo.enabled,
+      isLineTasksEnabled: () => this.config.modules.memo.lineTasksEnabled,
       logger: options.logger
     })
     options.memoService.onChange(() => {
@@ -271,6 +272,14 @@ export class AppController {
 
   setMemoLocked(id: string, locked: boolean): MemoSummary[] {
     return this.options.memoService.setLocked(id, locked)
+  }
+
+  setMemoLineTasks(enabled: boolean): PublicConfig {
+    return this.options.configStore.setMemoLineTasks(enabled)
+  }
+
+  setMemoLineCompleted(id: string, lineId: string, completed: boolean): MemoSummary[] {
+    return this.options.memoService.setLineCompleted(id, lineId, completed)
   }
 
   unlockAllMemoCards(): void {

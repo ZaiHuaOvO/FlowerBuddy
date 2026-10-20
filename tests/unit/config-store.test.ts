@@ -41,6 +41,7 @@ describe('config schema', () => {
     expect(config.app.bossShortcut).toBe('Alt+Z')
     expect(config.modules.memo.enabled).toBe(true)
     expect(config.modules.memo.anchorNewMemos).toBe(false)
+    expect(config.modules.memo.lineTasksEnabled).toBe(false)
     expect(config.modules.intervalReminder.enabled).toBe(true)
     expect(config.modules.deepseek.refreshIntervalMinutes).toBeNull()
     expect(config.modules.esa.refreshIntervalMinutes).toBeNull()
@@ -124,6 +125,18 @@ describe('config schema', () => {
     expect(result.config.modules.esa.siteId).toBe('site-1')
     expect(result.config.modules.esa.refreshIntervalMinutes).toBeNull()
     expect(result.config.modules.deepseek.refreshIntervalMinutes).toBeNull()
+  })
+
+  it('migrates v10 configs with the line-task switch disabled', () => {
+    const result = migrateConfig({
+      schemaVersion: 10,
+      modules: { memo: { enabled: true, anchorNewMemos: true } }
+    })
+    expect(result.fromVersion).toBe(10)
+    expect(result.migrated).toBe(true)
+    expect(result.config.schemaVersion).toBe(11)
+    expect(result.config.modules.memo.lineTasksEnabled).toBe(false)
+    expect(result.config.modules.memo.anchorNewMemos).toBe(true)
   })
 
   it('migrates the dates module and resets the initial module selection for v8', () => {
@@ -220,6 +233,7 @@ describe('config store', () => {
     store.updatePet({ scale: 1.5, position: { x: 100, y: 200 } })
     store.setModuleEnabled('deepseek', true)
     store.setMemoAnchorNew(true)
+    store.setMemoLineTasks(true)
     store.setModuleRefreshInterval('deepseek', 15)
     store.setEsaSiteId('site-42')
     store.setEsaDisplayRanges({ last24h: true, last7d: false, last30d: true })
@@ -232,6 +246,7 @@ describe('config store', () => {
     expect(reloaded.pet.position).toEqual({ x: 100, y: 200 })
     expect(reloaded.modules.memo.enabled).toBe(true)
     expect(reloaded.modules.memo.anchorNewMemos).toBe(true)
+    expect(reloaded.modules.memo.lineTasksEnabled).toBe(true)
     expect(reloaded.modules.deepseek.refreshIntervalMinutes).toBe(15)
     expect(reloaded.modules.esa.siteId).toBe('site-42')
     expect(reloaded.modules.esa.displayRanges).toEqual({

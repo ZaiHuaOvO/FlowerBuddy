@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { MemoImageInfo } from '../../../shared/api'
+import type { MemoImageInfo, MemoLineTask } from '../../../shared/api'
 import {
   MEMO_CARD_MAX_HEIGHT,
   MEMO_CARD_MAX_WIDTH,
@@ -13,6 +13,7 @@ import {
   MEMO_DATA_SCHEMA_VERSION,
   MEMO_IMAGE_MAX_DIMENSION,
   MEMO_IMAGES_MAX,
+  MEMO_LINE_TASKS_MAX,
   MEMO_TEXT_MAX,
   type MemoBounds,
   type MemoData,
@@ -66,6 +67,44 @@ export function sanitizeMemoImages(raw: unknown): MemoImageInfo[] {
   return images
 }
 
+export function sanitizeMemoLineTasks(raw: unknown): MemoLineTask[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+  const seen = new Set<string>()
+  const tasks: MemoLineTask[] = []
+  for (const entry of raw.slice(0, MEMO_LINE_TASKS_MAX)) {
+    if (!isRecord(entry) || !isUuid(entry.id) || seen.has(entry.id)) {
+      continue
+    }
+    const text = typeof entry.text === 'string' ? entry.text.slice(0, MEMO_TEXT_MAX) : ''
+    if (text.trim().length === 0) {
+      continue
+    }
+    seen.add(entry.id)
+    tasks.push({
+      id: entry.id,
+      text,
+      completed: entry.completed === true
+    })
+  }
+  return tasks
+}
+
+/** Keeps state for lines whose text still exists, in the current line order. */
+export function reconcileLineTasks(text: string, existing: MemoLineTask[]): MemoLineTask[] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
+  const remaining = existing.slice()
+  return lines.slice(0, MEMO_LINE_TASKS_MAX).map((line) => {
+    const index = remaining.findIndex((task) => task.text === line)
+    if (index >= 0) {
+      const [task] = remaining.splice(index, 1)
+      return task as MemoLineTask
+    }
+    return { id: randomUUID(), text: line, completed: false }
+  })
+}
+
 export function sanitizeMemoBounds(raw: unknown): MemoBounds | null {
   if (!isRecord(raw)) {
     return null
@@ -95,6 +134,7 @@ function sanitizeStoredMemo(raw: unknown, usedIds: Set<string>): StoredMemo | nu
   if (text.trim().length === 0 && images.length === 0) {
     return null
   }
+  const lineTasks = reconcileLineTasks(text, sanitizeMemoLineTasks(raw.lineTasks))
 
   let id = isUuid(raw.id) ? raw.id : randomUUID()
   while (usedIds.has(id)) {
@@ -114,6 +154,7 @@ function sanitizeStoredMemo(raw: unknown, usedIds: Set<string>): StoredMemo | nu
     id,
     text,
     images,
+    lineTasks,
     reminderAt,
     remindedAt,
     completed,

@@ -415,6 +415,25 @@ export default function MemoCardView() {
                 </button>
               </div>
             </div>
+          ) : state.lineTasksEnabled && state.lineTasks.length > 0 ? (
+            <div className="memo-card-lines">
+              {state.lineTasks.map((task) => (
+                <label
+                  key={task.id}
+                  className={`memo-card-line${task.completed ? ' is-completed' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    disabled={locked}
+                    onChange={() =>
+                      void api.setLineCompleted(memoId, task.id, !task.completed).catch(() => {})
+                    }
+                  />
+                  <span>{task.text}</span>
+                </label>
+              ))}
+            </div>
           ) : state.text ? (
             <div className="memo-card-text">{state.text}</div>
           ) : null}

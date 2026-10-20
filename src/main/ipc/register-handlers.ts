@@ -37,6 +37,8 @@ import {
   memoDiscardImagesSchema,
   memoImageBytesSchema,
   memoInputSchema,
+  memoLineCompletedInputSchema,
+  memoLineTasksEnabledInputSchema,
   memoLockedInputSchema,
   memoUpdateInputSchema,
   menuActionSchema,
@@ -145,6 +147,12 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   )
   register(IPC_CHANNELS.memosSetLocked, memoLockedInputSchema, (input) =>
     controller.setMemoLocked(input.id, input.locked)
+  )
+  register(IPC_CHANNELS.memosSetLineTasks, memoLineTasksEnabledInputSchema, (input) =>
+    controller.setMemoLineTasks(input.enabled)
+  )
+  register(IPC_CHANNELS.memosSetLineCompleted, memoLineCompletedInputSchema, (input) =>
+    controller.setMemoLineCompleted(input.id, input.lineId, input.completed)
   )
   register(IPC_CHANNELS.memosAddImage, memoImageBytesSchema, (input) =>
     controller.addMemoImage(input.data)

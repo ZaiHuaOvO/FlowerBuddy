@@ -7,6 +7,7 @@ function memo(id: string, completed = false): MemoSummary {
     id,
     text: id,
     images: [],
+    lineTasks: [],
     reminderAt: null,
     completed,
     completedAt: completed ? '2026-10-18T00:00:00.000Z' : null,

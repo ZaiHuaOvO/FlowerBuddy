@@ -342,6 +342,15 @@ function SettingsContent({
     }
   }
 
+  async function saveMemoLineTasks(enabled: boolean): Promise<void> {
+    setError('')
+    try {
+      setConfig(await api.setMemoLineTasks(enabled))
+    } catch (cause) {
+      setError(toMessage(cause))
+    }
+  }
+
   async function toggleModule(moduleId: ModuleId, enabled: boolean): Promise<void> {
     setError('')
     try {
@@ -596,8 +605,10 @@ function SettingsContent({
           <MemoSettingsPane
             memoShortcut={config.app.memoShortcut}
             anchorNewMemos={config.modules.memo.anchorNewMemos}
+            lineTasksEnabled={config.modules.memo.lineTasksEnabled}
             onSaveShortcut={(accelerator) => void saveApp({ memoShortcut: accelerator })}
             onSaveAnchorNew={(enabled) => void saveMemoAnchorNew(enabled)}
+            onSaveLineTasks={(enabled) => void saveMemoLineTasks(enabled)}
             onGoToFunction={() => navigate({ tab: 'function', moduleId: 'memo' })}
           />
         )
