@@ -53,8 +53,8 @@
 - [ ] **系统页布局 v2 视觉验收**：2026-10-20 已重排系统页壳层、页面/分组层级、表单行、按钮与图标尺寸、窄窗口和弹窗键盘行为，并用生产构建 + 模拟 API 在 macOS Electron 中渲染功能页、设置页、关于页、窄窗口与弹窗截图；Windows 实机、高 DPI、输入法、长文本和真实数据下的视觉验收仍待完成，本地截图不作为 Windows 基线。
 - [ ] **官网自定义域名代理**：`https://tool.flowersink.com/flowerbuddy/` 目前由服务器代理到 GitHub Pages，但构建使用绝对 `/FlowerBuddy/` 资源地址，服务器尚未转发 `/FlowerBuddy/*`，导致自定义域名下 CSS/JS 与导航 404；需按 `website/README.md` 增加 `/FlowerBuddy/` location 后验证 `/flowerbuddy/` 与 `/FlowerBuddy/` 均返回 200。DNS 与服务器配置由用户完成。
 - [ ] **自动更新验证**：2026-10-20 已实现 GitHub 源安装版更新（关于页检查/下载/重启、generic feed 覆盖、便携版不支持）并通过单元测试；仍需在真实 Windows 安装包上验证 `latest.yml`/blockmap、检查与下载、断网重试、双版本升级；大陆镜像后续再做。
-- [ ] **v0.2.0 版本号与发布**：2026-10-21 已编写中文 Release Notes（`docs/releases/v0.2.0.md`），并将 `package.json` 版本提升到 0.2.0、推送 `v0.2.0` 标签；Release 工作流会按该文件生成草稿，需审核附件与正文后手动发布。
-- [ ] **v0.1.0 Release 更新元数据缺口**：已发布的 `v0.1.0` 附件只有 Setup、Portable、ZIP 和 `SHA256SUMS.txt`，没有 `latest.yml` 与 blockmap，且该版本没有应用内更新器，不能作为更新基线；v0.2.0 必须由 tag 工作流生成并上传 `latest.yml`/blockmap，首次应用内升级验证从 v0.2.0 开始。
+- [ ] **v0.2.0 版本号与发布**：2026-10-21 已将 `package.json` 提升到 0.2.0、编写 `docs/releases/v0.2.0.md` 并推送 `v0.2.0` 标签；Release 工作流构建成功并生成草稿，正文来自该中文文件，等待人工审核附件与正文后 Publish。
+- [x] **v0.1.0 Release 更新元数据缺口**：`v0.2.0` 的 Release 工作流已生成并上传 `latest.yml` 与安装版 blockmap；首次应用内升级验证仍需在真实 Windows 安装包上执行，从 v0.2.0 开始。
 
 ## 明确不做（第一版）
 
