@@ -6,9 +6,9 @@
 
 面向 Windows 的桌面宠物与个人信息助手。桌宠常驻桌面，提供备忘录与定时提醒、网站检测，以及 DeepSeek 余额和阿里云 ESA 流量查询。
 
-> 当前版本 `0.1.0` 已发布：[GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest)。安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。
+> 当前版本 `0.2.0` 已发布：[GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest)。安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”。
 >
-> v0.2.0 正在开发：系统页“功能/设置/关于”、官方 app-icon、卡片加号/锁/原位编辑/逐行打勾、官网与安装版 GitHub 源自动更新已进入 `main`，尚未发布；请以实际 Release 说明为准。
+> v0.2.0 主要更新：系统页“功能/设置/关于”、官方 app-icon、备忘卡片右键编辑与逐行打勾、官网与安装版应用内更新。完整说明见 [v0.2.0 Release Notes](docs/releases/v0.2.0.md)。
 
 ## 核心功能
 

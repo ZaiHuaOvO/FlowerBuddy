@@ -1,7 +1,7 @@
 # 使用指南
 
-::: warning 版本说明
-当前公开版为 **v0.1.0**。以下系统页“功能 / 设置 / 关于”、卡片操作、原位编辑和逐行打勾等内容属于 v0.2.0 开发中的改动，尚未公开发布；请以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 说明为准。
+::: tip 版本说明
+当前公开版为 **v0.2.0**，以下内容与公开版一致；实际功能以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 说明为准。
 :::
 
 ## 打开系统页

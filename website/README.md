@@ -87,4 +87,4 @@ curl -sI https://tool.flowersink.com/flowerbuddy/guide/ | head -1
 - README 负责项目简介与开发者入口。
 - 官网承载长篇用户文档、FAQ、隐私与已知限制。
 - 下载版本与校验文件以 GitHub Releases 为准，不在官网复制版本资产。
-- v0.2.0 实际发布前，公开页面必须继续标注当前下载版为 v0.1.0，并明确 v0.2.0 仍是开发中的候选版本。
+- 发布新版本前，确保官网版本声明与 GitHub Release 一致；发布说明按 `docs/releases/vX.Y.Z.md` 维护。

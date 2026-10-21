@@ -32,7 +32,7 @@ features:
 ---
 
 ::: tip 当前公开版本
-公开下载版为 **v0.1.0**。本站部分界面描述包含 v0.2.0 开发中的改动，功能与界面以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 的说明为准。
+公开下载版为 **v0.2.0**。功能与界面以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 的说明为准。
 :::
 
 ## 下载与安装
@@ -60,7 +60,7 @@ features:
 
 ## 常见问题
 
-- **会自动更新吗？** 当前公开版 v0.1.0 需要手动下载新版本；v0.2.0 起安装版计划支持 GitHub Releases 源的应用内更新，仍需真实 Windows 双版本验证。
+- **会自动更新吗？** v0.2.0 安装版支持从 GitHub Releases 检查、下载并确认重启安装更新；仍需真实 Windows 双版本验证。便携版手动下载。
 - **数据放在哪里？** 默认在 `%APPDATA%\FlowerBuddy`；升级和卸载不会清空。
 - **为什么提示未知发布者？** 当前安装包未做代码签名，这是预期行为。
 

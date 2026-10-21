@@ -104,27 +104,37 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES_FILE="docs/releases/${GITHUB_REF_NAME}.md"
+          ASSETS=(
+            release/*.exe
+            release/*.zip
+            release/latest.yml
+            release/*.blockmap
+            release/SHA256SUMS.txt
+          )
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES_ARGS=(--notes-file "$NOTES_FILE")
+            echo "Using release notes from ${NOTES_FILE}"
+          else
+            NOTES_ARGS=(--generate-notes)
+            echo "::warning::Missing ${NOTES_FILE}; falling back to generated notes."
+          fi
+
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             IS_DRAFT="$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)"
             if [ "$IS_DRAFT" != "true" ]; then
               echo "::error::Release ${GITHUB_REF_NAME} is already published. Bump the version instead of reusing the tag."
               exit 1
             fi
-            gh release upload "$GITHUB_REF_NAME" \
-              release/*.exe \
-              release/*.zip \
-              release/latest.yml \
-              release/*.blockmap \
-              release/SHA256SUMS.txt \
-              --clobber
+            gh release upload "$GITHUB_REF_NAME" "${ASSETS[@]}" --clobber
+            if [ -f "$NOTES_FILE" ]; then
+              gh release edit "$GITHUB_REF_NAME" --notes-file "$NOTES_FILE"
+            fi
           else
             gh release create "$GITHUB_REF_NAME" \
               --draft \
-              --title "花伴 ${GITHUB_REF_NAME#v}" \
-              --generate-notes \
-              release/*.exe \
-              release/*.zip \
-              release/latest.yml \
-              release/*.blockmap \
-              release/SHA256SUMS.txt
+              --title "花伴 ${VERSION}" \
+              "${NOTES_ARGS[@]}" \
+              "${ASSETS[@]}"
           fi

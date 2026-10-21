@@ -10,7 +10,7 @@
 1. 校验标签版本与 `package.json` 的 `version` 完全一致；
 2. 运行 `typecheck`、`lint`、`format:check`、单元测试、生产构建与许可证生成，再构建 Windows 安装版、便携版和 ZIP；
 3. 生成 `release/SHA256SUMS.txt`；
-4. 创建或更新**草稿** GitHub Release，附上 Setup、Portable、ZIP、`latest.yml`、blockmap 与校验文件；
+4. 创建或更新**草稿** GitHub Release：优先读取仓库内的 `docs/releases/v<version>.md` 作为中文 Release Notes，缺少该文件时回退到 GitHub 自动生成的提交列表；附上 Setup、Portable、ZIP、`latest.yml`、blockmap 与校验文件；
 5. 由维护者在 GitHub 上审核 Release notes 和附件后手动发布。
 
 工作流不会自动提交版本号，也不会自动发布 Release。`ci.yml` 仍负责 `main` 分支和 Pull Request 的日常检查。
@@ -26,6 +26,7 @@
 
 2. 确认当前 CI 检查通过，且没有未合并的发布阻断项。
 3. 决定本次版本号（语义化版本，例如 `0.1.1`、`0.2.0`、`1.0.0`）。已经发布的版本号不要复用。
+4. 从 [`docs/releases/TEMPLATE.md`](../releases/TEMPLATE.md) 复制并编写 `docs/releases/v<version>.md`，使用中文说明新增功能、问题修复、体验优化、安全或文档变更，并为每条改动标注提交短哈希；该文件会作为 GitHub Release 的正文。
 
 ## 3. 更新版本并打标签
 
@@ -49,10 +50,17 @@ git push --follow-tags origin main
 
 1. 打开仓库的 Draft Release；
 2. 检查 Setup、Portable、ZIP、`latest.yml`、blockmap 和 `SHA256SUMS.txt` 是否齐全；缺少更新元数据时应用内更新无法工作。
-3. 在自动生成的提交列表上方补充本次更新的摘要、升级注意事项和已知问题；
+3. 核对 Release 正文是否来自 `docs/releases/v<version>.md`，确认中文描述、提交 ID 和升级说明与实际代码一致；工作流只在文件缺失时回退到自动生成的提交列表。
 4. 确认版本号、标题和附件无误后点击 Publish release。
 
-自动生成的 notes 来自上次发布以来的提交；如果这是第一个标签，会包含全部历史提交，建议手动整理。
+### Release Notes 规范
+
+- 文件名与标签严格一致：`v0.2.0` 对应 `docs/releases/v0.2.0.md`。
+- 正文使用中文，至少包含“新增功能”“问题修复”“升级说明”三节；可按需增加“体验与界面优化”“安全与稳定性”“文档与发布”。
+- 每条改动写成用户能理解的一句话，并在末尾标注对应的真实提交短哈希，例如（`abc1234`）。不要把提交标题原样罗列。
+- 同一提交影响多个条目时可以复用该哈希；纯文档提交可以合并说明。
+- 发布前对照 `git log v<上一个版本>..HEAD --oneline` 检查遗漏，确认没有把未实现的事项写进 Release。
+- `docs/releases/v<version>.md` 与版本号提交一并推送，确保 Release 工作流能读取到最终正文。
 
 ## 5. 失败处理
 

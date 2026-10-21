@@ -1,14 +1,14 @@
 # 花伴使用指南
 
-::: warning 版本说明
-当前公开下载版为 **v0.1.0**。本站部分内容描述的是正在开发中的 v0.2.0 界面（例如系统页“功能/设置/关于”、卡片加号/锁/完成/关闭）。实际功能以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 说明为准。
+::: tip 版本说明
+当前公开下载版为 **v0.2.0**，本文档与公开版一致。实际功能以 [GitHub Release](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 说明为准。
 :::
 
 花伴是面向 Windows 的桌面宠物与个人信息助手。桌宠常驻桌面，通过气泡展示提醒和查询结果，并提供备忘录、定时提醒、网站检测、DeepSeek 余额和阿里云 ESA 流量等功能。
 
 ## 当前版本
 
-当前公开版本为 **v0.1.0**。安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”，这是预期行为。
+当前公开版本为 **v0.2.0**。安装包未做代码签名，Windows SmartScreen 可能提示“未知发布者”，这是预期行为。
 
 请从 [GitHub Releases](https://github.com/ZaiHuaOvO/FlowerBuddy/releases/latest) 下载最新版本；不要从非官方来源获取安装包。
 
