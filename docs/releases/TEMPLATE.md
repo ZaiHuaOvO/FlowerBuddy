@@ -29,11 +29,20 @@
 - 说明覆盖安装、数据保留、已知限制和需要用户注意的事项。
 - 若本版本不能作为某个升级路径的基线，需要写明原因。
 
+## 下载建议
+
+- **普通用户推荐下载 `FlowerBuddy-Setup-X.Y.Z-x64.exe`**：安装版，按当前用户安装，支持覆盖升级和卸载入口。
+- `FlowerBuddy-Portable-X.Y.Z-x64.exe`：便携版单文件，免安装，适合 U 盘或临时使用。
+- `FlowerBuddy-X.Y.Z-x64.zip`：便携版压缩包，包含 Portable EXE、使用说明、MIT 许可证、美术素材许可和第三方许可证清单。
+- `latest.yml` 与 `FlowerBuddy-Setup-X.Y.Z-x64.exe.blockmap`：应用内自动更新元数据，请勿删除；普通用户无需下载。
+- `SHA256SUMS.txt`：下载校验值，可用 PowerShell `Get-FileHash` 或 `certutil -hashfile` 核对。
+
 <!--
 维护规则：
 1. 文件名必须与标签一致：vX.Y.Z -> docs/releases/vX.Y.Z.md。
 2. 标题、正文和分组标题使用中文。
 3. 每条改动至少标注一个真实提交短哈希，不写无法追溯的概括。
 4. 只写用户能感知或维护者需要知道的内容，不复制提交标题列表。
-5. Release 工作流优先读取本文件；缺少文件时回退到 GitHub 自动生成的 notes。
+5. “下载建议”必须是正文最后一节，明确推荐普通用户下载 Setup，并逐项说明 Setup、Portable、ZIP、latest.yml、blockmap 和 SHA256SUMS 的用途；GitHub Release 的附件列表会显示在该节下方。
+6. Release 工作流优先读取本文件；缺少文件时回退到 GitHub 自动生成的 notes。
 -->

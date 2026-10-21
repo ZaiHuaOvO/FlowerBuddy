@@ -58,6 +58,7 @@ git push --follow-tags origin main
 - 文件名与标签严格一致：`v0.2.0` 对应 `docs/releases/v0.2.0.md`。
 - 正文使用中文，至少包含“新增功能”“问题修复”“升级说明”三节；可按需增加“体验与界面优化”“安全与稳定性”“文档与发布”。
 - 每条改动写成用户能理解的一句话，并在末尾标注对应的真实提交短哈希，例如（`abc1234`）。不要把提交标题原样罗列。
+- 正文最后一节必须是“下载建议”，放在 GitHub 附件列表上方：先明确推荐普通用户下载 Setup 安装版，再逐项说明 Setup、Portable、ZIP、`latest.yml`、blockmap 与 `SHA256SUMS.txt` 的用途。
 - 同一提交影响多个条目时可以复用该哈希；纯文档提交可以合并说明。
 - 发布前对照 `git log v<上一个版本>..HEAD --oneline` 检查遗漏，确认没有把未实现的事项写进 Release。
 - `docs/releases/v<version>.md` 与版本号提交一并推送，确保 Release 工作流能读取到最终正文。
