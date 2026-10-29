@@ -3,10 +3,9 @@ import type { Size } from './geometry'
 import { createSecureWebPreferences } from '../security/web-preferences'
 import type { WindowFactoryOptions } from './pet-window'
 import { MENU_PANEL_MIN_WIDTH, menuWindowHeight } from '../../shared/menu-layout'
-import { BUBBLE_WIDTH } from '../../shared/bubble-layout'
+import { BUBBLE_PRESETS } from '../../shared/bubble-layout'
 
-export const BUBBLE_SIZE: Size = { width: BUBBLE_WIDTH, height: 168 }
-export { BUBBLE_MAX_HEIGHT, BUBBLE_MIN_HEIGHT } from '../../shared/bubble-layout'
+export const BUBBLE_SIZE: Size = { width: BUBBLE_PRESETS.medium.width, height: 168 }
 
 export const DEFAULT_MENU_SIZE: Size = {
   width: MENU_PANEL_MIN_WIDTH,

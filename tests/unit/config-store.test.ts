@@ -39,6 +39,7 @@ describe('config schema', () => {
     expect(config.app.showPetOnStartup).toBe(true)
     expect(config.app.memoShortcut).toBe('Alt+A')
     expect(config.app.bossShortcut).toBe('Alt+Z')
+    expect(config.app.bubbleSize).toBe('medium')
     expect(config.modules.memo.enabled).toBe(true)
     expect(config.modules.memo.anchorNewMemos).toBe(false)
     expect(config.modules.memo.lineTasksEnabled).toBe(false)
@@ -58,7 +59,12 @@ describe('config schema', () => {
   it('repairs invalid values instead of rejecting the file', () => {
     const config = parseConfig({
       schemaVersion: 3,
-      app: { alwaysOnTop: 'yes', bounceAnimation: false, bubbleDurationMs: 999999 },
+      app: {
+        alwaysOnTop: 'yes',
+        bounceAnimation: false,
+        bubbleDurationMs: 999999,
+        bubbleSize: 'huge'
+      },
       pet: {
         assetId: '../escape',
         scale: 42,
@@ -79,6 +85,7 @@ describe('config schema', () => {
     expect(config.app.alwaysOnTop).toBe(true)
     expect(config.app.bounceAnimation).toBe(false)
     expect(config.app.bubbleDurationMs).toBe(30000)
+    expect(config.app.bubbleSize).toBe('medium')
     expect(config.pet.assetId).toBe('default')
     expect(config.pet.scale).toBe(2)
     expect(config.pet.position).toBeNull()
@@ -162,7 +169,8 @@ describe('config schema', () => {
     })
     expect(result.fromVersion).toBe(10)
     expect(result.migrated).toBe(true)
-    expect(result.config.schemaVersion).toBe(11)
+    expect(result.config.schemaVersion).toBe(CURRENT_CONFIG_SCHEMA_VERSION)
+    expect(result.config.app.bubbleSize).toBe('medium')
     expect(result.config.modules.memo.lineTasksEnabled).toBe(false)
     expect(result.config.modules.memo.anchorNewMemos).toBe(true)
   })
@@ -255,6 +263,7 @@ describe('config store', () => {
     store.updateApp({
       alwaysOnTop: false,
       bubbleDurationMs: 8000,
+      bubbleSize: 'large',
       launchAtLogin: true,
       moduleOrder: ['interval-reminder', 'memo']
     })
@@ -270,6 +279,7 @@ describe('config store', () => {
     const reloaded = new ConfigStore(filePath).load()
     expect(reloaded.app.alwaysOnTop).toBe(false)
     expect(reloaded.app.bubbleDurationMs).toBe(8000)
+    expect(reloaded.app.bubbleSize).toBe('large')
     expect(reloaded.pet.scale).toBe(1.5)
     expect(reloaded.pet.position).toEqual({ x: 100, y: 200 })
     expect(reloaded.modules.memo.enabled).toBe(true)

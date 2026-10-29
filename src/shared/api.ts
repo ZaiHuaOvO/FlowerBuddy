@@ -39,11 +39,16 @@ export interface AppInfo {
   packaged: boolean
 }
 
+export type BubbleSize = 'small' | 'medium' | 'large' | 'super'
+
+export const BUBBLE_SIZE_VALUES = ['small', 'medium', 'large', 'super'] as const
+
 export interface AppSettings {
   alwaysOnTop: boolean
   bossShortcut: string
   bounceAnimation: boolean
   bubbleDurationMs: number
+  bubbleSize: BubbleSize
   launchAtLogin: boolean
   memoShortcut: string
   moduleOrder: ModuleId[]
@@ -55,6 +60,7 @@ export interface AppSettingsPatch {
   bossShortcut?: string
   bounceAnimation?: boolean
   bubbleDurationMs?: number
+  bubbleSize?: BubbleSize
   launchAtLogin?: boolean
   memoShortcut?: string
   moduleOrder?: ModuleId[]
@@ -428,6 +434,8 @@ export interface BubbleItem {
 
 export interface BubbleStackPayload {
   bubbles: BubbleItem[]
+  /** `super` renders one large reminder frame at the top of the screen. */
+  size: BubbleSize
 }
 
 export const IPC_CHANNELS = {

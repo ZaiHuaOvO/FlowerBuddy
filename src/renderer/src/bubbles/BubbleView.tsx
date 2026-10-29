@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { BubbleItem, BubbleStackPayload } from '../../../shared/api'
-import { BUBBLE_MAX_HEIGHT } from '../../../shared/bubble-layout'
+import type { BubbleItem, BubbleSize, BubbleStackPayload } from '../../../shared/api'
+import { BUBBLE_PRESETS, DEFAULT_BUBBLE_SIZE } from '../../../shared/bubble-layout'
 import '../styles/bubble.css'
 
 interface MessageSegment {
@@ -49,6 +49,7 @@ function fire(operation: Promise<unknown> | undefined): void {
 export default function BubbleView() {
   const api = window.bubbleApi
   const [bubbles, setBubbles] = useState<BubbleItem[]>([])
+  const [size, setSize] = useState<BubbleSize>(DEFAULT_BUBBLE_SIZE)
   const listRef = useRef<HTMLDivElement | null>(null)
   const frame = useRef<number | null>(null)
 
@@ -56,11 +57,15 @@ export default function BubbleView() {
     if (!api) {
       return
     }
-    return api.onUpdate((payload: BubbleStackPayload) => setBubbles(payload.bubbles))
+    return api.onUpdate((payload: BubbleStackPayload) => {
+      setBubbles(payload.bubbles)
+      setSize(payload.size)
+    })
   }, [api])
 
   useEffect(() => {
-    if (!api || bubbles.length === 0) {
+    // The super frame keeps its display-relative height, so content never resizes it.
+    if (!api || bubbles.length === 0 || size === 'super') {
       return
     }
     const element = listRef.current
@@ -87,7 +92,7 @@ export default function BubbleView() {
         frame.current = null
       }
     }
-  }, [api, bubbles])
+  }, [api, bubbles, size])
 
   if (!api || bubbles.length === 0) {
     return null
@@ -97,9 +102,16 @@ export default function BubbleView() {
     fire(api?.dismiss(id))
   }
 
+  const isSuper = size === 'super'
+  const preset = isSuper ? null : BUBBLE_PRESETS[size]
+
   return (
-    <div className="bubble-root">
-      <div className="bubble-list" ref={listRef} style={{ maxHeight: `${BUBBLE_MAX_HEIGHT}px` }}>
+    <div className={`bubble-root${isSuper ? ' is-super' : ''}`}>
+      <div
+        className={`bubble-list bubble-list-${size}`}
+        ref={listRef}
+        style={preset ? { maxHeight: `${preset.maxHeight}px` } : undefined}
+      >
         {bubbles.map((bubble) => (
           <div
             key={bubble.id}

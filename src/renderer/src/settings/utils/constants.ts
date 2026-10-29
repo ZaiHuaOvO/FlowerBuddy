@@ -1,8 +1,15 @@
-import type { ModuleId } from '../../../../shared/api'
+import type { BubbleSize, ModuleId } from '../../../../shared/api'
 
 export type SystemTab = 'function' | 'settings' | 'about'
 
 export type SettingsSection = 'general' | 'modules' | 'memo' | 'deepseek' | 'esa'
+
+export const BUBBLE_SIZE_OPTIONS: Array<{ id: BubbleSize; label: string }> = [
+  { id: 'small', label: '小' },
+  { id: 'medium', label: '中' },
+  { id: 'large', label: '大' },
+  { id: 'super', label: '超级' }
+]
 
 export const SYSTEM_TABS: Array<{ id: SystemTab; label: string }> = [
   { id: 'function', label: '功能' },

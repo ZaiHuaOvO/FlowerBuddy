@@ -13,6 +13,9 @@
  * - "Microsoft YaHei UI" is appended to the font stack so Chinese text renders
  *   correctly on Windows when Inter/Noto Sans SC are not installed.
  * - Pressed surfaces reuse the verified page background colour.
+ * - `--font-size-3xl` (30px) extends the verified scale for the super bubble
+ *   frame only (DESIGN_SYSTEM.md §4.7, 2026-10-29); do not use it for normal
+ *   body text.
  * - Primary button values were verified against the live .fl-button--solid
  *   component on the design page (2026-10-17): background #8b5a2b, white text,
  *   10px radius, 500 weight. The system page raises action height to 36px on
@@ -95,6 +98,7 @@
   --font-size-lg: 16px;
   --font-size-xl: 18px;
   --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
   --font-weight-light: 300;
   --font-weight-regular: 400;
   --font-weight-medium: 500;

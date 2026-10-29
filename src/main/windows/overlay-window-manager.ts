@@ -1,23 +1,25 @@
 import { randomUUID } from 'node:crypto'
 import { BrowserWindow, screen, systemPreferences } from 'electron'
 import { IPC_CHANNELS } from '../../shared/api'
-import type { BubbleItem, BubblePayload, MenuPresentation } from '../../shared/api'
+import type { BubbleItem, BubblePayload, BubbleSize, MenuPresentation } from '../../shared/api'
 import {
   MENU_EXIT_MS,
   MENU_IDLE_CLOSE_MS,
   MENU_IDLE_POLL_MS,
   MENU_OPEN_ACK_TIMEOUT_MS
 } from '../../shared/menu-layout'
-import type { MenuLayout, Rect } from './geometry'
+import {
+  BUBBLE_PRESETS,
+  SUPER_BUBBLE_HEIGHT_RATIO,
+  SUPER_BUBBLE_MIN_HEIGHT,
+  SUPER_BUBBLE_MIN_WIDTH,
+  SUPER_BUBBLE_TOP_MARGIN,
+  SUPER_BUBBLE_WIDTH_RATIO
+} from '../../shared/bubble-layout'
+import type { MenuLayout, Rect, Size } from './geometry'
 import { computeMenuLayout, containsPoint, placeOverlay } from './geometry'
 import { loadViewAndWait } from './load-view'
-import {
-  BUBBLE_MAX_HEIGHT,
-  BUBBLE_MIN_HEIGHT,
-  BUBBLE_SIZE,
-  createBubbleWindow,
-  createMenuWindow
-} from './overlay-windows'
+import { BUBBLE_SIZE, createBubbleWindow, createMenuWindow } from './overlay-windows'
 
 type MenuState = 'idle' | 'opening' | 'open' | 'closing'
 
@@ -28,6 +30,7 @@ export interface OverlayWindowManagerOptions {
   getPetBounds: () => Rect | null
   getMenuActionCount: () => number
   getBubbleDurationMs: () => number
+  getBubbleSize: () => BubbleSize
   isPetVisible: () => boolean
 }
 
@@ -291,8 +294,14 @@ export class OverlayWindowManager {
   }
 
   setBubbleHeight(height: number): void {
+    const size = this.options.getBubbleSize()
+    if (size === 'super') {
+      // The super frame keeps the display-relative height regardless of content.
+      return
+    }
+    const preset = BUBBLE_PRESETS[size]
     const next = Math.round(
-      Math.max(BUBBLE_MIN_HEIGHT, Math.min(Number.isFinite(height) ? height : 0, BUBBLE_MAX_HEIGHT))
+      Math.max(preset.minHeight, Math.min(Number.isFinite(height) ? height : 0, preset.maxHeight))
     )
     if (next === this.bubbleHeight) {
       return
@@ -300,6 +309,26 @@ export class OverlayWindowManager {
     this.bubbleHeight = next
     if (this.bubbles.length > 0) {
       this.positionBubble()
+    }
+  }
+
+  /** Applies a changed bubble size to the open window and the renderer. */
+  refreshBubbleLayout(): void {
+    const size = this.options.getBubbleSize()
+    if (size !== 'super') {
+      this.bubbleHeight = BUBBLE_PRESETS[size].minHeight
+    }
+    if (this.bubbles.length === 0) {
+      return
+    }
+    this.pushBubbles()
+    const window = this.bubbleWindow
+    if (!window || window.isDestroyed()) {
+      return
+    }
+    this.positionBubble()
+    if (window.isVisible() && this.options.isPetVisible()) {
+      window.moveTop()
     }
   }
 
@@ -505,9 +534,32 @@ export class OverlayWindowManager {
       return
     }
     const area = screen.getDisplayMatching(anchor).workArea
-    const size = { width: BUBBLE_SIZE.width, height: this.bubbleHeight }
-    const position = placeOverlay(anchor, size, area, 'above')
-    bubble.setBounds({ ...position, ...size })
+    const size = this.options.getBubbleSize()
+    if (size === 'super') {
+      bubble.setBounds(this.superBubbleBounds(area))
+      return
+    }
+    const preset = BUBBLE_PRESETS[size]
+    const box: Size = { width: preset.width, height: this.bubbleHeight }
+    const position = placeOverlay(anchor, box, area, 'above')
+    bubble.setBounds({ ...position, ...box })
+  }
+
+  private superBubbleBounds(area: Rect): Rect {
+    const width = Math.min(
+      area.width,
+      Math.max(SUPER_BUBBLE_MIN_WIDTH, Math.round(area.width * SUPER_BUBBLE_WIDTH_RATIO))
+    )
+    const height = Math.min(
+      area.height,
+      Math.max(SUPER_BUBBLE_MIN_HEIGHT, Math.round(area.height * SUPER_BUBBLE_HEIGHT_RATIO))
+    )
+    return {
+      x: Math.round(area.x + (area.width - width) / 2),
+      y: Math.round(Math.min(area.y + SUPER_BUBBLE_TOP_MARGIN, area.y + area.height - height)),
+      width,
+      height
+    }
   }
 
   private pushBubbles(): void {
@@ -516,7 +568,8 @@ export class OverlayWindowManager {
       return
     }
     window.webContents.send(IPC_CHANNELS.bubbleUpdate, {
-      bubbles: this.bubbles.map((bubble) => ({ ...bubble }))
+      bubbles: this.bubbles.map((bubble) => ({ ...bubble })),
+      size: this.options.getBubbleSize()
     })
   }
 

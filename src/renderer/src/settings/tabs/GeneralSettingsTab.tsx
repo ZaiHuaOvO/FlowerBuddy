@@ -8,6 +8,7 @@ import type {
 } from '../../../../shared/api'
 import { PET_BASE_HEIGHT } from '../../../../shared/pet-layout'
 import { Button } from '../../components/Button'
+import { InfoTip } from '../../components/InfoTip'
 import { FormRow } from '../components/FormRow'
 import { PageHeader } from '../components/PageHeader'
 import { Section } from '../components/Section'
@@ -17,6 +18,7 @@ import { Toggle } from '../components/Toggle'
 import {
   BUBBLE_SECONDS_MAX,
   BUBBLE_SECONDS_MIN,
+  BUBBLE_SIZE_OPTIONS,
   PET_SCALE_MAX,
   PET_SCALE_MIN,
   PET_SCALE_STEP
@@ -116,6 +118,34 @@ export function GeneralSettingsTab({
             />
             <span className="range-value">{bubbleDraft} 秒</span>
           </span>
+        </FormRow>
+
+        <FormRow label="气泡尺寸" hint="小、中、大只改变气泡大小；超级档改为屏幕顶部的大提示框">
+          <div className="bubble-size-options" role="radiogroup" aria-label="气泡尺寸">
+            {BUBBLE_SIZE_OPTIONS.map((option) => (
+              <span
+                key={option.id}
+                className={`bubble-size-option${option.id === 'super' ? ' is-super' : ''}${
+                  config.app.bubbleSize === option.id ? ' is-selected' : ''
+                }`}
+              >
+                <label className="bubble-size-choice">
+                  <input
+                    type="radio"
+                    className="bubble-size-radio"
+                    name="bubble-size"
+                    value={option.id}
+                    checked={config.app.bubbleSize === option.id}
+                    onChange={() => onSave({ bubbleSize: option.id })}
+                  />
+                  <span>{option.label}</span>
+                </label>
+                {option.id === 'super' ? (
+                  <InfoTip text="侵入性极强的提醒，超超超大！" align="left" />
+                ) : null}
+              </span>
+            ))}
+          </div>
         </FormRow>
       </Section>
 

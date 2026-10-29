@@ -1,9 +1,10 @@
 import { z } from 'zod'
-import { MAX_PET_NAME_LENGTH } from '../../shared/api'
+import { BUBBLE_SIZE_VALUES, MAX_PET_NAME_LENGTH } from '../../shared/api'
 import type { ModuleId, ModulesSettings, PublicConfig } from '../../shared/api'
 import { DEFAULT_ESA_DISPLAY_RANGES } from '../../shared/esa'
+import { DEFAULT_BUBBLE_SIZE } from '../../shared/bubble-layout'
 
-export const CURRENT_CONFIG_SCHEMA_VERSION = 11
+export const CURRENT_CONFIG_SCHEMA_VERSION = 12
 
 export const MODULE_ID_VALUES = [
   'memo',
@@ -48,6 +49,10 @@ function stringField(maxLength: number, fallback: string) {
     .string()
     .catch(fallback)
     .transform((value) => value.slice(0, maxLength))
+}
+
+function bubbleSizeField() {
+  return z.enum(BUBBLE_SIZE_VALUES).catch(DEFAULT_BUBBLE_SIZE)
 }
 
 function nullableIntervalField(min: number, max: number) {
@@ -128,6 +133,7 @@ const appFieldsSchema = z.object({
   bossShortcut: stringField(64, 'Alt+Z'),
   bounceAnimation: booleanField(true),
   bubbleDurationMs: integerField(1000, 30000, 5000),
+  bubbleSize: bubbleSizeField(),
   launchAtLogin: booleanField(false),
   memoShortcut: stringField(64, 'Alt+A'),
   moduleOrder: moduleOrderField(),
@@ -139,6 +145,7 @@ const appSchema = appFieldsSchema.catch({
   bossShortcut: 'Alt+Z',
   bounceAnimation: true,
   bubbleDurationMs: 5000,
+  bubbleSize: DEFAULT_BUBBLE_SIZE,
   launchAtLogin: false,
   memoShortcut: 'Alt+A',
   moduleOrder: [...defaultModuleOrder],
@@ -282,6 +289,7 @@ const configSchema = z
       bossShortcut: 'Alt+Z',
       bounceAnimation: true,
       bubbleDurationMs: 5000,
+      bubbleSize: DEFAULT_BUBBLE_SIZE,
       launchAtLogin: false,
       memoShortcut: 'Alt+A',
       moduleOrder: [...defaultModuleOrder],
@@ -308,6 +316,7 @@ const configSchema = z
       bossShortcut: 'Alt+Z',
       bounceAnimation: true,
       bubbleDurationMs: 5000,
+      bubbleSize: DEFAULT_BUBBLE_SIZE,
       launchAtLogin: false,
       memoShortcut: 'Alt+A',
       moduleOrder: [...defaultModuleOrder],
@@ -351,6 +360,7 @@ export function createDefaultConfig(): PublicConfig {
       bossShortcut: 'Alt+Z',
       bounceAnimation: true,
       bubbleDurationMs: 5000,
+      bubbleSize: DEFAULT_BUBBLE_SIZE,
       launchAtLogin: false,
       memoShortcut: 'Alt+A',
       moduleOrder: [...defaultModuleOrder],

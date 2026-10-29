@@ -471,6 +471,82 @@
   text-align: right;
 }
 
+/* 6.1 气泡尺寸选择 */
+
+.bubble-size-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.bubble-size-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) 0 0;
+  border: 1px solid var(--color-form-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-form-bg);
+  color: var(--color-text);
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.bubble-size-option:not(.is-super) {
+  padding-right: 0;
+}
+
+.bubble-size-option:hover {
+  border-color: var(--color-form-border-hover);
+  background: var(--color-form-bg-hover);
+}
+
+.bubble-size-option.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-tag-bg);
+  color: var(--color-primary);
+}
+
+.bubble-size-option.is-super .bubble-size-choice {
+  color: var(--color-warning-strong);
+}
+
+.bubble-size-option.is-super.is-selected {
+  border-color: var(--color-warning-strong);
+  background: var(--color-warning-bg);
+}
+
+.bubble-size-option.is-selected .info-tip {
+  color: var(--color-warning-strong);
+}
+
+.bubble-size-option:has(.bubble-size-radio:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+
+.bubble-size-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 7px var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bubble-size-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .check-options {
   display: flex;
   flex-wrap: wrap;

@@ -132,7 +132,7 @@ scripts/                         # 图标、默认形象、许可证、便携 ZI
 | ----------- | ----------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `pet`       | `windows/pet-window.ts`       | `loadView(..., view: 'pet')`       | 透明、无边框、默认置顶、不可聚焦、拖动与点击打开菜单                                                                              |
 | `menu`      | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | 优先桌宠上方、下方回退；4 图标 + 悬停展开的动作列表；窗口按展开高度一次定位；指针离开菜单与桌宠一段时间后自动关闭；再次右键不切换 |
-| `bubble`    | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送                                                                                       |
+| `bubble`    | `windows/overlay-windows.ts`  | 按需创建，首帧加载完成或超时后显示 | `showInactive()`，接收 `bubble:update` 推送；窗口几何按 `app.bubbleSize` 切换，`super` 为顶部居中的 60%×30% 大框                  |
 | `settings`  | `windows/settings-window.ts`  | 单例窗口，780×720，最小 640×540    | 顶部 功能/设置/关于；功能页左侧模块导航显示业务内容，设置页左侧常规/功能/模块设置；关于页显示版本、作者、仓库、反馈与应用更新状态 |
 | `memo-card` | `windows/memo-card-window.ts` | 每条锚定备忘录一个窗口             | 透明无边框、始终置顶、可聚焦；标题栏拖动、四角自定义缩放、完成与取消锚点；内容由 `memo-card:state-changed` 同步                   |
 
@@ -301,6 +301,7 @@ interface ModuleDefinition {
   - 按 `app.bubbleDurationMs` 自动隐藏；
   - 有前台动作或桌宠不可见时，后台通知不抢占气泡。
 - 气泡由 `OverlayWindowManager` 维护为一个栈：新气泡追加到末尾（界面从上到下按出现顺序），更新相同 `requestId` 只替换内容；普通气泡按 `app.bubbleDurationMs` 单独自动隐藏；指针位于桌宠或气泡窗口上时暂停计时，离开后继续，`persistent` 气泡（备忘录/定时提醒）不自动隐藏，需点击“知道了喵”。窗口高度由 renderer 测量后通过 `bubble:set-height` 上报，主进程据此向上扩展并重新定位；超过上限时列表内部滚动。气泡显示或重新定位后会调用 `moveTop()`，确保与快捷菜单窗口重叠时仍位于菜单之上、按钮可点击。
+- 气泡尺寸由 `config.app.bubbleSize` 决定，取值 `small` / `medium` / `large` / `super`，默认 `medium`；窗口宽度、高度上限与超级框比例集中在 `src/shared/bubble-layout.ts`。小/中/大三档只改变窗口宽度、内边距和字号，高度仍由 renderer 上报并按各档上下限夹紧；`bubble:update` 同时推送当前 `size`，renderer 据此切换样式。切到 `super` 时窗口改为屏幕顶部居中、约 60% 工作区宽 × 30% 工作区高的圆角方形框（最小 480×240，顶部留 24px），高度固定、忽略 `bubble:set-height`，所有气泡消息都进入该框；老板键隐藏桌宠时会一并隐藏。设置页修改尺寸后主进程重新计算窗口位置并重推气泡，无需等待下一条消息。
 - 网站检测快捷动作按启用顺序逐行输出每个站点的结果：成功为“名称：正常，123ms”，失败为“名称：异常，原因”；结果片段通过 `ModuleActionResult.emphasis` 在气泡中以棕色粗体显示。
 
 ### 6.5 备忘录、提醒与桌面卡片

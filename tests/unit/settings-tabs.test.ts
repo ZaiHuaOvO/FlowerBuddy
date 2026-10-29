@@ -27,6 +27,7 @@ function makeConfig(): PublicConfig {
       alwaysOnTop: true,
       bounceAnimation: true,
       bubbleDurationMs: 5000,
+      bubbleSize: 'medium',
       launchAtLogin: false,
       bossShortcut: 'Alt+Z',
       memoShortcut: 'Alt+A',

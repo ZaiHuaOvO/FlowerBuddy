@@ -29,6 +29,7 @@ export const appSettingsPatchSchema = z
     bossShortcut: z.string().trim().max(64).optional(),
     bounceAnimation: z.boolean().optional(),
     bubbleDurationMs: z.number().int().min(1000).max(30000).optional(),
+    bubbleSize: z.enum(['small', 'medium', 'large', 'super']).optional(),
     launchAtLogin: z.boolean().optional(),
     memoShortcut: z.string().trim().max(64).optional(),
     moduleOrder: z.array(moduleIdSchema).max(5).optional(),

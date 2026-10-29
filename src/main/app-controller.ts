@@ -106,6 +106,7 @@ export class AppController {
       getPetBounds: () => this.pet.getBounds(),
       getMenuActionCount: () => this.getMenuActions().length,
       getBubbleDurationMs: () => this.config.app.bubbleDurationMs,
+      getBubbleSize: () => this.config.app.bubbleSize,
       isPetVisible: () => !this.disposed && this.pet.isVisible()
     })
     this.pet = new PetWindowController({
@@ -212,6 +213,9 @@ export class AppController {
     this.pet.updateAlwaysOnTop(next.app.alwaysOnTop)
     if (patch.launchAtLogin !== undefined) {
       this.applyLaunchAtLogin(next.app.launchAtLogin)
+    }
+    if (patch.bubbleSize !== undefined) {
+      this.overlays.refreshBubbleLayout()
     }
     this.pet.pushState()
     return next

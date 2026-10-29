@@ -47,6 +47,7 @@ describe('IPC input schemas', () => {
       moduleOrder: ['memo', 'esa']
     })
     expect(parseAppSettingsPatch({ bubbleDurationMs: 1000 })).toEqual({ bubbleDurationMs: 1000 })
+    expect(parseAppSettingsPatch({ bubbleSize: 'super' })).toEqual({ bubbleSize: 'super' })
     expect(parsePetSettingsPatch({ scale: 1.5 })).toEqual({ scale: 1.5 })
     expect(parseAppSettingsPatch({ bossShortcut: 'Alt+Z' })).toEqual({
       bossShortcut: 'Alt+Z'
@@ -56,6 +57,7 @@ describe('IPC input schemas', () => {
 
   it('rejects invalid ranges and unknown keys', () => {
     expect(() => parseAppSettingsPatch({ bubbleDurationMs: 10 })).toThrow(AppError)
+    expect(() => parseAppSettingsPatch({ bubbleSize: 'huge' })).toThrow(AppError)
     expect(() => parseAppSettingsPatch({ alwaysOnTop: 'yes' })).toThrow(AppError)
     expect(() => parseAppSettingsPatch({ moduleOrder: ['unknown'] })).toThrow(AppError)
     expect(() => parseAppSettingsPatch({ unexpected: true })).toThrow(AppError)
