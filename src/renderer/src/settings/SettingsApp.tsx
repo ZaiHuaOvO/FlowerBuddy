@@ -187,11 +187,13 @@ export default function SettingsApp() {
   if (!config) {
     return (
       <div className="settings-root">
-        <SettingsHeader
-          appInfo={appInfo}
-          status={error || '正在读取配置…'}
-          isError={Boolean(error)}
-        />
+        <SettingsHeader appInfo={appInfo} status={error} isError={Boolean(error)} />
+        {error ? null : (
+          <div className="settings-boot" role="status">
+            <span className="app-loading-spinner" aria-hidden="true" />
+            <span>正在读取配置…</span>
+          </div>
+        )}
       </div>
     )
   }

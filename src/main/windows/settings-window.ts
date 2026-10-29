@@ -11,7 +11,9 @@ export function createSettingsWindow(options: WindowFactoryOptions): BrowserWind
     show: false,
     title: '花伴',
     autoHideMenuBar: true,
-    backgroundColor: '#0f1419',
+    // Matches --color-bg-page so the first frames before React paints stay warm
+    // instead of flashing a dark window surface.
+    backgroundColor: '#fff8f3',
     ...(options.iconPath ? { icon: options.iconPath } : {}),
     webPreferences: createSecureWebPreferences(options.preloadPath, 'settings')
   })
