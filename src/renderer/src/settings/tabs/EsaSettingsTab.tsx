@@ -25,6 +25,7 @@ interface Props {
   onSaveDisplayRanges?: (ranges: EsaDisplayRanges) => void
   onOpenSettings?: () => void
   onGoToFunction?: () => void
+  onBack?: () => void
 }
 
 export function EsaSettingsTab({
@@ -34,7 +35,8 @@ export function EsaSettingsTab({
   onToggleModule,
   onSaveDisplayRanges,
   onOpenSettings,
-  onGoToFunction
+  onGoToFunction,
+  onBack
 }: Props) {
   const {
     summary,
@@ -44,6 +46,8 @@ export function EsaSettingsTab({
     setKeySecretDraft,
     siteIdDraft,
     setSiteIdDraft,
+    formError,
+    setFormError,
     busy,
     traffic,
     saveCredentials,
@@ -72,6 +76,8 @@ export function EsaSettingsTab({
     <>
       <PageHeader
         title={isFunction ? 'ESA 流量' : 'ESA 流量设置'}
+        onBack={onBack}
+        backLabel="功能管理"
         description={
           isFunction
             ? '查询阿里云 ESA 最近 24 小时、7 天和 30 天的流量。'
@@ -150,38 +156,60 @@ export function EsaSettingsTab({
         <>
           <Section title="连接配置">
             {showSetup ? (
-              <div className="form-grid">
-                <Field label="AccessKey ID" hint="仅保存在本机加密存储">
-                  <input
-                    className="fl-input"
-                    type="password"
-                    autoComplete="new-password"
-                    spellCheck={false}
-                    value={keyIdDraft}
-                    onChange={(event) => setKeyIdDraft(event.target.value)}
-                  />
-                </Field>
-                <Field label="AccessKey Secret" hint="保存后无法读取">
-                  <input
-                    className="fl-input"
-                    type="password"
-                    autoComplete="new-password"
-                    spellCheck={false}
-                    value={keySecretDraft}
-                    onChange={(event) => setKeySecretDraft(event.target.value)}
-                  />
-                </Field>
-                <div className="form-span-2">
-                  <Field label="SiteId" hint="可在 ESA 控制台获取">
+              <>
+                <div className="form-grid">
+                  <Field label="AccessKey ID" hint="仅保存在本机加密存储">
                     <input
                       className="fl-input"
-                      value={siteIdDraft}
-                      maxLength={128}
-                      onChange={(event) => setSiteIdDraft(event.target.value)}
+                      type="password"
+                      autoComplete="new-password"
+                      spellCheck={false}
+                      value={keyIdDraft}
+                      onChange={(event) => {
+                        setKeyIdDraft(event.target.value)
+                        if (formError) {
+                          setFormError('')
+                        }
+                      }}
                     />
                   </Field>
+                  <Field label="AccessKey Secret" hint="保存后无法读取">
+                    <input
+                      className="fl-input"
+                      type="password"
+                      autoComplete="new-password"
+                      spellCheck={false}
+                      value={keySecretDraft}
+                      onChange={(event) => {
+                        setKeySecretDraft(event.target.value)
+                        if (formError) {
+                          setFormError('')
+                        }
+                      }}
+                    />
+                  </Field>
+                  <div className="form-span-2">
+                    <Field label="SiteId" hint="可在 ESA 控制台获取">
+                      <input
+                        className="fl-input"
+                        value={siteIdDraft}
+                        maxLength={128}
+                        onChange={(event) => {
+                          setSiteIdDraft(event.target.value)
+                          if (formError) {
+                            setFormError('')
+                          }
+                        }}
+                      />
+                    </Field>
+                  </div>
                 </div>
-              </div>
+                {formError ? (
+                  <p className="field-error" role="alert">
+                    {formError}
+                  </p>
+                ) : null}
+              </>
             ) : null}
 
             <FormRow label="自动刷新" hint="仅在模块启用时生效">

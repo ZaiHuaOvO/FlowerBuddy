@@ -130,6 +130,7 @@ export function useIntervalReminderSettings({
     }
     try {
       setReminders(await api.setIntervalReminderEnabled(id, enabled))
+      flash('已保存')
     } catch (cause) {
       setError(toMessage(cause))
     }

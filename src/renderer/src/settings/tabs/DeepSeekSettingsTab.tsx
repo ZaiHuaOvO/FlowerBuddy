@@ -23,6 +23,7 @@ interface Props {
   onToggleModule?: (moduleId: ModuleId, enabled: boolean) => void
   onOpenSettings?: () => void
   onGoToFunction?: () => void
+  onBack?: () => void
 }
 
 export function DeepSeekSettingsTab({
@@ -31,12 +32,15 @@ export function DeepSeekSettingsTab({
   mode,
   onToggleModule,
   onOpenSettings,
-  onGoToFunction
+  onGoToFunction,
+  onBack
 }: Props) {
   const {
     summary,
     keyDraft,
     setKeyDraft,
+    formError,
+    setFormError,
     busy,
     balance,
     saveKey,
@@ -65,6 +69,8 @@ export function DeepSeekSettingsTab({
     <>
       <PageHeader
         title={isFunction ? 'DeepSeek 余额' : 'DeepSeek 余额设置'}
+        onBack={onBack}
+        backLabel="功能管理"
         description={
           isFunction
             ? '在本机查询账户余额；余额变化不等同于消费。'
@@ -157,7 +163,11 @@ export function DeepSeekSettingsTab({
             {showSetup ? (
               <div className="form-grid">
                 <div className="form-span-2">
-                  <Field label="API Key" hint="保存后无法读取；输入新值可覆盖">
+                  <Field
+                    label="API Key"
+                    hint="保存后无法读取；输入新值可覆盖"
+                    error={formError || undefined}
+                  >
                     <input
                       className="fl-input"
                       type="password"
@@ -165,7 +175,13 @@ export function DeepSeekSettingsTab({
                       spellCheck={false}
                       value={keyDraft}
                       placeholder="sk-..."
-                      onChange={(event) => setKeyDraft(event.target.value)}
+                      aria-invalid={formError ? true : undefined}
+                      onChange={(event) => {
+                        setKeyDraft(event.target.value)
+                        if (formError) {
+                          setFormError('')
+                        }
+                      }}
                     />
                   </Field>
                 </div>

@@ -20,6 +20,7 @@ import type {
 } from '../../../shared/api'
 import { petPresetLabel } from '../../../shared/pet-presets'
 import { Alert } from '../components/Alert'
+import { EmptyState } from '../components/EmptyState'
 import { AboutPane } from './AboutPane'
 import { MemoSettingsPane } from './sections/MemoSettingsPane'
 import { MemoSettingsTab } from './tabs/MemoSettingsTab'
@@ -34,7 +35,7 @@ import { useIntervalReminderSettings } from './hooks/useIntervalReminderSettings
 import { useDeepSeekSettings } from './hooks/useDeepSeekSettings'
 import { useEsaSettings } from './hooks/useEsaSettings'
 import { useWebsiteSettings } from './hooks/useWebsiteSettings'
-import { CORE_TABS, SETTINGS_MODULE_IDS, SYSTEM_TABS } from './utils/constants'
+import { CORE_TABS, SYSTEM_TABS } from './utils/constants'
 import type { SettingsSection, SystemTab } from './utils/constants'
 import { applySystemNavigation, DEFAULT_SYSTEM_STATE } from './utils/navigation'
 import type { SystemState } from './utils/navigation'
@@ -278,7 +279,6 @@ function SettingsContent({
     }
   }
   const enabledModuleIds = enabledModules.map((module) => module.id)
-  const settingsModules = enabledModules.filter((module) => SETTINGS_MODULE_IDS.includes(module.id))
   const state = applySystemNavigation(systemState, { tab: systemState.tab }, enabledModuleIds)
 
   const enabledModuleIdsRef = useRef<ModuleId[]>(enabledModuleIds)
@@ -332,6 +332,7 @@ function SettingsContent({
     setError('')
     try {
       setConfig(await api.savePetSettings(patch))
+      flash('已保存')
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -341,6 +342,7 @@ function SettingsContent({
     setError('')
     try {
       setConfig(await api.setMemoAnchorNew(enabled))
+      flash('已保存')
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -350,6 +352,7 @@ function SettingsContent({
     setError('')
     try {
       setConfig(await api.setMemoLineTasks(enabled))
+      flash('已保存')
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -370,6 +373,7 @@ function SettingsContent({
     setError('')
     try {
       setConfig(await api.saveAppSettings({ moduleOrder: order }))
+      flash('顺序已更新')
     } catch (cause) {
       setError(toMessage(cause))
     }
@@ -604,6 +608,7 @@ function SettingsContent({
             security={security}
             onToggle={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
             onReorder={(order) => void reorderModules(order)}
+            onOpenSettings={(moduleId) => navigate({ tab: 'settings', settingsSection: moduleId })}
           />
         )
       case 'memo':
@@ -616,6 +621,7 @@ function SettingsContent({
             onSaveAnchorNew={(enabled) => void saveMemoAnchorNew(enabled)}
             onSaveLineTasks={(enabled) => void saveMemoLineTasks(enabled)}
             onGoToFunction={() => navigate({ tab: 'function', moduleId: 'memo' })}
+            onBack={() => navigate({ tab: 'settings', settingsSection: 'modules' })}
           />
         )
       case 'deepseek':
@@ -626,6 +632,7 @@ function SettingsContent({
             mode="settings"
             onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
             onGoToFunction={() => navigate({ tab: 'function', moduleId: 'deepseek' })}
+            onBack={() => navigate({ tab: 'settings', settingsSection: 'modules' })}
           />
         )
       case 'esa':
@@ -637,6 +644,7 @@ function SettingsContent({
             onToggleModule={(moduleId, enabled) => void toggleModule(moduleId, enabled)}
             onSaveDisplayRanges={(ranges) => void saveEsaDisplayRanges(ranges)}
             onGoToFunction={() => navigate({ tab: 'function', moduleId: 'esa' })}
+            onBack={() => navigate({ tab: 'settings', settingsSection: 'modules' })}
           />
         )
       default:
@@ -646,10 +654,14 @@ function SettingsContent({
 
   const topTabIds = SYSTEM_TABS.map((tab) => tab.id)
   const functionTabIds = enabledModules.map((module) => module.id)
-  const settingsTabIds = [
-    ...CORE_TABS.map((tab) => tab.id),
-    ...settingsModules.map((module) => module.id)
-  ]
+  const settingsTabIds = CORE_TABS.map((tab) => tab.id)
+  // Module settings are a sub-page of 功能管理, not a peer of 常规: the left rail
+  // only ever lists the two core sections, and a module section keeps 功能管理
+  // highlighted so the rail never shows an empty selection.
+  const currentSettingsSection = state.settingsSection ?? 'general'
+  const isModuleSection =
+    currentSettingsSection !== 'general' && currentSettingsSection !== 'modules'
+  const navActiveSection: SettingsSection = isModuleSection ? 'modules' : currentSettingsSection
 
   return (
     <div className="settings-root">
@@ -681,9 +693,11 @@ function SettingsContent({
       </nav>
 
       {error ? (
-        <Alert tone="danger" className="settings-global-alert">
-          {error}
-        </Alert>
+        <div className="settings-toast">
+          <Alert tone="danger" onClose={() => setError('')}>
+            {error}
+          </Alert>
+        </div>
       ) : startupNotice ? (
         <Alert tone="warning" className="settings-global-alert">
           {startupNotice}
@@ -728,9 +742,14 @@ function SettingsContent({
             className="settings-nav"
             role="tablist"
             aria-label="功能模块"
+            aria-orientation="vertical"
             onKeyDown={(event) =>
-              moveTabFocus(event, functionTabIds, state.moduleId ?? '', (id) =>
-                navigate({ tab: 'function', moduleId: id as ModuleId })
+              moveTabFocus(
+                event,
+                functionTabIds,
+                state.moduleId ?? '',
+                (id) => navigate({ tab: 'function', moduleId: id as ModuleId }),
+                'vertical'
               )
             }
           >
@@ -763,7 +782,10 @@ function SettingsContent({
           >
             <div className="settings-content-inner">
               {enabledModules.length === 0 ? (
-                <p className="hint">请先在“设置 → 功能”中启用至少一个功能。</p>
+                <EmptyState
+                  title="还没有启用任何功能"
+                  description="请先在“设置 → 功能管理”中启用至少一个功能。"
+                />
               ) : (
                 renderFunctionContent()
               )}
@@ -776,9 +798,14 @@ function SettingsContent({
             className="settings-nav"
             role="tablist"
             aria-label="设置分区"
+            aria-orientation="vertical"
             onKeyDown={(event) =>
-              moveTabFocus(event, settingsTabIds, state.settingsSection ?? '', (id) =>
-                navigate({ tab: 'settings', settingsSection: id as SettingsSection })
+              moveTabFocus(
+                event,
+                settingsTabIds,
+                navActiveSection,
+                (id) => navigate({ tab: 'settings', settingsSection: id as SettingsSection }),
+                'vertical'
               )
             }
           >
@@ -788,36 +815,13 @@ function SettingsContent({
                 id={`tab-${tab.id}`}
                 type="button"
                 role="tab"
-                className={`settings-nav-item${state.settingsSection === tab.id ? ' active' : ''}`}
-                aria-selected={state.settingsSection === tab.id}
+                className={`settings-nav-item${navActiveSection === tab.id ? ' active' : ''}`}
+                aria-selected={navActiveSection === tab.id}
                 aria-controls="system-panel"
-                tabIndex={state.settingsSection === tab.id ? 0 : -1}
+                tabIndex={navActiveSection === tab.id ? 0 : -1}
                 onClick={() => navigate({ tab: 'settings', settingsSection: tab.id })}
               >
                 <span className="settings-nav-label">{tab.label}</span>
-              </button>
-            ))}
-
-            {settingsModules.length > 0 ? (
-              <div className="settings-nav-divider" aria-hidden="true" />
-            ) : null}
-
-            {settingsModules.map((module) => (
-              <button
-                key={module.id}
-                id={`tab-${module.id}`}
-                type="button"
-                role="tab"
-                className={`settings-nav-item${
-                  state.settingsSection === module.id ? ' active' : ''
-                }`}
-                aria-selected={state.settingsSection === module.id}
-                aria-controls="system-panel"
-                tabIndex={state.settingsSection === module.id ? 0 : -1}
-                onClick={() => navigate({ tab: 'settings', settingsSection: module.id })}
-              >
-                <span className="settings-nav-label">{module.name}</span>
-                {module.configured ? null : <span className="settings-nav-badge">未配置</span>}
               </button>
             ))}
           </nav>
@@ -825,7 +829,7 @@ function SettingsContent({
             id="system-panel"
             className="settings-content"
             role="tabpanel"
-            aria-labelledby={`tab-${state.settingsSection ?? ''}`}
+            aria-labelledby={`tab-${navActiveSection}`}
           >
             <div className="settings-content-inner">{renderSettingsContent()}</div>
           </section>
@@ -839,16 +843,19 @@ function moveTabFocus(
   event: React.KeyboardEvent<HTMLElement>,
   ids: readonly string[],
   currentId: string,
-  select: (id: string) => void
+  select: (id: string) => void,
+  orientation: 'horizontal' | 'vertical' = 'horizontal'
 ): void {
-  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key) || ids.length === 0) {
+  const previousKey = orientation === 'vertical' ? 'ArrowUp' : 'ArrowLeft'
+  const nextKey = orientation === 'vertical' ? 'ArrowDown' : 'ArrowRight'
+  if (![previousKey, nextKey, 'Home', 'End'].includes(event.key) || ids.length === 0) {
     return
   }
   const currentIndex = Math.max(0, ids.indexOf(currentId))
   let nextIndex = currentIndex
-  if (event.key === 'ArrowLeft') {
+  if (event.key === previousKey) {
     nextIndex = (currentIndex - 1 + ids.length) % ids.length
-  } else if (event.key === 'ArrowRight') {
+  } else if (event.key === nextKey) {
     nextIndex = (currentIndex + 1) % ids.length
   } else if (event.key === 'Home') {
     nextIndex = 0

@@ -23,16 +23,17 @@ export function useDeepSeekSettings({
   const [keyDraft, setKeyDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [balance, setBalance] = useState<DeepSeekBalance | null>(null)
+  const [formError, setFormError] = useState('')
 
   async function saveKey(): Promise<boolean> {
     if (!api) {
       return false
     }
     if (!keyDraft.trim()) {
-      setError('请输入 DeepSeek API Key')
+      setFormError('请输入 DeepSeek API Key')
       return false
     }
-    setError('')
+    setFormError('')
     setBusy(true)
     try {
       setModules(await api.saveDeepSeekKey(keyDraft))
@@ -41,7 +42,7 @@ export function useDeepSeekSettings({
       setBalance(await api.fetchDeepSeekBalance())
       return true
     } catch (cause) {
-      setError(toMessage(cause))
+      setFormError(toMessage(cause))
       return false
     } finally {
       setBusy(false)
@@ -83,6 +84,8 @@ export function useDeepSeekSettings({
     summary: modules.find((module) => module.id === 'deepseek'),
     keyDraft,
     setKeyDraft,
+    formError,
+    setFormError,
     busy,
     balance,
     saveKey,

@@ -4,7 +4,7 @@ import type { WindowFactoryOptions } from './pet-window'
 
 export function createSettingsWindow(options: WindowFactoryOptions): BrowserWindow {
   const window = new BrowserWindow({
-    width: 780,
+    width: 880,
     height: 720,
     minWidth: 640,
     minHeight: 540,

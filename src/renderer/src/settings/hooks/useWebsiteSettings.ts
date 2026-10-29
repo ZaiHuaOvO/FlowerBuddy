@@ -62,6 +62,7 @@ export function useWebsiteSettings({ api, websites, setWebsites, flash, setError
     }
     try {
       setWebsites(await api.setWebsiteCheckEnabled(id, enabled))
+      flash('已保存')
     } catch (cause) {
       setError(toMessage(cause))
     }

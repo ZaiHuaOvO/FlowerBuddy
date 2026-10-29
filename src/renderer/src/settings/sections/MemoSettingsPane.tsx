@@ -13,6 +13,7 @@ interface Props {
   onSaveAnchorNew: (enabled: boolean) => void
   onSaveLineTasks: (enabled: boolean) => void
   onGoToFunction: () => void
+  onBack: () => void
 }
 
 export function MemoSettingsPane({
@@ -22,13 +23,16 @@ export function MemoSettingsPane({
   onSaveShortcut,
   onSaveAnchorNew,
   onSaveLineTasks,
-  onGoToFunction
+  onGoToFunction,
+  onBack
 }: Props) {
   return (
     <>
       <PageHeader
         title="备忘录设置"
         description="快捷键与新建备忘录的默认行为。"
+        onBack={onBack}
+        backLabel="功能管理"
         actions={
           <Button variant="secondary" onClick={onGoToFunction}>
             前往功能页

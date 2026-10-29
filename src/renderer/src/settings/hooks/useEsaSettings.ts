@@ -27,6 +27,7 @@ export function useEsaSettings({
   const [siteIdDraft, setSiteIdDraft] = useState(initialSiteId)
   const [busy, setBusy] = useState(false)
   const [traffic, setTraffic] = useState<EsaTrafficSummary | null>(null)
+  const [formError, setFormError] = useState('')
   const lastSiteId = useRef(initialSiteId)
 
   useEffect(() => {
@@ -41,10 +42,10 @@ export function useEsaSettings({
       return false
     }
     if (!keyIdDraft.trim() || !keySecretDraft.trim() || !siteIdDraft.trim()) {
-      setError('请填写 AccessKey ID、AccessKey Secret 和 SiteId')
+      setFormError('请填写 AccessKey ID、AccessKey Secret 和 SiteId')
       return false
     }
-    setError('')
+    setFormError('')
     setBusy(true)
     try {
       setModules(
@@ -60,7 +61,7 @@ export function useEsaSettings({
       setTraffic(await api.fetchEsaTraffic())
       return true
     } catch (cause) {
-      setError(toMessage(cause))
+      setFormError(toMessage(cause))
       return false
     } finally {
       setBusy(false)
@@ -106,6 +107,8 @@ export function useEsaSettings({
     setKeySecretDraft,
     siteIdDraft,
     setSiteIdDraft,
+    formError,
+    setFormError,
     busy,
     traffic,
     saveCredentials,

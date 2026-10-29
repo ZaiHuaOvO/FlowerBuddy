@@ -5,7 +5,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
   user-select: text;

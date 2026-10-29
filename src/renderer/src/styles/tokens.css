@@ -10,9 +10,18 @@
  * easing, control heights, and form state colours.
  *
  * Derived / adapted (call out before changing):
- * - "Microsoft YaHei UI" is appended to the font stack so Chinese text renders
- *   correctly on Windows when Inter/Noto Sans SC are not installed.
+ * - Inter (latin subset, 400/500/600/700) IS bundled as a webfont: see
+ *   styles/fonts.css and assets/fonts/. It covers Latin letters, digits and
+ *   punctuation; Chinese still falls back to Microsoft YaHei UI. Do not add a
+ *   CJK webfont casually — one Noto Sans SC weight measured ~3.5 MB and was
+ *   rejected in the 2026-10-29 audit (DESIGN_SYSTEM.md §4.8).
+ * - The remaining families are fallbacks for machines where a face is missing.
+ *   Never list a family the project does not bundle or Windows does not ship.
  * - Pressed surfaces reuse the verified page background colour.
+ * - Border greys are warmed to match the page surface (2026-10-29). The source
+ *   page uses cool greys, which read as dirty edges on #fff8f3 surfaces.
+ * - `--color-border-subtle` separates dense setting rows without drawing a
+ *   grid; `--color-border` is for real container edges.
  * - `--font-size-3xl` (30px) extends the verified scale for the super bubble
  *   frame only (DESIGN_SYSTEM.md §4.7, 2026-10-29); do not use it for normal
  *   body text.
@@ -34,7 +43,8 @@
   --color-text-muted: #7a6756;
   --color-text-inverse: #fffaf5;
   --color-on-primary: #ffffff;
-  --color-border: #e5e7eb;
+  --color-border: #e8dccf;
+  --color-border-subtle: #f2e9e0;
   --color-border-strong: #d0c0b0;
   --color-primary: #8b5a2b;
   --color-primary-hover: #7a4d23;
@@ -52,6 +62,10 @@
   --color-tag-bg: #f4e7d8;
   --color-tag-border: #d8bd9d;
   --color-tag-text: #7b5530;
+
+  /* Bubble surfaces (DESIGN_SYSTEM.md §4.7). Kept opaque on purpose. */
+  --color-bubble-surface: #fcf6ef;
+  --color-bubble-border: #ecdfd0;
 
   /* Form controls */
   --color-form-bg: #ffffff;
@@ -74,11 +88,10 @@
   --space-9: 52px;
 
   /* Radius */
-  --radius-xs: 8px;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-input: 5px;
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-tag: 6px;
   --radius-pill: 999px;
 
@@ -86,12 +99,15 @@
   --shadow-soft: 0 8px 18px rgba(58, 39, 22, 0.08);
   --shadow: 0 10px 26px rgba(58, 39, 22, 0.1);
   --shadow-hover: 0 16px 30px rgba(58, 39, 22, 0.15);
+  --shadow-control: 0 1px 2px rgba(58, 39, 22, 0.08);
+  --shadow-switch-knob: 0 1px 2px rgba(58, 39, 22, 0.18);
 
   /* Typography */
   --font-base:
-    'InterVar', 'NotoSansSCVar', 'NotoEmojiVar', 'Inter', 'Noto Sans SC', 'PingFang SC',
-    'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+    'Inter', 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei',
+    'PingFang SC', 'Noto Sans SC', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --font-size-2xs: 11px;
   --font-size-xs: 12px;
   --font-size-sm: 13px;
   --font-size-md: 14px;
@@ -99,6 +115,12 @@
   --font-size-xl: 18px;
   --font-size-2xl: 24px;
   --font-size-3xl: 30px;
+  /* Role sizes for the system page (DESIGN_SYSTEM.md §4.6 / §4.8). They sit
+     between the numeric steps on purpose: the page title must read larger than
+     the old 18px brand line, and section titles need 2px over row labels. */
+  --font-size-brand: 15px;
+  --font-size-section-title: 15px;
+  --font-size-page-title: 20px;
   --font-weight-light: 300;
   --font-weight-regular: 400;
   --font-weight-medium: 500;

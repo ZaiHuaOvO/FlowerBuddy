@@ -12,21 +12,24 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 18px 20px 20px;
+  padding: 16px 20px 18px;
   overflow: hidden;
   background: var(--color-bg-page);
   color: var(--color-text);
   user-select: text;
 }
 
+/* The native Windows title bar already shows the product name, so the header
+   stays a quiet utility strip: brand mark, version, transient save state.
+   The page title inside the card is the dominant heading, not this one. */
 .settings-header {
   display: flex;
   flex: 0 0 auto;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 36px;
-  margin-bottom: var(--space-3);
+  min-height: 26px;
+  margin-bottom: var(--space-2);
 }
 
 .settings-boot {
@@ -46,54 +49,63 @@
   gap: var(--space-2);
   margin: 0;
   color: var(--color-text);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-brand);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
   line-height: var(--line-height-tight);
 }
 
 .settings-version {
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-regular);
   white-space: nowrap;
 }
 
 .settings-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   max-width: 52%;
-  margin: 0 0 2px auto;
+  margin: 0 0 0 auto;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
   overflow: hidden;
-  color: var(--color-primary);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-normal);
+  background: var(--color-tag-bg);
+  color: var(--color-tag-text);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .settings-status.is-error {
+  background: var(--color-danger-bg);
   color: var(--color-danger);
 }
 
 /* 2. 顶部 tab */
 
+/* Top navigation is chrome, not a control sitting on the same plane as the
+   content card: no container box, no elevation. Selection is expressed with a
+   filled pill, the same language as the left rail. */
 .system-top-tabs {
   display: inline-flex;
   flex: 0 0 auto;
   align-self: flex-start;
-  gap: 2px;
+  gap: var(--space-1);
   margin-bottom: var(--space-3);
-  padding: 3px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 72%, var(--color-bg-page));
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .system-top-tab {
-  min-height: 32px;
-  padding: 0 var(--space-5);
+  min-height: var(--control-height-xs);
+  padding: 0 var(--space-4);
   border: 0;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
@@ -101,18 +113,20 @@
   cursor: pointer;
   transition:
     color var(--motion-fast) var(--ease-standard),
-    background-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
+    background-color var(--motion-fast) var(--ease-standard);
 }
 
 .system-top-tab:hover {
+  background: color-mix(in srgb, var(--color-tag-bg) 45%, transparent);
   color: var(--color-text);
 }
 
+/* Sits on the page background, so it needs a stronger tint than the rail's
+   selected item (which sits on white). */
 .system-top-tab.active {
-  background: var(--color-surface);
+  background: var(--color-tag-bg);
   color: var(--color-text);
-  box-shadow: 0 1px 2px rgba(58, 39, 22, 0.08);
+  font-weight: var(--font-weight-semibold);
 }
 
 .system-top-tab:focus-visible {
@@ -120,13 +134,45 @@
   box-shadow: var(--focus-ring);
 }
 
+/* Startup notices stay in flow (they appear once, before any interaction).
+   Action errors float instead: pushing the whole card down mid-task was the
+   worst part of the old header-banner behaviour. */
 .settings-global-alert {
   flex: 0 0 auto;
   margin-bottom: var(--space-3);
 }
 
+.settings-toast {
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  z-index: var(--layer-popover);
+  width: min(520px, calc(100% - 48px));
+  transform: translateX(-50%);
+  animation: settings-toast-in var(--motion-fast) var(--ease-standard);
+}
+
+.settings-toast .app-alert {
+  margin-bottom: 0;
+  box-shadow: var(--shadow);
+}
+
+@keyframes settings-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 /* 3. 双栏内容卡 */
 
+/* Persistent layout is flat: elevation belongs to transient layers (dialogs,
+   tooltips, the error toast), never to the window frame or the content card.
+   A drop shadow here made the content read as floating above the navigation. */
 .settings-body {
   display: flex;
   flex: 1 1 auto;
@@ -135,12 +181,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
 }
 
 .settings-nav {
   display: flex;
-  flex: 0 0 164px;
+  flex: 0 0 152px;
   flex-direction: column;
   gap: 2px;
   min-height: 0;
@@ -148,7 +193,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-surface-soft) 72%, var(--color-surface));
+  background: transparent;
   scrollbar-width: thin;
 }
 
@@ -158,7 +203,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-  min-height: 36px;
+  min-height: var(--control-height-md);
   padding: var(--space-2) var(--space-3);
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
@@ -174,16 +219,15 @@
 }
 
 .settings-nav-item:hover {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface-soft) 55%, transparent);
   color: var(--color-text);
 }
 
 .settings-nav-item.active {
-  border-color: var(--color-border);
-  background: var(--color-surface);
+  border-color: transparent;
+  background: var(--color-surface-soft);
   color: var(--color-text);
   font-weight: var(--font-weight-semibold);
-  box-shadow: 0 1px 2px rgba(58, 39, 22, 0.06);
 }
 
 .settings-nav-item:focus-visible {
@@ -203,16 +247,9 @@
   border-radius: var(--radius-tag);
   background: var(--color-tag-bg);
   color: var(--color-tag-text);
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-medium);
   line-height: 1.4;
-}
-
-.settings-nav-divider {
-  flex: 0 0 auto;
-  height: 1px;
-  margin: var(--space-2) var(--space-3);
-  background: var(--color-border);
 }
 
 .settings-nav-empty {
@@ -232,8 +269,9 @@
 }
 
 .settings-content-inner {
-  max-width: 760px;
-  padding: var(--space-6) var(--space-6) var(--space-7);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-6) var(--space-7);
   animation: settings-content-in var(--motion-fast) var(--ease-standard) both;
 }
 
@@ -262,6 +300,31 @@
   min-width: 0;
 }
 
+.page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.page-back:hover {
+  color: var(--color-primary);
+}
+
+.page-back:focus-visible {
+  outline: none;
+  border-radius: var(--radius-xs);
+  box-shadow: var(--focus-ring);
+}
+
 .page-header-title-row {
   display: flex;
   flex-wrap: wrap;
@@ -272,9 +335,9 @@
 .page-header h2 {
   margin: 0;
   color: var(--color-text);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-page-title);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   line-height: 1.3;
 }
 
@@ -309,7 +372,7 @@
 }
 
 .section {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-7);
 }
 
 .section:last-child {
@@ -321,7 +384,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-1);
 }
 
 .section-header-text {
@@ -331,8 +394,9 @@
 .section-header h3 {
   margin: 0;
   color: var(--color-text);
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-section-title);
   font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.005em;
   line-height: 1.4;
 }
 
@@ -360,7 +424,7 @@
   gap: var(--space-5);
   min-height: 56px;
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .form-row:last-child {
@@ -438,13 +502,7 @@
   justify-content: flex-end;
   margin-top: var(--space-1);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-
-.field-error {
-  color: var(--color-danger);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-normal);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .hint {
@@ -458,7 +516,7 @@
 
 .range-field {
   display: flex;
-  flex: 0 1 280px;
+  flex: 0 1 236px;
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
@@ -543,7 +601,8 @@
   align-items: center;
   justify-content: center;
   min-width: 56px;
-  padding: 7px var(--space-3);
+  min-height: var(--control-height-xs);
+  padding: 0 var(--space-3);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   line-height: 1;
@@ -590,7 +649,7 @@
   min-height: var(--control-height-md);
   padding: 0 var(--space-3);
   border: 1px solid var(--color-form-border);
-  border-radius: var(--radius-input);
+  border-radius: var(--radius-sm);
   background: var(--color-form-bg);
   color: var(--color-text);
   font-size: var(--font-size-sm);
@@ -659,7 +718,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-surface-soft);
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -688,7 +747,7 @@
   position: absolute;
   inset: 0 var(--space-2) auto;
   height: 1px;
-  background: var(--color-border);
+  background: var(--color-border-subtle);
 }
 
 .module-row[draggable='true'] {
@@ -743,9 +802,16 @@
 
 .module-row-action {
   flex: 0 0 auto;
-  min-height: 32px;
+  min-height: var(--control-height-xs);
   padding: 0 var(--space-3);
   font-size: var(--font-size-xs);
+}
+
+.module-row-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 /* 8. 通用列表（备忘录 / 提醒 / 网站） */
@@ -756,7 +822,7 @@
   display: flex;
   flex-direction: column;
   margin-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .memo-card,
@@ -767,7 +833,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
   transition: background-color var(--motion-fast) var(--ease-standard);
 }
 
@@ -939,7 +1005,7 @@
 .stat-list {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .stat-row {
@@ -948,7 +1014,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .stat-row:last-child {
@@ -1193,7 +1259,7 @@
 }
 
 .memo-calendar-day {
-  height: 32px;
+  height: var(--control-height-xs);
   padding: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-xs);
@@ -1516,6 +1582,13 @@
   pointer-events: auto;
 }
 
+.pet-gallery-delete.is-confirming {
+  opacity: 1;
+  pointer-events: auto;
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
 .pet-gallery-delete:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
@@ -1555,7 +1628,7 @@
   padding: var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-surface-soft), var(--color-surface));
+  background: var(--color-surface-soft);
 }
 
 .about-icon {
@@ -1635,7 +1708,7 @@
   min-height: 40px;
   padding: var(--space-2) 0;
   border: 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-subtle);
   background: transparent;
   color: var(--color-text);
   font: inherit;
@@ -1679,7 +1752,7 @@
 
 /* 16. 窄窗口 */
 
-@media (max-width: 720px) {
+@media (max-width: 680px) {
   .settings-root {
     padding: var(--space-3);
   }
@@ -1717,13 +1790,9 @@
     flex-direction: row;
     align-items: center;
     gap: var(--space-2);
-    min-height: 32px;
+    min-height: var(--control-height-xs);
     padding: 0 var(--space-3);
     white-space: nowrap;
-  }
-
-  .settings-nav-divider {
-    display: none;
   }
 
   .settings-content-inner {

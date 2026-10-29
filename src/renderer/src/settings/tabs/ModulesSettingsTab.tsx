@@ -1,19 +1,28 @@
 import { useState } from 'react'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Settings as SettingsIcon } from 'lucide-react'
 import type { ModuleId, ModuleSummary, SecurityStatus } from '../../../../shared/api'
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
+import { IconButton } from '../../components/IconButton'
 import { InfoTip } from '../../components/InfoTip'
 import { PageHeader } from '../components/PageHeader'
+import { SETTINGS_MODULE_IDS } from '../utils/constants'
 
 interface Props {
   modules: ModuleSummary[]
   security: SecurityStatus | null
   onToggle: (moduleId: ModuleId, enabled: boolean) => void
   onReorder: (order: ModuleId[]) => void
+  onOpenSettings: (moduleId: ModuleId) => void
 }
 
-export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: Props) {
+export function ModulesSettingsTab({
+  modules,
+  security,
+  onToggle,
+  onReorder,
+  onOpenSettings
+}: Props) {
   const [draggingId, setDraggingId] = useState<ModuleId | null>(null)
   const [dragOverId, setDragOverId] = useState<ModuleId | null>(null)
   const enabled = modules.filter((module) => module.enabled)
@@ -96,13 +105,23 @@ export function ModulesSettingsTab({ modules, security, onToggle, onReorder }: P
                     <span className="module-row-name">{module.name}</span>
                     <InfoTip text={module.description} align="right" />
                   </span>
-                  <Button
-                    variant="ghost"
-                    className="module-row-action"
-                    onClick={() => onToggle(module.id, false)}
-                  >
-                    停用
-                  </Button>
+                  <span className="module-row-actions">
+                    {SETTINGS_MODULE_IDS.includes(module.id) ? (
+                      <IconButton
+                        label={`打开${module.name}设置`}
+                        onClick={() => onOpenSettings(module.id)}
+                      >
+                        <SettingsIcon size={15} strokeWidth={1.8} aria-hidden="true" />
+                      </IconButton>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      className="module-row-action"
+                      onClick={() => onToggle(module.id, false)}
+                    >
+                      停用
+                    </Button>
+                  </span>
                 </li>
               ))}
             </ul>

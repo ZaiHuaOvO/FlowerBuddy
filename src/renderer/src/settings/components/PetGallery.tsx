@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { MAX_PET_NAME_LENGTH, petAssetUrl } from '../../../../shared/api'
 import type { PetUserImage } from '../../../../shared/api'
 import { PET_PRESETS } from '../../../../shared/pet-presets'
@@ -17,6 +17,7 @@ interface CardProps {
   label: string
   selected: boolean
   disabled: boolean
+  confirming?: boolean
   onSelect: (assetId: string) => Promise<void>
   onDelete?: (assetId: string) => Promise<void>
   rename?: {
@@ -35,6 +36,7 @@ function PetGalleryCard({
   label,
   selected,
   disabled,
+  confirming = false,
   onSelect,
   onDelete,
   rename
@@ -90,13 +92,13 @@ function PetGalleryCard({
       {onDelete ? (
         <button
           type="button"
-          className="pet-gallery-delete"
-          aria-label={`删除${label}`}
-          title="删除"
+          className={`pet-gallery-delete${confirming ? ' is-confirming' : ''}`}
+          aria-label={confirming ? `确认删除${label}` : `删除${label}`}
+          title={confirming ? '再次点击确认删除' : '删除'}
           disabled={disabled}
           onClick={() => void onDelete(assetId)}
         >
-          <X size={12} aria-hidden="true" />
+          {confirming ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
         </button>
       ) : null}
     </div>
@@ -107,9 +109,11 @@ export function PetGallery({ currentAssetId, userImages, onSelect, onDelete, onR
   const [busyId, setBusyId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [confirmId, setConfirmId] = useState<string | null>(null)
   const cancelRename = useRef(false)
 
   async function select(assetId: string): Promise<void> {
+    setConfirmId(null)
     if (busyId || assetId === currentAssetId) {
       return
     }
@@ -131,6 +135,20 @@ export function PetGallery({ currentAssetId, userImages, onSelect, onDelete, onR
     } finally {
       setBusyId(null)
     }
+  }
+
+  // Two-step delete: user images cannot be recovered, so the first click only
+  // arms the button and the second one removes the file.
+  async function requestRemove(assetId: string): Promise<void> {
+    if (busyId) {
+      return
+    }
+    if (confirmId !== assetId) {
+      setConfirmId(assetId)
+      return
+    }
+    setConfirmId(null)
+    await remove(assetId)
   }
 
   function startRename(image: PetUserImage, fallbackLabel: string): void {
@@ -180,8 +198,9 @@ export function PetGallery({ currentAssetId, userImages, onSelect, onDelete, onR
             label={image.name ?? fallbackLabel}
             selected={image.assetId === currentAssetId}
             disabled={busyId !== null}
+            confirming={confirmId === image.assetId}
             onSelect={select}
-            onDelete={remove}
+            onDelete={requestRemove}
             rename={{
               editing: editingId === image.assetId,
               draft,

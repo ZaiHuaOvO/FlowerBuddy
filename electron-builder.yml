@@ -67,6 +67,8 @@ extraResources:
     to: ASSETS-LICENSE.md
   - from: licenses/THIRD_PARTY_LICENSES.md
     to: licenses/THIRD_PARTY_LICENSES.md
+  - from: src/renderer/src/assets/fonts/LICENSE-Inter.txt
+    to: licenses/LICENSE-Inter.txt
   - from: assets/tray-icon.png
     to: assets/tray-icon.png
   - from: assets/app-icon.png
